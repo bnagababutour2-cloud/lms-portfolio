@@ -1,1 +1,197 @@
 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Daily Trade Report</title>
+
+<style>
+
+body{
+    margin:0;
+    font-family:Arial,sans-serif;
+    background:#f5f7fa;
+}
+
+.header{
+    background:#0b4a85;
+    color:white;
+    padding:15px 25px;
+}
+
+.container{
+    padding:20px;
+}
+
+.card{
+    background:white;
+    padding:15px;
+    margin-bottom:20px;
+    border-radius:8px;
+    box-shadow:0 2px 8px rgba(0,0,0,.1);
+}
+
+.btn{
+    background:#0b4a85;
+    color:white;
+    border:none;
+    padding:10px 15px;
+    border-radius:5px;
+    cursor:pointer;
+}
+
+input,select{
+    padding:10px;
+    margin:5px;
+}
+
+table{
+    width:100%;
+    border-collapse:collapse;
+}
+
+table th{
+    background:#0b4a85;
+    color:white;
+    padding:10px;
+}
+
+table td{
+    border:1px solid #ddd;
+    padding:8px;
+}
+
+.success{
+    color:green;
+    font-weight:bold;
+}
+
+.pending{
+    color:orange;
+    font-weight:bold;
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="header">
+    <h2>LMS Portfolio - Daily Trade Report</h2>
+</div>
+
+<div class="container">
+
+<div class="card">
+
+    <h3>Upload Daily Trade Report</h3>
+
+    <input type="file">
+
+    <button class="btn">
+        Process Report
+    </button>
+
+    <button class="btn">
+        Download Existing Data
+    </button>
+
+</div>
+
+<div class="card">
+
+    <h3>Trade Search</h3>
+
+    <input type="text" placeholder="Client ID">
+
+    <input type="text" placeholder="Symbol">
+
+    <select>
+        <option>All Products</option>
+        <option>CNC</option>
+        <option>DELIVERY</option>
+        <option>MTF</option>
+        <option>INTRADAY</option>
+    </select>
+
+    <button class="btn">
+        Search
+    </button>
+
+</div>
+
+<div class="card">
+
+<h3>Trade Report Data</h3>
+
+<table>
+
+<tr>
+    <th>Date</th>
+    <th>Client ID</th>
+    <th>Symbol</th>
+    <th>Product</th>
+    <th>Buy Qty</th>
+    <th>Buy Avg</th>
+    <th>Sell Qty</th>
+    <th>Sell Avg</th>
+    <th>Net Qty</th>
+    <th>Net Avg</th>
+    <th>P/L</th>
+</tr>
+
+<tr>
+    <td>05-09-2026</td>
+    <td>13010001</td>
+    <td>RELIANCE</td>
+    <td>CNC</td>
+    <td>100</td>
+    <td>2500</td>
+    <td>0</td>
+    <td>0</td>
+    <td>100</td>
+    <td>2500</td>
+    <td>30000</td>
+</tr>
+
+</table>
+
+</div>
+
+<div class="card">
+
+<h3>Upload History</h3>
+
+<table>
+
+<tr>
+    <th>Upload Date</th>
+    <th>File Name</th>
+    <th>Records</th>
+    <th>Status</th>
+</tr>
+
+<tr>
+    <td>05-09-2026</td>
+    <td>daily_trade.xlsx</td>
+    <td>500</td>
+    <td class="success">Processed</td>
+</tr>
+
+</table>
+
+</div>
+
+<div class="card">
+
+<h3>Processing Log</h3>
+
+<p>Waiting for next upload...</p>
+
+</div>
+
+</div>
+
+</body>
+</html>
