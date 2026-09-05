@@ -19,7 +19,7 @@ def client_portfolio():
 
 @app.route("/admin")
 def admin_portfolio():
-    return render_template("admin_portfolio.html")
+    return render_template("admin.html")
 
 
 @app.route("/trade-report")
