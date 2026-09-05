@@ -1,9 +1,154 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>LMS Portfolio</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LMS Portfolio Login</title>
+
+<style>
+
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family:Arial, Helvetica, sans-serif;
+}
+
+body{
+    height:100vh;
+    background:url("/static/images/background.jpeg") center center/cover no-repeat;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+}
+
+.overlay{
+    position:absolute;
+    inset:0;
+    background:rgba(0,0,0,0.45);
+}
+
+.login-container{
+    position:relative;
+    z-index:2;
+    width:420px;
+    background:white;
+    padding:35px;
+    border-radius:12px;
+    box-shadow:0 10px 30px rgba(0,0,0,0.25);
+}
+
+.logo{
+    text-align:center;
+    margin-bottom:20px;
+}
+
+.logo h1{
+    color:#0b4a85;
+    font-size:28px;
+}
+
+.logo p{
+    color:#666;
+    font-size:14px;
+}
+
+.form-group{
+    margin-bottom:15px;
+}
+
+label{
+    display:block;
+    margin-bottom:5px;
+    font-weight:bold;
+}
+
+input{
+    width:100%;
+    padding:12px;
+    border:1px solid #ccc;
+    border-radius:6px;
+}
+
+.btn-login{
+    width:100%;
+    background:#0b4a85;
+    color:white;
+    border:none;
+    padding:12px;
+    border-radius:6px;
+    cursor:pointer;
+    font-size:16px;
+}
+
+.btn-login:hover{
+    background:#083660;
+}
+
+.footer-links{
+    text-align:center;
+    margin-top:15px;
+}
+
+.footer-links a{
+    color:#0b4a85;
+    text-decoration:none;
+}
+
+.note{
+    margin-top:20px;
+    text-align:center;
+    font-size:12px;
+    color:#777;
+}
+
+</style>
 </head>
+
 <body>
-    <h1>LMS Portfolio Login</h1>
+
+<div class="overlay"></div>
+
+<div class="login-container">
+
+    <div class="logo">
+        <h1>LMS Portfolio</h1>
+        <p>Portfolio Management System</p>
+    </div>
+
+    <form method="POST">
+
+        <div class="form-group">
+            <label>User ID</label>
+            <input type="text"
+                   name="userid"
+                   placeholder="Enter User ID"
+                   required>
+        </div>
+
+        <div class="form-group">
+            <label>Password</label>
+            <input type="password"
+                   name="password"
+                   placeholder="Enter Password"
+                   required>
+        </div>
+
+        <button class="btn-login" type="submit">
+            Login
+        </button>
+
+    </form>
+
+    <div class="footer-links">
+        <a href="#">Forgot Password?</a>
+    </div>
+
+    <div class="note">
+        Default Password = User ID
+    </div>
+
+</div>
+
 </body>
-</html>  
+</html>
