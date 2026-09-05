@@ -1,1 +1,307 @@
 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LMS Portfolio - Admin Dashboard</title>
+
+<style>
+body{
+    margin:0;
+    font-family:Arial,sans-serif;
+    background:#f5f7fa;
+}
+
+.header{
+    background:#0b4a85;
+    color:white;
+    padding:15px 25px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+}
+
+.header h2{
+    margin:0;
+}
+
+.menu button{
+    margin-left:10px;
+    padding:8px 14px;
+    border:none;
+    border-radius:5px;
+    cursor:pointer;
+}
+
+.container{
+    padding:20px;
+}
+
+.card{
+    background:white;
+    padding:15px;
+    margin-bottom:20px;
+    border-radius:8px;
+    box-shadow:0 2px 8px rgba(0,0,0,.1);
+}
+
+.section-title{
+    font-size:20px;
+    color:#0b4a85;
+    margin-bottom:15px;
+}
+
+.filters{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:10px;
+}
+
+input,select{
+    padding:10px;
+    width:100%;
+    box-sizing:border-box;
+}
+
+.btn{
+    background:#0b4a85;
+    color:white;
+    border:none;
+    padding:10px 15px;
+    border-radius:5px;
+    cursor:pointer;
+}
+
+table{
+    width:100%;
+    border-collapse:collapse;
+}
+
+table th{
+    background:#0b4a85;
+    color:white;
+    padding:10px;
+}
+
+table td{
+    border:1px solid #ddd;
+    padding:8px;
+}
+
+.mtm-profit{
+    color:green;
+    font-weight:bold;
+}
+
+.mtm-loss{
+    color:red;
+    font-weight:bold;
+}
+</style>
+
+</head>
+<body>
+
+<div class="header">
+
+    <h2>LMS Portfolio - Admin Dashboard</h2>
+
+    <div class="menu">
+        <button>Pending Requests</button>
+        <button>All Requests</button>
+        <button>Upload History</button>
+        <button>Logout</button>
+    </div>
+
+</div>
+
+<div class="container">
+
+<div class="card">
+
+<div class="section-title">
+Client Search
+</div>
+
+<div class="filters">
+
+<input type="text" placeholder="Client ID">
+
+<input type="text" placeholder="Client Name">
+
+<input type="text" placeholder="Symbol Search">
+
+<select>
+<option>All Products</option>
+<option>CNC</option>
+<option>DELIVERY</option>
+<option>MTF</option>
+<option>INTRADAY</option>
+</select>
+
+</div>
+
+<br>
+
+<button class="btn">
+Refresh All Clients
+</button>
+
+</div>
+
+<div class="card">
+
+<div class="section-title">
+Add New Script
+</div>
+
+<div class="filters">
+
+<input placeholder="Client ID">
+
+<input placeholder="Symbol">
+
+<select>
+<option>CNC</option>
+<option>DELIVERY</option>
+<option>MTF</option>
+<option>INTRADAY</option>
+</select>
+
+<input placeholder="Quantity">
+
+</div>
+
+<br>
+
+<div class="filters">
+
+<input placeholder="Buy Price">
+
+<input placeholder="LTP">
+
+<input placeholder="Remarks">
+
+<button class="btn">
+ADD SCRIPT
+</button>
+
+</div>
+
+</div>
+
+<div class="card">
+
+<div class="section-title">
+Client Information
+</div>
+
+<table>
+
+<tr>
+<th>Client ID</th>
+<th>Name</th>
+<th>Mobile</th>
+<th>Email</th>
+<th>DOB</th>
+<th>Password Reset</th>
+</tr>
+
+<tr>
+<td>13010001</td>
+<td>Sample Client</td>
+<td>9999999999</td>
+<td>client@email.com</td>
+<td>01-01-1990</td>
+<td>
+<button>Reset</button>
+</td>
+</tr>
+
+</table>
+
+</div>
+
+<div class="card">
+
+<div class="section-title">
+Portfolio (MTM Descending)
+</div>
+
+<table>
+
+<tr>
+<th>Select</th>
+<th>Client ID</th>
+<th>Symbol</th>
+<th>Product</th>
+<th>Qty</th>
+<th>Buy Price</th>
+<th>LTP</th>
+<th>Market Value</th>
+<th>MTM</th>
+<th>Portfolio ID</th>
+</tr>
+
+<tr>
+<td><input type="checkbox"></td>
+<td>13010001</td>
+<td>RELIANCE</td>
+<td>CNC</td>
+<td>100</td>
+<td>2500</td>
+<td>2800</td>
+<td>280000</td>
+<td class="mtm-profit">30000</td>
+<td>PF00001</td>
+</tr>
+
+<tr>
+<td><input type="checkbox"></td>
+<td>13010002</td>
+<td>TCS</td>
+<td>CNC</td>
+<td>50</td>
+<td>3800</td>
+<td>3700</td>
+<td>185000</td>
+<td class="mtm-loss">-5000</td>
+<td>PF00002</td>
+</tr>
+
+</table>
+
+<br>
+
+<button class="btn">Save All Changes</button>
+<button class="btn">Modify Selected</button>
+<button class="btn">Delete Selected</button>
+<button class="btn">Export</button>
+
+</div>
+
+<div class="card">
+
+<div class="section-title">
+Daily Trade Report
+</div>
+
+<input type="file">
+
+<br><br>
+
+<button class="btn">
+Upload Daily Trade Report
+</button>
+
+<button class="btn">
+Download Existing Data
+</button>
+
+</div>
+
+</div>
+
+</body>
+</html>
