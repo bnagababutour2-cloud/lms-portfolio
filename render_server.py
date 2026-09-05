@@ -19,8 +19,8 @@ load_dotenv()
 # which may be unavailable on some networks. Local development can still
 # use SUPABASE_URL + SUPABASE_KEY when DATABASE_URL is not configured.
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "https://gonhpxvlqicirkmpazvb.supabase.co").strip()
-SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "").strip()
-DATABASE_URL = os.environ.get("DATABASE_URL", "").strip()
+SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "sb_secret_VacgZ-hWuCBmWhvpyzNqbg_qWfAiVIY").strip()
+DATABASE_URL = os.environ.get("DATABASE_URL", "postgresql://postgres.gonhpxvlqicirkmpazvb:Adityatrishika123@aws-0-ap-northeast-1.pooler.supabase.com:5432/postgres").strip()
 
 
 class _DBResponse:
