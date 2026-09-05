@@ -20,7 +20,7 @@ load_dotenv()
 # use SUPABASE_URL + SUPABASE_KEY when DATABASE_URL is not configured.
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "https://gonhpxvlqicirkmpazvb.supabase.co").strip()
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "sb_secret_VacgZ-hWuCBmWhvpyzNqbg_qWfAiVIY").strip()
-DATABASE_URL = os.environ.get("DATABASE_URL", "postgresql://postgres.gonhpxkvlqcirkmpazvb:I46aSOtsJsmhrLB5@aws-0-ap-northeast-1.pooler.supabase.com:5432/postgres").strip()
+DATABASE_URL = os.environ.get("DATABASE_URL", "postgresql://postgres.gonhpxkvlqcirkmpazvb:T7NpZeSWVaNzhM5w@aws-0-ap-northeast-1.pooler.supabase.com:5432/postgres").strip()
 
 
 class _DBResponse:
@@ -40,6 +40,7 @@ class _PostgresQuery:
         self._filters = []
         self._params = []
         self._limit = None
+        self._offset = None
         self._payload = None
 
     def select(self, columns="*"):
@@ -68,6 +69,17 @@ class _PostgresQuery:
 
     def limit(self, count):
         self._limit = int(count)
+        self._offset = None
+        return self
+
+    def range(self, start, end):
+        """PostgREST-compatible inclusive row range: start..end."""
+        start = int(start)
+        end = int(end)
+        if start < 0 or end < start:
+            raise ValueError("Invalid range: start must be >= 0 and end must be >= start")
+        self._offset = start
+        self._limit = end - start + 1
         return self
 
     def insert(self, payload):
@@ -105,11 +117,13 @@ class _PostgresQuery:
             with con.cursor(cursor_factory=RealDictCursor) as cur:
                 if self._op == "select":
                     sql = f"SELECT {self._columns} FROM \"{self.table}\"" + self._where_sql()
+                    params = list(self._params)
                     if self._limit is not None:
                         sql += " LIMIT %s"
-                        params = list(self._params) + [self._limit]
-                    else:
-                        params = list(self._params)
+                        params.append(self._limit)
+                    if self._offset is not None:
+                        sql += " OFFSET %s"
+                        params.append(self._offset)
                     cur.execute(sql, params)
                     rows = [dict(r) for r in cur.fetchall()]
                     return _DBResponse(rows)
