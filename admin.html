@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LMS Portfolio — Admin</title>
+<style>
+:root{--navy:#052d70;--blue:#0b55b5;--gold:#f4c400;--green:#128a43;--red:#d62828;--bg:#eef5fc;--line:#d4e0ee;--text:#14263d;--muted:#60748a}
+*{box-sizing:border-box}body{margin:0;font-family:Arial,Helvetica,sans-serif;color:var(--text);background:linear-gradient(135deg,#edf5ff,#fff 55%,#eef5ff)}
+.top{min-height:145px;background:url('/static/images/lms_header_portfolio.jpeg') center top/cover no-repeat;color:#fff;padding:20px 28px;display:flex;align-items:flex-end;box-shadow:0 5px 18px rgba(0,30,80,.25)}
+.brand{display:flex;align-items:center;gap:16px}.header-overlay{width:100%;text-align:center;color:#fff}.header-subtitle{margin-top:48px;color:#f8c518;font-size:16px;font-weight:900;letter-spacing:.4px;text-transform:uppercase;text-shadow:0 1px 2px rgba(0,0,0,.35)}.header-login{margin-top:4px;font-size:12px;font-weight:800}.logo{width:62px;height:62px;background:#fff;border-radius:10px;color:#c92323;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:31px;border:4px solid #e8eef8}.brand h1{margin:0;font-size:28px}.brand p{margin:6px 0 0;color:#ffd21c;font-weight:900}
+.container{max-width:1320px;margin:18px auto;padding:0 12px}.toolbar,.card{background:#fff;border:1px solid #d8e4f0;border-radius:14px;box-shadow:0 5px 18px rgba(21,59,102,.10);margin-bottom:16px}.toolbar{padding:12px;display:flex;gap:9px;flex-wrap:wrap}.card{padding:16px}.title{font-size:18px;font-weight:900;color:var(--navy);margin-bottom:12px}.sub{color:var(--muted);font-size:12px}
+.btn{border:0;border-radius:8px;padding:10px 14px;font-weight:900;color:#fff;background:var(--blue);cursor:pointer}.gold{background:#d99e00}.green{background:var(--green)}.red{background:var(--red)}.gray{background:#69778a}.light{background:#eaf2fc;color:var(--navy);border:1px solid #cbdced}
+.filters{display:grid;grid-template-columns:1.05fr 1.05fr 1.15fr .75fr auto auto;gap:10px;align-items:center}.search-actions{display:flex;gap:8px;align-items:center;margin-top:0}.portfolio-bar{flex-wrap:nowrap;overflow-x:auto;white-space:nowrap}.metric{padding:8px 11px;border:1px solid #d5e2f1;border-radius:8px;background:#f7faff;color:var(--navy);font-size:12px}.metric strong{font-size:15px}.portfolio-bar .btn,.portfolio-bar .pill{flex:0 0 auto}input,select{width:100%;padding:11px;border:1px solid #cbd9e8;border-radius:8px;background:#fff;font-size:14px}.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:0 0 14px}.stat{padding:14px;border-radius:10px;border:1px solid #d5e2f1;background:linear-gradient(135deg,#edf5ff,#fff)}.stat small{display:block;color:var(--muted);font-weight:800}.stat strong{display:block;margin-top:5px;color:var(--navy);font-size:22px}
+.table-wrap{overflow:auto;max-height:570px;border:1px solid var(--line);border-radius:9px}table{width:100%;border-collapse:collapse;min-width:1120px}th{background:linear-gradient(90deg,#062e70,#0b55b5);color:#fff;padding:10px 8px;text-align:left;position:sticky;top:0;z-index:1;font-size:12px;white-space:nowrap}td{padding:9px;border-bottom:1px solid #e0e8f1;font-size:12px;background:#fff}tr:nth-child(even) td{background:#f7faff}.profit{color:var(--green);font-weight:900}.loss{color:var(--red);font-weight:900}
+.sortbtn{display:inline-flex;flex-direction:column;vertical-align:middle;margin-left:5px;gap:0}.sortbtn button{border:0;background:transparent;color:#fff;padding:0 2px;font-size:9px;line-height:8px;cursor:pointer}.sortbtn button:hover{color:#ffd21c}
+.action{display:flex;gap:5px}.action button{border:0;border-radius:6px;color:#fff;padding:7px 9px;font-size:10px;font-weight:900;cursor:pointer}.modify{background:#0b55b5}.delete{background:#d62828}.check{width:18px;height:18px;accent-color:#0b55b5}.selectbar{display:flex;gap:7px;align-items:center;flex-wrap:wrap;margin-bottom:10px}.pill{display:inline-block;background:#edf4fd;color:var(--navy);border:1px solid #cfdeed;padding:6px 10px;border-radius:999px;font-size:12px;font-weight:800}.footer{background:#052d70;color:#fff;text-align:center;padding:18px;margin-top:22px}.footer b{color:#ffd21c}
+.modal{display:none;position:fixed;inset:0;background:rgba(3,25,57,.62);align-items:center;justify-content:center;z-index:30}.modal.show{display:flex}.modal-box{background:#fff;width:min(480px,92vw);border-radius:14px;padding:20px}.form-grid{display:grid;gap:10px}.modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:14px}
+@media(max-width:900px){.filters{grid-template-columns:1fr}.brand h1{font-size:19px}.portfolio-bar{flex-wrap:wrap;white-space:normal;overflow-x:visible}}
+</style>
+</head>
+<body>
+<header class="top"><div class="header-overlay"><div class="header-subtitle">ADMIN / SUPERVISOR PORTFOLIO &amp; DAILY CONTROL PANEL</div><div class="header-login">Logged in: {{ supervisor_name }} ({{ supervisor_id }}){% if not can_manage %} · VIEW ONLY{% endif %}</div></div></header>
+<div class="container">
+<div class="toolbar">
+<button class="btn" onclick="location.reload()">REFRESH</button>
+{% if can_manage %}<button class="btn gold" onclick="openAdd()">ADD POSITION</button>{% endif %}
+{% if can_upload %}<a href="/trade-report"><button class="btn">DAILY TRADE REPORT</button></a>{% endif %}
+<a href="/download/holdings.csv"><button class="btn green">DOWNLOAD PORTFOLIO</button></a>
+<a href="/download/clients.csv"><button class="btn light">DOWNLOAD CLIENTS</button></a>
+<a href="/logout"><button class="btn gray">LOGOUT</button></a>
+</div>
+
+<div class="card">
+<div class="title">Client / Symbol / Product Search</div>
+<div class="filters">
+<input id="clientSearch" placeholder="Search Client ID">
+<input id="symbolSearch" placeholder="Search Symbol">
+<input id="productSearch" placeholder="Search Product (CNC / MTF / NRML etc.)">
+<select id="exchangeSearch"><option value="">All Exchanges</option><option value="BSE">BSE</option><option value="NSE">NSE</option></select>
+<button class="btn" onclick="filterPortfolio()">SEARCH</button>
+<button class="btn light" onclick="clearSearch()">CLEAR SEARCH</button>
+</div>
+</div>
+
+<div class="card">
+<div class="title">Portfolio — Click ▲ / ▼ in any header to sort</div>
+<div class="selectbar portfolio-bar"><span class="metric"><b>Visible MTM:</b> <strong id="totalMtm">0.00</strong></span><span class="metric"><b>Total Clients:</b> <strong>{{ clients|length }}</strong></span><span class="metric"><b>Portfolio Rows:</b> <strong>{{ holdings|length }}</strong></span><button class="btn light" onclick="selectAllRows()">SELECT ALL ROWS</button><button class="btn light" onclick="clearRowSelection()">CLEAR</button><button class="btn green" onclick="downloadSelectedRows()">DOWNLOAD SELECTED</button>{% if can_manage %}<button class="btn red" onclick="deleteSelectedRows()">DELETE SELECTED</button>{% endif %}<span class="pill" id="rowCount">0 selected</span></div>
+<div class="table-wrap"><table id="portfolioTable"><thead><tr>
+<th><input class="check" type="checkbox" onchange="toggleAllRows(this)"></th>
+<th>Client <span class="sortbtn"><button onclick="sortTable(1,true)">▲</button><button onclick="sortTable(1,false)">▼</button></span></th>
+<th>Symbol <span class="sortbtn"><button onclick="sortTable(2,true)">▲</button><button onclick="sortTable(2,false)">▼</button></span></th>
+<th>Product <span class="sortbtn"><button onclick="sortTable(3,true)">▲</button><button onclick="sortTable(3,false)">▼</button></span></th>
+<th>Exchange <span class="sortbtn"><button onclick="sortTable(4,true)">▲</button><button onclick="sortTable(4,false)">▼</button></span></th>
+<th>MTM <span class="sortbtn"><button onclick="sortTable(5,true)">▲</button><button onclick="sortTable(5,false)">▼</button></span></th>
+<th>LTP <span class="sortbtn"><button onclick="sortTable(6,true)">▲</button><button onclick="sortTable(6,false)">▼</button></span></th>
+<th>Qty <span class="sortbtn"><button onclick="sortTable(7,true)">▲</button><button onclick="sortTable(7,false)">▼</button></span></th>
+<th>Buy Price <span class="sortbtn"><button onclick="sortTable(8,true)">▲</button><button onclick="sortTable(8,false)">▼</button></span></th>
+<th>Change <span class="sortbtn"><button onclick="sortTable(9,true)">▲</button><button onclick="sortTable(9,false)">▼</button></span></th>
+<th>Portfolio ID <span class="sortbtn"><button onclick="sortTable(10,true)">▲</button><button onclick="sortTable(10,false)">▼</button></span></th>
+<th>Action</th></tr></thead><tbody>
+{% for h in holdings %}
+<tr data-id="{{ h.get('id','') }}" data-portfolio-id="{{ h.get('portfolio_id','') }}"
+    data-client="{{ h.client_id|lower }}" data-symbol="{{ h.symbol|lower }}"
+    data-product="{{ h.product|lower }}" data-exchange="{{ h.exchange|lower }}">
+<td><input class="row-check check" type="checkbox" onchange="updateRowCount()"></td>
+<td>{{ h.client_id }}</td><td>{{ h.symbol }}</td><td><b>{{ h.product }}</b></td><td>{{ h.exchange }}</td>
+<td class="{{ 'profit' if h.mtm >= 0 else 'loss' }}" data-mtm="{{ h.mtm }}">{{ '%.2f'|format(h.mtm) }}</td>
+<td>{{ '%.2f'|format(h.ltp) }}</td><td>{{ '%.2f'|format(h.qty) }}</td><td>{{ '%.2f'|format(h.buy_price) }}</td>
+<td>{{ '%.2f'|format(h.ltp-h.buy_price) }}</td><td>{{ h.get('id',h.get('portfolio_id','-')) }}</td>
+<td>{% if can_manage %}<div class="action"><button class="modify" onclick="openEdit(this)">MODIFY</button><button class="delete" onclick="deleteHolding(this)">DELETE</button></div>{% else %}<span class="pill">VIEW ONLY</span>{% endif %}</td>
+</tr>{% endfor %}
+</tbody></table></div></div>
+
+<div class="card"><div class="title">Client Information</div><div class="sub">Select clients to view their portfolio.</div>
+<div class="selectbar"><button class="btn light" onclick="selectAllClients()">SELECT ALL CLIENTS</button><button class="btn light" onclick="clearClientSelection()">CLEAR</button><button class="btn" onclick="viewSelectedClients()">VIEW SELECTED</button><span class="pill" id="clientCount">0 selected</span></div>
+<div class="table-wrap"><table id="clientsTable"><thead><tr><th></th><th>Client ID</th><th>Mobile</th><th>Email</th><th>DOB</th><th>Status</th></tr></thead><tbody>
+{% for c in clients %}<tr><td><input class="client-check check" type="checkbox" value="{{ c.client_id }}" onchange="updateClientCount()"></td><td>{{ c.client_id }}</td><td>{{ c.mobile or '-' }}</td><td>{{ c.email or '-' }}</td><td>{{ c.dob or '-' }}</td><td>{{ c.status or '-' }}</td></tr>{% endfor %}
+</tbody></table></div></div>
+</div>
+<div class="footer">Thank you for trading with <b>Latin Manharlal Securities Pvt. Ltd.</b></div>
+
+<div id="positionModal" class="modal"><div class="modal-box"><h3 id="modalTitle">Add Portfolio Position</h3><div class="form-grid">
+<input id="fId" type="hidden"><input id="fPid" placeholder="Portfolio ID" readonly><input id="fClient" placeholder="Client ID"><input id="fSymbol" placeholder="Symbol">
+<input id="fProduct" placeholder="Product (CNC / MTF / NRML etc.)">
+<select id="fExchange"><option>BSE</option><option>NSE</option></select>
+<input id="fQty" type="number" step="any" placeholder="Quantity"><input id="fBuy" type="number" step="any" placeholder="Buy Price">
+</div><div class="modal-actions"><button class="btn gray" onclick="closeModal()">CANCEL</button><button class="btn green" onclick="savePosition()">SAVE</button></div></div></div>
+
+<script>
+let editMode=false; const $=id=>document.getElementById(id);
+function money(n){return Number(n||0).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2})}
+function visibleRows(){return [...document.querySelectorAll('#portfolioTable tbody tr')].filter(r=>r.style.display!=='none')}
+function updateTotal(){let t=0;visibleRows().forEach(r=>t+=Number(r.querySelector('[data-mtm]')?.dataset.mtm||0));$('totalMtm').textContent=money(t);}
+function filterPortfolio(){
+ const c=$('clientSearch').value.trim().toLowerCase(), s=$('symbolSearch').value.trim().toLowerCase(),
+       p=$('productSearch').value.trim().toLowerCase(), e=$('exchangeSearch').value.trim().toLowerCase();
+ document.querySelectorAll('#portfolioTable tbody tr').forEach(r=>{
+   const ok=(!c||(r.dataset.client||'').includes(c))&&(!s||(r.dataset.symbol||'').includes(s))&&
+            (!p||(r.dataset.product||'').includes(p))&&(!e||(r.dataset.exchange||'')===e);
+   r.style.display=ok?'':'none';
+ });
+ updateTotal();
+}
+function clearSearch(){['clientSearch','symbolSearch','productSearch'].forEach(id=>$(id).value='');$('exchangeSearch').value='';filterPortfolio()}
+['clientSearch','symbolSearch','productSearch'].forEach(id=>$(id).addEventListener('input',filterPortfolio));$('exchangeSearch').addEventListener('change',filterPortfolio);
+
+function sortTable(col,ascending){
+ const tbody=document.querySelector('#portfolioTable tbody'); const rows=[...tbody.querySelectorAll('tr')];
+ const numeric=[5,6,7,8,9,10].includes(col);
+ rows.sort((a,b)=>{
+   let av=a.cells[col].innerText.trim(), bv=b.cells[col].innerText.trim();
+   if(numeric){av=parseFloat(av.replace(/,/g,''))||0;bv=parseFloat(bv.replace(/,/g,''))||0;return ascending?av-bv:bv-av}
+   return ascending?av.localeCompare(bv,undefined,{numeric:true,sensitivity:'base'}):bv.localeCompare(av,undefined,{numeric:true,sensitivity:'base'});
+ });
+ rows.forEach(r=>tbody.appendChild(r)); updateTotal();
+}
+function openAdd(){editMode=false;$('modalTitle').textContent='Add Portfolio Position';['fId','fClient','fSymbol','fProduct','fQty','fBuy'].forEach(x=>$(x).value='');$('fPid').value='(Auto generated)';$('fPid').style.display='none';$('fExchange').value='BSE';$('positionModal').classList.add('show')}
+function openEdit(btn){editMode=true;const r=btn.closest('tr');$('modalTitle').textContent='Modify Portfolio Position';$('fId').value=r.dataset.id||r.dataset.portfolioId;$('fPid').value=r.dataset.portfolioId||r.dataset.id||'-';$('fPid').style.display='block';$('fClient').value=r.cells[1].innerText.trim();$('fSymbol').value=r.cells[2].innerText.trim();$('fProduct').value=r.cells[3].innerText.trim();$('fExchange').value=r.cells[4].innerText.trim();$('fQty').value=r.cells[7].innerText.trim();$('fBuy').value=r.cells[8].innerText.trim();$('positionModal').classList.add('show')}
+function closeModal(){$('positionModal').classList.remove('show')}
+async function savePosition(){const payload={client_id:$('fClient').value.trim(),symbol:$('fSymbol').value.trim().toUpperCase(),product:$('fProduct').value.trim().toUpperCase(),exchange:$('fExchange').value,quantity:Number($('fQty').value),buy_price:Number($('fBuy').value)};if(!payload.client_id||!payload.symbol||!payload.quantity||!payload.buy_price){alert('Please enter Client ID, Symbol, Qty and Buy Price.');return}const url=editMode?'/api/holdings/modify':'/api/holdings/add';if(editMode)payload.id=$('fId').value;const res=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});const data=await res.json();if(!data.success){alert(data.message||data.error||'Operation failed');return}location.reload()}
+async function deleteHolding(btn){if(!confirm('Delete this portfolio record?'))return;const r=btn.closest('tr');const id=r.dataset.id||r.dataset.portfolioId;const res=await fetch('/api/holdings/delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id})});const data=await res.json();if(!data.success){alert(data.message||data.error||'Delete failed');return}location.reload()}
+function toggleAllRows(master){document.querySelectorAll('.row-check').forEach(x=>{if(x.closest('tr').style.display!=='none')x.checked=master.checked});updateRowCount()}
+function selectAllRows(){visibleRows().forEach(r=>r.querySelector('.row-check').checked=true);updateRowCount()}
+function clearRowSelection(){document.querySelectorAll('.row-check').forEach(x=>x.checked=false);updateRowCount()}
+function updateRowCount(){$('rowCount').textContent=document.querySelectorAll('.row-check:checked').length+' selected'}
+async function refreshLivePrices(){
+  try{
+    const res=await fetch('/api/ltp/update',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});
+    const data=await res.json();
+    if(!data.success) return;
+    const byId={}; (data.holdings||[]).forEach(h=>byId[String(h.id)]=h);
+    document.querySelectorAll('#portfolioTable tbody tr').forEach(r=>{
+      const h=byId[String(r.dataset.id||r.dataset.portfolioId||'')];
+      if(!h) return;
+      const qty=Number(h.qty||0), buy=Number(h.buy_price||0), ltp=Number(h.ltp||buy), mtm=(ltp-buy)*qty;
+      r.cells[5].textContent=mtm.toFixed(2); r.cells[5].dataset.mtm=mtm; r.cells[5].className=mtm>=0?'profit':'loss';
+      r.cells[6].textContent=ltp.toFixed(2); r.cells[9].textContent=(ltp-buy).toFixed(2);
+    });
+    const tbody=document.querySelector('#portfolioTable tbody');
+    [...tbody.querySelectorAll('tr')].sort((a,b)=>Number((b.cells[5]?.textContent||0).replace(/,/g,''))-Number((a.cells[5]?.textContent||0).replace(/,/g,''))).forEach(r=>tbody.appendChild(r));
+    updateTotal();
+    updateRowCount();
+  }catch(e){ console.warn('LTP refresh failed',e); }
+}
+function csvEscape(v){return '"'+String(v??'').replaceAll('"','""')+'"'}
+function downloadSelectedRows(){const rows=[...document.querySelectorAll('.row-check:checked')].map(x=>x.closest('tr'));if(!rows.length){alert('Select at least one portfolio row.');return}const head=['Client ID','Symbol','Product','Exchange','MTM','LTP','Qty','Buy Price','Change','Portfolio ID'];const lines=[head.map(csvEscape).join(',')];rows.forEach(r=>lines.push([...Array(10)].map((_,i)=>r.cells[i+1].innerText).map(csvEscape).join(',')));downloadText(lines.join('\n'),'lms_selected_portfolio.csv')}
+async function deleteSelectedRows(){
+ const rows=[...document.querySelectorAll('.row-check:checked')].map(x=>x.closest('tr'));
+ if(!rows.length){alert('Select at least one portfolio row.');return}
+ const ids=rows.map(r=>r.dataset.id||r.dataset.portfolioId).filter(Boolean);
+ if(!ids.length){alert('No valid portfolio records selected.');return}
+ if(!confirm(`Delete ${ids.length} selected portfolio record(s)? This cannot be undone.`))return;
+ try{
+   const res=await fetch('/api/holdings/delete-selected',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ids})});
+   const data=await res.json();
+   if(!data.success){alert(data.message||data.error||'Bulk delete failed');return}
+   location.reload();
+ }catch(err){alert('Bulk delete failed: '+err.message)}
+}
+function downloadText(text,name){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type:'text/csv'}));a.download=name;a.click();URL.revokeObjectURL(a.href)}
+function selectAllClients(){document.querySelectorAll('.client-check').forEach(x=>x.checked=true);updateClientCount()}
+function clearClientSelection(){document.querySelectorAll('.client-check').forEach(x=>x.checked=false);updateClientCount()}
+function updateClientCount(){$('clientCount').textContent=document.querySelectorAll('.client-check:checked').length+' selected'}
+function viewSelectedClients(){const ids=new Set([...document.querySelectorAll('.client-check:checked')].map(x=>x.value.toLowerCase()));if(!ids.size){alert('Select at least one client.');return}document.querySelectorAll('#portfolioTable tbody tr').forEach(r=>r.style.display=ids.has((r.dataset.client||''))?'':'none');updateTotal()}
+updateTotal();updateRowCount();updateClientCount();
+</script>
+</body></html>

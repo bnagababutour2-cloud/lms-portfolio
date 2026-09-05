@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>LMS Client Portfolio</title>
+<style>
+:root{--navy:#052d70;--blue:#0b55b5;--gold:#f4c400;--green:#128a43;--red:#d62828;--line:#cad9e9;--text:#13253c}
+*{box-sizing:border-box}body{margin:0;font-family:Arial,Helvetica,sans-serif;color:var(--text);background:linear-gradient(135deg,#edf5ff,#fff 55%,#eef5fc)}
+.top{min-height:145px;background:url('/static/images/lms_header_portfolio.jpeg') center top/cover no-repeat;color:#fff;padding:20px 28px;display:flex;align-items:flex-end;box-shadow:0 5px 18px rgba(0,30,80,.25)}.brand{display:flex;align-items:center;gap:16px}.header-overlay{width:100%;text-align:center;color:#fff}.header-subtitle{margin-top:48px;color:#f8c518;font-size:16px;font-weight:900;letter-spacing:.4px;text-transform:uppercase;text-shadow:0 1px 2px rgba(0,0,0,.35)}.header-login{margin-top:4px;font-size:12px;font-weight:800}.logo{width:62px;height:62px;background:#fff;border-radius:10px;color:#c92323;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:31px;border:4px solid #e8eef8}.brand h1{margin:0;font-size:28px;letter-spacing:.5px}.brand p{margin:6px 0 0;color:#ffd21c;font-weight:900}.container{max-width:1140px;margin:18px auto;padding:0 12px}
+.client-bar,.card{background:rgba(255,255,255,.96);border:1px solid #d5e2ef;border-radius:14px;box-shadow:0 5px 18px rgba(21,59,102,.10);margin-bottom:15px}.client-bar{display:grid;grid-template-columns:1fr 1fr 1fr auto;align-items:center;overflow:hidden}.client-bar>div{padding:15px 20px;border-right:1px solid #d5e2ef}.label{font-size:11px;color:#31557f;font-weight:900}.value{font-size:20px;font-weight:900;color:var(--navy);margin-top:4px}.actions{display:flex;gap:7px;padding:12px}.btn{border:0;border-radius:8px;padding:10px 14px;font-weight:900;color:#fff;background:var(--blue);cursor:pointer}.green{background:var(--green)}.red{background:var(--red)}.gray{background:#687689}.light{background:#eaf2fc;color:var(--navy);border:1px solid #cbdced}.note{background:#f8fbff;border-left:4px solid var(--gold);padding:10px 12px;font-size:12px;color:#52667d;margin-bottom:14px}.card{padding:15px}.title{color:var(--navy);font-size:17px;font-weight:900;margin-bottom:10px}.summary{display:grid;grid-template-columns:repeat(3,1fr);border:1px solid var(--line);border-radius:10px;overflow:hidden}.summary-box{padding:15px;text-align:center;background:linear-gradient(#fff,#f5f9ff);border-right:1px solid var(--line)}.summary-box:last-child{border:0}.summary-box h3{margin:0;color:var(--navy);font-size:12px}.summary-box p{font-size:22px;font-weight:900;margin:7px 0 0}.profit{color:var(--green)}.loss{color:var(--red)}.selectbar{display:flex;gap:7px;align-items:center;flex-wrap:wrap;margin-bottom:10px}.client-search{display:flex;gap:8px;align-items:center}.client-search input{flex:1}.client-search select{width:230px}.client-search button{flex:0 0 auto}.pill{background:#edf4fd;color:var(--navy);border:1px solid #cfdeed;padding:6px 10px;border-radius:999px;font-size:12px;font-weight:800}.table-wrap{overflow:auto;max-height:570px;border:1px solid var(--line);border-radius:9px}table{width:100%;border-collapse:collapse;min-width:940px}th{background:linear-gradient(90deg,#062e70,#0b55b5);color:#fff;padding:11px 9px;font-size:12px;text-align:left;position:sticky;top:0;z-index:1}td{padding:10px 9px;border-bottom:1px solid #dfe8f1;font-size:12px}tr:nth-child(even) td{background:#f6faff}.check{width:18px;height:18px;accent-color:#0b55b5}.action{display:flex;gap:5px}.action button{border:0;border-radius:6px;color:#fff;padding:7px 9px;font-size:10px;font-weight:900;cursor:pointer}.modify{background:#0b55b5}.delete{background:#d62828}.modal{display:none;position:fixed;inset:0;background:rgba(3,25,57,.62);align-items:center;justify-content:center;z-index:30}.modal.show{display:flex}.modal-box{background:#fff;width:min(460px,92vw);border-radius:14px;padding:20px;box-shadow:0 15px 40px rgba(0,0,0,.3)}.modal-box h3{color:var(--navy);margin-top:0}.form-grid{display:grid;gap:10px}input,select{width:100%;padding:11px;border:1px solid #cbd9e8;border-radius:8px}.modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:13px}.footer{background:#052d70;color:#fff;text-align:center;padding:18px;margin-top:20px}.footer b{color:#ffd21c}@media(max-width:800px){.client-bar{grid-template-columns:1fr 1fr}.client-bar>div{border-bottom:1px solid #d5e2ef}.summary{grid-template-columns:1fr}.summary-box{border-right:0;border-bottom:1px solid var(--line)}.brand h1{font-size:19px}.top{min-height:120px;padding:15px}}
+</style></head>
+<body>
+<header class="top"><div class="header-overlay"><div class="header-subtitle">CLIENT PORTFOLIO</div></div></header>
+<div class="container">
+<div class="client-bar"><div><div class="label">CLIENT ID</div><div class="value">{{ client.client_id }}</div></div><div><div class="label">OVERALL MTM</div><div id="overallMtmValue" class="value {{ 'profit' if overall_mtm >= 0 else 'loss' }}">₹ {{ '%.2f'|format(overall_mtm) }}</div></div><div><div class="label">LIVE TIME</div><div class="value" id="clock">--:--:--</div></div><div class="actions"><button class="btn" onclick="location.reload()">REFRESH</button><button class="btn" onclick="openAdd()">ADD POSITION</button><a href="/download/client-portfolio.csv"><button class="btn green">DOWNLOAD</button></a><button class="btn green" onclick="downloadSelected()">DOWNLOAD SELECTED</button><a href="/logout"><button class="btn gray">LOGOUT</button></a></div></div>
+<div class="note">LTP and MTM are market values and remain read-only. Add, modify or delete your portfolio records below. Separate daily-report buys remain separate rows.</div>
+<div class="card"><div class="title">SEARCH PORTFOLIO</div><div class="client-search"><input id="clientSymbolSearch" placeholder="Search Symbol"><select id="clientProductSearch"><option value="">All Products</option><option>NORMAL</option><option>MTF</option><option>INTRADAY</option><option>CNC</option><option>DELIVERY</option><option>NRML</option></select><button id="clientSearchBtn" class="btn" type="button">SEARCH</button><button id="clientClearSearchBtn" class="btn light" type="button">CLEAR SEARCH</button><span class="pill" id="clientVisibleCount">{{ holdings|length }} visible</span></div></div>
+<div class="card"><div class="selectbar"><button class="btn light" onclick="selectAllRows()">SELECT ALL</button><button class="btn light" onclick="clearRows()">CLEAR</button><span class="pill" id="selectedCount">0 selected</span></div><div class="title">MY PORTFOLIO — MTM DESCENDING</div><div class="table-wrap"><table id="portfolioTable"><thead><tr><th><input class="check" type="checkbox" onchange="toggleAll(this)"></th><th>Client</th><th>Symbol</th><th>Product</th><th>Exchange</th><th>MTM</th><th>LTP</th><th>Qty</th><th>Buy Price</th><th>Change</th><th>Portfolio ID</th><th>Action</th></tr></thead><tbody>{% if holdings %}{% for h in holdings %}<tr data-id="{{ h.get('id','') }}" data-portfolio-id="{{ h.get('portfolio_id','') }}" data-client="{{ client.client_id }}" data-symbol="{{ h.symbol }}" data-product="{{ h.product }}" data-exchange="{{ h.exchange or '-' }}"><td><input class="row-check check" type="checkbox" onchange="countSelected()"></td><td>{{ client.client_id }}</td><td>{{ h.symbol }}</td><td>{{ h.product }}</td><td>{{ h.exchange or '-' }}</td><td class="{{ 'profit' if h.mtm >= 0 else 'loss' }}">{{ '%.2f'|format(h.mtm) }}</td><td>{{ '%.2f'|format(h.ltp) }}</td><td>{{ '%.2f'|format(h.qty) }}</td><td>{{ '%.2f'|format(h.buy_price) }}</td><td>{{ '%.2f'|format(h.ltp-h.buy_price) }}</td><td>{{ h.get('id', h.get('portfolio_id', '-')) }}</td><td><div class="action"><button class="modify" onclick="openEdit(this)">MODIFY</button><button class="delete" onclick="deleteHolding(this)">DELETE</button></div></td></tr>{% endfor %}{% else %}<tr><td colspan="12" style="text-align:center;padding:22px">No portfolio holdings available yet.</td></tr>{% endif %}</tbody></table></div></div>
+<div class="card"><div class="title">CLIENT INFORMATION</div><p><b>Client ID:</b> {{ client.client_id }}</p><p><b>Mobile:</b> {{ client.mobile or '-' }}</p><p><b>Email:</b> {{ client.email or '-' }}</p><p><b>DOB:</b> {{ client.dob or '-' }}</p></div>
+</div><div class="footer">Thank you for trading with <b>Latin Manharlal Securities Pvt. Ltd.</b></div>
+<div id="positionModal" class="modal"><div class="modal-box"><h3 id="modalTitle">Add Portfolio Position</h3><div class="form-grid"><input id="fId" type="hidden"><input id="fPid" placeholder="Portfolio ID" readonly><input id="fClient" value="{{ client.client_id }}" readonly><input id="fSymbol" placeholder="Symbol"><input id="fProduct" placeholder="Product / Mode (NORMAL / MTF / INTRADAY)"><select id="fExchange"><option>BSE</option><option>NSE</option></select><input id="fQty" type="number" step="any" placeholder="Quantity"><input id="fBuy" type="number" step="any" placeholder="Buy Price"></div><div class="modal-actions"><button class="btn gray" onclick="closeModal()">CANCEL</button><button class="btn green" onclick="savePosition()">SAVE</button></div></div></div>
+<div id="bulkModal" class="modal"><div class="modal-box"><h3>Modify Selected Positions</h3><div class="form-grid"><input id="bSymbol" placeholder="Symbol (optional)"><input id="bProduct" placeholder="Product / Mode (optional)"><select id="bExchange"><option>BSE</option><option>NSE</option></select><input id="bQty" type="number" step="any" placeholder="Quantity"><input id="bBuy" type="number" step="any" placeholder="Buy Price"></div><div class="modal-actions"><button class="btn gray" onclick="$('bulkModal').classList.remove('show')">CANCEL</button><button class="btn green" onclick="applyBulkModify()">APPLY TO SELECTED</button></div></div></div>
+<script>
+function tick(){
+  const el=document.getElementById('clock');
+  if(el) el.textContent=new Date().toLocaleTimeString('en-IN',{hour12:true});
+}
+tick();
+setInterval(tick,1000);
+let editMode=false;
+const $=id=>document.getElementById(id);
+
+function openAdd(){
+  editMode=false;
+  $('modalTitle').textContent='Add Portfolio Position';
+  $('fId').value='';
+  $('fPid').value='(Auto generated)';
+  $('fPid').style.display='none';
+  $('fClient').value='{{ client.client_id }}';
+  $('fSymbol').value='';
+  $('fProduct').value='NORMAL';
+  $('fQty').value='';
+  $('fBuy').value='';
+  $('fExchange').value='BSE';
+  $('positionModal').classList.add('show');
+}
+
+function openEdit(btn){
+  editMode=true;
+  const r=btn.closest('tr');
+  $('fId').value=r.dataset.id||'';
+  $('fPid').value=r.dataset.portfolioId||r.dataset.id||'-';
+  $('fPid').style.display='block';
+  $('fClient').value=r.dataset.client||r.cells[1].innerText.trim();
+  $('fSymbol').value=r.dataset.symbol||r.cells[2].innerText.trim();
+  $('fProduct').value=r.dataset.product||r.cells[3].innerText.trim();
+  $('fExchange').value=r.dataset.exchange||r.cells[4].innerText.trim();
+  $('fQty').value=r.cells[7].innerText.trim();
+  $('fBuy').value=r.cells[8].innerText.trim();
+  $('modalTitle').textContent='Modify Portfolio Position';
+  $('positionModal').classList.add('show');
+}
+
+function closeModal(){$('positionModal').classList.remove('show')}
+
+async function savePosition(){
+  const payload={
+    client_id:$('fClient').value.trim(),
+    symbol:$('fSymbol').value.trim().toUpperCase(),
+    product:$('fProduct').value.trim().toUpperCase(),
+    exchange:$('fExchange').value.trim().toUpperCase(),
+    quantity:Number($('fQty').value),
+    buy_price:Number($('fBuy').value)
+  };
+  if(!payload.symbol||payload.quantity<=0||payload.buy_price<=0){
+    alert('Please enter Symbol, positive Qty and Buy Price.');return;
+  }
+  if(editMode) payload.id=$('fId').value;
+  const res=await fetch(editMode?'/api/holdings/modify':'/api/holdings/add',{
+    method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)
+  });
+  const data=await res.json();
+  if(!data.success){alert(data.message||data.error||'Operation failed');return;}
+  location.reload();
+}
+
+async function deleteHolding(btn){
+  if(!confirm('Delete this portfolio record?'))return;
+  const r=btn.closest('tr');
+  const id=r.dataset.id||r.dataset.portfolioId;
+  const clientId=r.dataset.client||$('fClient').value.trim();
+  const res=await fetch('/api/holdings/delete',{
+    method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({id,client_id:clientId})
+  });
+  const data=await res.json();
+  if(!data.success){alert(data.message||data.error||'Delete failed');return;}
+  location.reload();
+}
+
+function clearRows(){
+  document.querySelectorAll('.row-check').forEach(x=>x.checked=false);
+  countSelected();
+}
+function countSelected(){
+  const el=$('selectedCount');
+  if(el) el.textContent=document.querySelectorAll('.row-check:checked').length+' selected';
+}
+function toggleAll(master){
+  document.querySelectorAll('#portfolioTable tbody tr:not([data-hidden="1"]) .row-check').forEach(x=>x.checked=master.checked);
+  countSelected();
+}
+function selectAllRows(){
+  document.querySelectorAll('#portfolioTable tbody tr:not([data-hidden="1"]) .row-check').forEach(x=>x.checked=true);
+  countSelected();
+}
+
+function filterClientPortfolio(){
+  const symbol=(($('clientSymbolSearch')?.value)||'').trim().toUpperCase();
+  const product=(($('clientProductSearch')?.value)||'').trim().toUpperCase();
+  const rows=[...document.querySelectorAll('#portfolioTable tbody tr')];
+  let visible=0;
+  rows.forEach(r=>{
+    const checkbox=r.querySelector('.row-check');
+    if(!checkbox) return;
+    const rowSymbol=(r.dataset.symbol||r.cells[2]?.textContent||'').trim().toUpperCase();
+    const rowProduct=(r.dataset.product||r.cells[3]?.textContent||'').trim().toUpperCase();
+    const okSymbol=!symbol || rowSymbol.indexOf(symbol)!==-1;
+    const okProduct=!product || rowProduct===product;
+    const show=okSymbol && okProduct;
+    r.style.display=show?'':'none';
+    r.dataset.hidden=show?'0':'1';
+    if(!show) checkbox.checked=false;
+    if(show) visible++;
+  });
+  countSelected();
+  const pill=$('clientVisibleCount');
+  if(pill) pill.textContent=visible+' visible';
+}
+
+function clearClientSearch(){
+  $('clientSymbolSearch').value='';
+  $('clientProductSearch').value='';
+  document.querySelectorAll('#portfolioTable tbody tr').forEach(r=>{
+    if(r.querySelector('.row-check')){
+      r.style.display='';
+      r.dataset.hidden='0';
+    }
+  });
+  clearRows();
+  const pill=$('clientVisibleCount');
+  if(pill) pill.textContent=document.querySelectorAll('#portfolioTable tbody .row-check').length+' visible';
+}
+
+function esc(v){return '"'+String(v??'').replaceAll('"','""')+'"'}
+function downloadSelected(){
+  const rows=[...document.querySelectorAll('#portfolioTable tbody tr:not([data-hidden="1"]) .row-check:checked')].map(x=>x.closest('tr'));
+  if(!rows.length){alert('Select at least one visible row.');return;}
+  const h=['Client ID','Symbol','Product','Exchange','MTM','LTP','Qty','Buy Price','Change','Portfolio ID'];
+  const out=[h.map(esc).join(',')];
+  rows.forEach(r=>out.push([
+    r.cells[1].innerText,r.cells[2].innerText,r.cells[3].innerText,r.cells[4].innerText,
+    r.cells[5].innerText,r.cells[6].innerText,r.cells[7].innerText,r.cells[8].innerText,
+    r.cells[9].innerText,r.dataset.portfolioId||r.dataset.id
+  ].map(esc).join(',')));
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([out.join('\n')],{type:'text/csv;charset=utf-8'}));
+  a.download='portfolio_selected.csv';
+  document.body.appendChild(a);a.click();a.remove();
+}
+
+function wireClientSearch(){
+  const symbolEl=$('clientSymbolSearch');
+  const productEl=$('clientProductSearch');
+  const searchBtn=$('clientSearchBtn');
+  const clearBtn=$('clientClearSearchBtn');
+  if(symbolEl){
+    symbolEl.addEventListener('input',filterClientPortfolio);
+    symbolEl.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();filterClientPortfolio();}});
+  }
+  if(productEl) productEl.addEventListener('change',filterClientPortfolio);
+  if(searchBtn) searchBtn.addEventListener('click',e=>{e.preventDefault();filterClientPortfolio();});
+  if(clearBtn) clearBtn.addEventListener('click',e=>{e.preventDefault();clearClientSearch();});
+  filterClientPortfolio();
+}
+
+async function refreshLivePrices(){
+  try{
+    const res=await fetch('/api/ltp/update',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});
+    const data=await res.json();
+    if(!data.success) return;
+    const byId={}; (data.holdings||[]).forEach(h=>byId[String(h.id)]=h);
+    let total=0;
+    document.querySelectorAll('#portfolioTable tbody tr').forEach(r=>{
+      const h=byId[String(r.dataset.id||r.dataset.portfolioId||'')];
+      if(!h) return;
+      const qty=Number(h.qty||0), buy=Number(h.buy_price||0), ltp=Number(h.ltp||buy);
+      const mtm=(ltp-buy)*qty;
+      r.cells[5].textContent=mtm.toFixed(2); r.cells[5].className=mtm>=0?'profit':'loss';
+      r.cells[6].textContent=ltp.toFixed(2);
+      r.cells[9].textContent=(ltp-buy).toFixed(2);
+      total+=mtm;
+    });
+    const om=$('overallMtmValue'); if(om){om.textContent='₹ '+total.toFixed(2);om.className='value '+(total>=0?'profit':'loss');}
+    // Keep the portfolio permanently in MTM descending order.
+    const tbody=document.querySelector('#portfolioTable tbody');
+    [...tbody.querySelectorAll('tr')].sort((a,b)=>(Number((b.cells[5]?.textContent||0).replace(/,/g,''))-Number((a.cells[5]?.textContent||0).replace(/,/g,'')))).forEach(r=>tbody.appendChild(r));
+    filterClientPortfolio();
+  }catch(e){ console.warn('LTP refresh failed',e); }
+}
+setInterval(()=>{ if(!document.querySelector('.modal.show')) refreshLivePrices(); }, 10000);
+document.addEventListener('DOMContentLoaded',()=>{refreshLivePrices();});
+document.addEventListener('DOMContentLoaded',wireClientSearch);
+</script></body></html>
