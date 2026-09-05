@@ -6,29 +6,177 @@ import json
 import io
 import csv
 import re
-import time
-import threading
-from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 import pandas as pd
-import requests
 
 load_dotenv()
 
-# NEW SUPABASE PROJECT
-# Keep the service/secret key OUT of source control. Set SUPABASE_KEY in Render/local env.
-SUPABASE_URL = os.environ.get("SUPABASE_URL", "https://gonhpxvlqicirkmpazvb.supabase.co")
+# ------------------------------------------------------------
+# Database connection
+# ------------------------------------------------------------
+# Render/production can use the Supabase PostgreSQL pooler through
+# DATABASE_URL. This avoids relying on the *.supabase.co REST hostname,
+# which may be unavailable on some networks. Local development can still
+# use SUPABASE_URL + SUPABASE_KEY when DATABASE_URL is not configured.
+SUPABASE_URL = os.environ.get("SUPABASE_URL", "https://gonhpxvlqicirkmpazvb.supabase.co").strip()
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "").strip()
+DATABASE_URL = os.environ.get("DATABASE_URL", "").strip()
+
+
+class _DBResponse:
+    def __init__(self, data=None, count=None):
+        self.data = data or []
+        self.count = count
+
+
+class _PostgresQuery:
+    """Small compatibility layer for the Supabase query calls used below."""
+
+    def __init__(self, db_url, table):
+        self.db_url = db_url
+        self.table = table
+        self._op = "select"
+        self._columns = "*"
+        self._filters = []
+        self._params = []
+        self._limit = None
+        self._payload = None
+
+    def select(self, columns="*"):
+        self._op = "select"
+        self._columns = columns or "*"
+        return self
+
+    def ilike(self, column, value):
+        self._filters.append(f'"{column}" ILIKE %s')
+        self._params.append(value)
+        return self
+
+    def eq(self, column, value):
+        self._filters.append(f'"{column}" = %s')
+        self._params.append(value)
+        return self
+
+    def in_(self, column, values):
+        vals = list(values or [])
+        if not vals:
+            self._filters.append("FALSE")
+            return self
+        self._filters.append(f'"{column}" IN ({", ".join(["%s"] * len(vals))})')
+        self._params.extend(vals)
+        return self
+
+    def limit(self, count):
+        self._limit = int(count)
+        return self
+
+    def insert(self, payload):
+        self._op = "insert"
+        self._payload = payload
+        return self
+
+    def update(self, payload):
+        self._op = "update"
+        self._payload = payload or {}
+        return self
+
+    def delete(self):
+        self._op = "delete"
+        return self
+
+    def _where_sql(self):
+        if not self._filters:
+            return ""
+        return " WHERE " + " AND ".join(self._filters)
+
+    def execute(self):
+        try:
+            import psycopg2
+            from psycopg2.extras import RealDictCursor, execute_values
+        except ImportError as exc:
+            raise RuntimeError("psycopg2-binary is required for DATABASE_URL mode") from exc
+
+        allowed_tables = {"clients", "holdings"}
+        if self.table not in allowed_tables:
+            raise RuntimeError(f"Unsupported table: {self.table}")
+
+        con = psycopg2.connect(self.db_url, connect_timeout=15)
+        try:
+            with con.cursor(cursor_factory=RealDictCursor) as cur:
+                if self._op == "select":
+                    sql = f"SELECT {self._columns} FROM \"{self.table}\"" + self._where_sql()
+                    if self._limit is not None:
+                        sql += " LIMIT %s"
+                        params = list(self._params) + [self._limit]
+                    else:
+                        params = list(self._params)
+                    cur.execute(sql, params)
+                    rows = [dict(r) for r in cur.fetchall()]
+                    return _DBResponse(rows)
+
+                if self._op == "insert":
+                    rows = self._payload if isinstance(self._payload, list) else [self._payload]
+                    if not rows:
+                        return _DBResponse([])
+                    columns = list(rows[0].keys())
+                    if not all(set(r.keys()) == set(columns) for r in rows):
+                        raise RuntimeError("Insert rows must use the same columns")
+                    col_sql = ", ".join(f'"{c}"' for c in columns)
+                    sql = f'INSERT INTO "{self.table}" ({col_sql}) VALUES %s RETURNING *'
+                    values = [tuple(r.get(c) for c in columns) for r in rows]
+                    execute_values(cur, sql, values)
+                    data = [dict(r) for r in cur.fetchall()]
+                    con.commit()
+                    return _DBResponse(data)
+
+                if self._op == "update":
+                    if not self._payload:
+                        return _DBResponse([])
+                    assignments = []
+                    params = []
+                    for c, v in self._payload.items():
+                        assignments.append(f'"{c}" = %s')
+                        params.append(v)
+                    sql = f'UPDATE "{self.table}" SET {", ".join(assignments)}' + self._where_sql() + " RETURNING *"
+                    params.extend(self._params)
+                    cur.execute(sql, params)
+                    data = [dict(r) for r in cur.fetchall()]
+                    con.commit()
+                    return _DBResponse(data)
+
+                if self._op == "delete":
+                    sql = f'DELETE FROM "{self.table}"' + self._where_sql() + " RETURNING *"
+                    cur.execute(sql, list(self._params))
+                    data = [dict(r) for r in cur.fetchall()]
+                    con.commit()
+                    return _DBResponse(data)
+
+                raise RuntimeError(f"Unsupported operation: {self._op}")
+        finally:
+            con.close()
+
+
+class _PostgresClient:
+    def __init__(self, db_url):
+        self.db_url = db_url
+
+    def table(self, table):
+        return _PostgresQuery(self.db_url, table)
+
 
 supabase = None
 supabase_config_error = None
-if SUPABASE_KEY:
+if DATABASE_URL:
+    supabase = _PostgresClient(DATABASE_URL)
+    print("Database mode: PostgreSQL DATABASE_URL")
+elif SUPABASE_KEY:
     try:
         supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+        print("Database mode: Supabase Data API")
     except Exception as exc:
         supabase_config_error = f"Supabase configuration error: {exc}"
 else:
-    supabase_config_error = "SUPABASE_KEY is not configured. Add the new project's API/service key as an environment variable."
+    supabase_config_error = "Configure DATABASE_URL or SUPABASE_KEY in the environment."
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "lms-local-test-secret")
@@ -37,26 +185,6 @@ last_trade_rows = []
 last_upload_info = None
 
 PRODUCT_MAP_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "holding_products.json")
-
-# Live LTP configuration. The BSE master maps ticker symbols to BSE scrip codes.
-BSE_MASTER_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "BSEsecurity list.xlsx")
-BSE_HEADER_URL = "https://api.bseindia.com/BseIndiaAPI/api/getScripHeaderData/w"
-BSE_HEADERS = {
-    "User-Agent": (
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-        "AppleWebKit/537.36 (KHTML, like Gecko) "
-        "Chrome/151.0.0.0 Safari/537.36"
-    ),
-    "Accept": "application/json, text/plain, */*",
-    "Referer": "https://www.bseindia.com/",
-    "Origin": "https://www.bseindia.com",
-    "Connection": "keep-alive",
-}
-LTP_REFRESH_SECONDS = int(os.environ.get("LTP_REFRESH_SECONDS", "10"))
-_ltp_lock = threading.Lock()
-_ltp_last_refresh = 0.0
-_bse_map = None
-_bse_map_lock = threading.Lock()
 
 
 def _load_product_map():
@@ -235,143 +363,6 @@ def _require_db():
     return None
 
 
-def _load_bse_map():
-    global _bse_map
-    if _bse_map is not None:
-        return _bse_map
-    with _bse_map_lock:
-        if _bse_map is not None:
-            return _bse_map
-        try:
-            df = pd.read_excel(BSE_MASTER_FILE, dtype={"BSE CODE": str})
-            required = {"BSE CODE", "TckrSymb"}
-            if not required.issubset(df.columns):
-                raise ValueError(f"BSE master must contain {sorted(required)}")
-            df["TckrSymb"] = df["TckrSymb"].fillna("").astype(str).str.strip().str.upper()
-            df["BSE CODE"] = df["BSE CODE"].fillna("").astype(str).str.strip().str.replace(r"\.0$", "", regex=True)
-            mapping = {}
-            for _, row in df.iterrows():
-                symbol = row["TckrSymb"]
-                code = row["BSE CODE"]
-                if symbol and code and symbol not in mapping:
-                    mapping[symbol] = code
-            _bse_map = mapping
-            print(f"BSE master loaded: {len(mapping)} symbols")
-        except Exception as exc:
-            print(f"BSE master load warning: {exc}")
-            _bse_map = {}
-    return _bse_map
-
-
-def _bse_ltp(symbol):
-    code = _load_bse_map().get(str(symbol or "").strip().upper())
-    if not code:
-        return None, "NO BSE MAPPING"
-    try:
-        response = requests.get(
-            BSE_HEADER_URL,
-            params={"scripcode": str(code)},
-            headers=BSE_HEADERS,
-            timeout=15,
-        )
-        response.raise_for_status()
-        data = response.json()
-        header = data.get("Header") or {}
-        ltp = header.get("LTP")
-        if ltp is None:
-            return None, "NO LTP IN RESPONSE"
-        return float(ltp), None
-    except Exception as exc:
-        return None, str(exc)
-
-
-def _normalize_product_for_storage(product):
-    return "MTF" if str(product or "").strip().upper() == "MTF" else "NORMAL"
-
-
-def _is_derivative_or_index(symbol):
-    s = str(symbol or "").strip().upper()
-    if any(name in s for name in ("NIFTY", "BANKNIFTY", "FINNIFTY", "MIDCPNIFTY", "SENSEX", "BANKEX")):
-        return True
-    return bool(re.search(r"(?:FUT|CE|PE)$", s))
-
-
-def _refresh_ltp_if_due(force=False):
-    global _ltp_last_refresh
-    now = time.time()
-    if not force and (now - _ltp_last_refresh) < LTP_REFRESH_SECONDS:
-        return {"success": True, "skipped": True, "message": "LTP cache is still fresh."}
-    if not _ltp_lock.acquire(blocking=False):
-        return {"success": True, "skipped": True, "message": "Another LTP refresh is already running."}
-    try:
-        now = time.time()
-        if not force and (now - _ltp_last_refresh) < LTP_REFRESH_SECONDS:
-            return {"success": True, "skipped": True, "message": "LTP cache is still fresh."}
-        if supabase is None:
-            return {"success": False, "message": supabase_config_error}
-
-        raw = _load_all_holdings()
-        symbols = []
-        seen = set()
-        for h in raw:
-            sym = str(h.get("symbol") or "").strip().upper()
-            if not sym or sym in seen or _is_derivative_or_index(sym):
-                continue
-            seen.add(sym)
-            symbols.append(sym)
-
-        updated_symbols = 0
-        updated_rows = 0
-        failed = []
-
-        def fetch_one(sym):
-            return sym, _bse_ltp(sym)
-
-        results = {}
-        with ThreadPoolExecutor(max_workers=min(6, max(1, len(symbols)))) as pool:
-            futures = [pool.submit(fetch_one, sym) for sym in symbols]
-            for fut in as_completed(futures):
-                sym, (ltp, err) = fut.result()
-                results[sym] = (ltp, err)
-
-        for sym, (ltp, err) in results.items():
-            if ltp is None:
-                failed.append({"symbol": sym, "reason": err or "LTP unavailable"})
-                continue
-            # Update every lot for this symbol. MTM is stored in the existing pnl field.
-            try:
-                # Update each matching lot with the live price and derived values.
-                matching = (supabase.table("holdings")
-                            .select("id,quantity,buy_price")
-                            .eq("symbol", sym)
-                            .execute().data or [])
-                for row in matching:
-                    qty = _clean_number(row.get("quantity"))
-                    buy = _clean_number(row.get("buy_price"))
-                    supabase.table("holdings").update({
-                        "ltp": float(ltp),
-                        "market_value": qty * float(ltp),
-                        "pnl": (float(ltp) - buy) * qty,
-                    }).eq("id", row.get("id")).execute()
-                if matching:
-                    updated_symbols += 1
-                    updated_rows += len(matching)
-            except Exception as exc:
-                failed.append({"symbol": sym, "reason": str(exc)})
-
-        _ltp_last_refresh = time.time()
-        return {
-            "success": True,
-            "skipped": False,
-            "updated_symbols": updated_symbols,
-            "updated_rows": updated_rows,
-            "failed": failed,
-            "fno_kept_at_buy_price": sum(1 for h in raw if _is_derivative_or_index(h.get("symbol"))),
-        }
-    finally:
-        _ltp_lock.release()
-
-
 def _load_all_clients():
     clients = []
     page_size = 1000
@@ -488,7 +479,6 @@ def client_portfolio():
             session.clear()
             return redirect(url_for("login"))
         client = cr.data[0]
-        _refresh_ltp_if_due()
         result = supabase.table("holdings").select("*").ilike("client_id", client_id).execute()
         holdings = []
         for h in (result.data or []):
@@ -527,7 +517,6 @@ def admin_portfolio():
     if not account:
         return redirect(url_for("login"))
     try:
-        _refresh_ltp_if_due()
         clients = _filter_supervisor_clients(supervisor_id, _load_all_clients())
         holdings = _filter_supervisor_holdings(supervisor_id, _load_all_holdings())
         return render_template("admin.html", clients=clients, holdings=holdings,
@@ -1375,7 +1364,7 @@ def add_holding():
     symbol = str(data.get("symbol") or "").strip().upper()
     qty = _clean_number(data.get("quantity")); buy = _clean_number(data.get("buy_price"))
     exchange = str(data.get("exchange") or "BSE").strip().upper()
-    product = _normalize_product_for_storage(data.get("product") or exchange)
+    product = str(data.get("product") or exchange).strip().upper()
     if not client_id or not symbol or qty == 0 or buy == 0:
         return jsonify({"success": False, "message": "Valid Client ID, Symbol, Qty and Buy Price are required."}), 400
     try:
@@ -1550,29 +1539,6 @@ def api_login():
         return jsonify({"success": True, "client_id": client.get("client_id")})
     except Exception as exc:
         return jsonify({"success": False, "message": "Login error", "error": str(exc)}), 500
-
-
-@app.route("/api/ltp/update", methods=["POST"])
-def api_ltp_update():
-    if supabase is None:
-        return _require_db()
-    # Any authenticated Admin/Supervisor or logged-in Client can trigger the same
-    # cached refresh. The refresh itself updates all portfolio rows globally; the
-    # response is filtered to the caller's authorized scope.
-    if session.get("supervisor_id"):
-        account = _get_supervisor(session.get("supervisor_id"))
-        if not account:
-            return jsonify({"success": False, "message": "Login required."}), 401
-        result = _refresh_ltp_if_due(force=True)
-        visible = _filter_supervisor_holdings(session.get("supervisor_id"), _load_all_holdings())
-    elif session.get("client_id"):
-        result = _refresh_ltp_if_due(force=True)
-        visible = [h for h in _load_all_holdings() if str(h.get("client_id") or "").lower() == str(session.get("client_id") or "").lower()]
-    else:
-        return jsonify({"success": False, "message": "Login required."}), 401
-    result["holdings"] = visible
-    result["updated_at"] = datetime.now().isoformat(timespec="seconds")
-    return jsonify(result)
 
 
 @app.route("/api/portfolio/<client_id>")
