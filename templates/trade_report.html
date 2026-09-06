@@ -3,394 +3,330 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
     <title>LMS Daily Trade Report</title>
-
     <style>
-        :root {
-            --navy: #052d70;
-            --blue: #0b55b5;
-            --gold: #f4c400;
-            --green: #128a43;
-            --red: #d62828;
-            --line: #d3dfec;
-        }
-
-        * {
-            box-sizing: border-box;
-        }
+        * { box-sizing: border-box; }
 
         body {
             margin: 0;
             font-family: Arial, Helvetica, sans-serif;
-            background: linear-gradient(135deg, #edf5ff, #fff);
-            color: #14263d;
+            background: #eef5fc;
+            color: #0d2b4d;
         }
 
-        .top {
-            min-height: 145px;
+        .top-banner {
+            height: 114px;
+            padding: 48px 22px 16px;
+            color: white;
             background:
-                linear-gradient(
-                    90deg,
-                    rgba(3,39,94,.98),
-                    rgba(7,65,132,.94)
-                ),
-                url('/static/images/lms_header.jpeg')
-                center/cover no-repeat;
-            color: #fff;
-            padding: 20px 28px;
-            display: flex;
-            align-items: flex-end;
+                linear-gradient(135deg, rgba(5,48,101,.98), rgba(9,72,143,.96)),
+                radial-gradient(circle at 80% 20%, rgba(255,255,255,.12), transparent 35%);
+            border-bottom: 1px solid #d7e2ef;
         }
 
-        .top h1 {
-            margin: 0;
-            font-size: 27px;
+        .company {
+            font-size: 21px;
+            font-weight: 700;
+            letter-spacing: .2px;
         }
 
-        .top p {
-            margin: 6px 0 0;
-            color: #ffd21c;
-            font-weight: 900;
+        .subtitle {
+            margin-top: 8px;
+            color: #ffd000;
+            font-size: 13px;
+            font-weight: 800;
+            letter-spacing: .2px;
         }
 
         .container {
-            max-width: 1240px;
-            margin: 18px auto;
-            padding: 0 12px;
+            width: min(940px, calc(100% - 36px));
+            margin: 14px auto 28px;
         }
 
         .card {
             background: #fff;
-            border: 1px solid #d7e2ee;
-            border-radius: 14px;
-            box-shadow: 0 5px 18px rgba(21,59,102,.1);
-            padding: 16px;
-            margin-bottom: 16px;
+            border: 1px solid #d8e2ee;
+            border-radius: 10px;
+            margin-bottom: 14px;
+            padding: 13px;
+            box-shadow: 0 2px 10px rgba(18, 53, 88, .08);
         }
 
-        .btn {
-            border: 0;
-            border-radius: 8px;
-            padding: 10px 14px;
-            background: var(--blue);
-            color: #fff;
-            font-weight: 900;
-            cursor: pointer;
+        .admin-bar {
+            padding: 13px;
         }
 
-        .btn:disabled {
-            opacity: .65;
-            cursor: not-allowed;
-        }
-
-        .green {
-            background: var(--green);
-        }
-
-        .gray {
-            background: #69778a;
-        }
-
-        .gold {
-            background: #d99e00;
-        }
-
-        .warning {
-            background: #fff8df;
-            border-left: 4px solid var(--gold);
-            padding: 12px;
-            font-size: 13px;
-            margin-top: 12px;
-            line-height: 1.45;
-        }
-
-        .status {
-            padding: 10px;
-            border-radius: 8px;
-            background: #edf8f1;
-            color: #176b38;
+        .back-btn {
+            display: inline-block;
+            text-decoration: none;
+            background: #718095;
+            color: white;
+            border-radius: 6px;
+            padding: 8px 12px;
+            font-size: 12px;
             font-weight: 800;
-            margin-top: 12px;
+        }
+
+        h2 {
+            margin: 10px 0 14px;
+            font-size: 19px;
+            color: #102e50;
+        }
+
+        .notice {
+            background: #fff8df;
+            border-left: 3px solid #f0b400;
+            padding: 10px 11px;
+            font-size: 11px;
             line-height: 1.45;
-            display: none;
+            color: #17375e;
+            margin-bottom: 11px;
         }
 
-        .status.show {
-            display: block;
-        }
-
-        .status.error {
-            background: #fff1f1;
-            color: #a21e1e;
-        }
-
-        .status.success {
-            background: #edf8f1;
-            color: #176b38;
-        }
-
-        .status.info {
-            background: #edf5ff;
-            color: #175a9c;
-        }
-
-        .file {
-            padding: 10px;
-            border: 1px solid #cbd9e8;
-            border-radius: 8px;
-            width: min(520px, 100%);
-        }
-
-        .upload-form {
-            margin-top: 15px;
+        .upload-row {
             display: flex;
             align-items: center;
-            flex-wrap: wrap;
-            gap: 7px;
+            gap: 6px;
+        }
+
+        input[type="file"] {
+            flex: 1;
+            min-width: 0;
+            border: 1px solid #ccd8e5;
+            border-radius: 6px;
+            padding: 7px;
+            background: white;
+            color: #23384f;
+            font-size: 12px;
+        }
+
+        .process-btn {
+            border: 0;
+            border-radius: 6px;
+            padding: 9px 14px;
+            background: #e9a900;
+            color: white;
+            font-size: 12px;
+            font-weight: 800;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        .process-btn:hover { background: #d69600; }
+        .process-btn:disabled { opacity: .65; cursor: wait; }
+
+        .message {
+            display: none;
+            margin-top: 10px;
+            border-radius: 6px;
+            padding: 9px 10px;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .message.error {
+            display: block;
+            background: #fff0f0;
+            color: #b42318;
+        }
+
+        .message.success {
+            display: block;
+            background: #eaf8ef;
+            color: #147a38;
+        }
+
+        .empty {
+            color: #17375e;
+            font-size: 12px;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .info-box {
+            background: #f5f8fc;
+            border: 1px solid #e0e8f1;
+            border-radius: 6px;
+            padding: 8px;
+        }
+
+        .info-label {
+            font-size: 10px;
+            color: #66788c;
+        }
+
+        .info-value {
+            margin-top: 3px;
+            font-size: 12px;
+            font-weight: 800;
+            color: #14385e;
+            word-break: break-word;
         }
 
         .table-wrap {
-            overflow: auto;
-            max-height: 560px;
-            border: 1px solid var(--line);
-            border-radius: 9px;
+            width: 100%;
+            overflow-x: auto;
+            border: 1px solid #d6e1ed;
+            border-radius: 6px;
         }
 
         table {
             width: 100%;
             border-collapse: collapse;
-            min-width: 1100px;
+            min-width: 900px;
+            font-size: 10px;
         }
 
         th {
-            background: linear-gradient(90deg,#062e70,#0b55b5);
-            color: #fff;
-            padding: 10px;
-            position: sticky;
-            top: 0;
+            background: #0752a0;
+            color: white;
             text-align: left;
-            font-size: 12px;
+            padding: 7px 8px;
+            font-weight: 800;
+            white-space: nowrap;
         }
 
         td {
-            padding: 9px;
-            border-bottom: 1px solid #e1e8f0;
-            font-size: 12px;
+            padding: 7px 8px;
+            border-top: 1px solid #e4ebf3;
+            color: #163b61;
+            white-space: nowrap;
         }
 
         tr:nth-child(even) td {
-            background: #f7faff;
+            background: #f8fbfe;
         }
 
-        .empty-row {
-            text-align: center;
-            padding: 24px;
+        .download {
+            display: inline-block;
+            text-decoration: none;
+            background: #159447;
+            color: white;
+            border-radius: 6px;
+            padding: 9px 13px;
+            font-size: 11px;
+            font-weight: 800;
         }
 
-        .footer {
-            background: #052d70;
-            color: #fff;
-            text-align: center;
-            padding: 18px;
-        }
+        .download:hover { background: #117d3c; }
 
-        .footer b {
-            color: #ffd21c;
+        .small-note {
+            margin-top: 8px;
+            color: #66788c;
+            font-size: 10px;
         }
 
         @media (max-width: 700px) {
-            .top {
-                min-height: 120px;
-                padding: 20px;
-            }
-
-            .top h1 {
-                font-size: 21px;
-            }
-
-            .top p {
-                font-size: 13px;
-            }
-
-            .upload-form {
-                flex-direction: column;
-                align-items: stretch;
-            }
-
-            .file,
-            .upload-form .btn {
-                width: 100%;
-            }
+            .top-banner { height: auto; padding: 24px 18px 15px; }
+            .company { font-size: 17px; }
+            .container { width: calc(100% - 20px); }
+            .upload-row { flex-direction: column; align-items: stretch; }
+            .process-btn { width: 100%; }
+            .info-grid { grid-template-columns: repeat(2, 1fr); }
         }
     </style>
 </head>
-
 <body>
 
-<header class="top">
-    <div>
-        <h1>LATIN MANHARLAL SECURITIES PVT. LTD.</h1>
-        <p>DAILY TRADE REPORT CONTROL PANEL</p>
-    </div>
+<header class="top-banner">
+    <div class="company">LATIN MANHARLAL SECURITIES PVT. LTD.</div>
+    <div class="subtitle">DAILY TRADE REPORT CONTROL PANEL</div>
 </header>
 
+<main class="container">
 
-<div class="container">
+    <section class="card admin-bar">
+        <a class="back-btn" href="{{ url_for('admin_portfolio') }}">← ADMIN</a>
+    </section>
 
-    <!-- ADMIN -->
-    <div class="card">
-        <button
-            class="btn gray"
-            type="button"
-            onclick="location.href='/admin'"
-        >
-            ← ADMIN
-        </button>
-    </div>
-
-
-    <!-- UPLOAD DAILY REPORT -->
-    <div class="card">
-
+    <section class="card">
         <h2>Upload Daily Trade Report</h2>
 
-        <div class="warning">
-            <b>Important:</b>
-            Every successful daily file is treated as the complete current
-            portfolio snapshot. After validation, the old holdings are
-            updated according to the Daily Trade Report logic and open
-            positions are maintained in the portfolio. Same-symbol BUYs
-            at different prices remain as separate lots.
+        <div class="notice">
+            <strong>Important:</strong> Every successful daily file is treated as the complete
+            current trade input. After validation, the existing portfolio is updated according
+            to the Daily Trade Report logic. Different buy-price lots remain separate, NORMAL
+            and MTF remain separate, unmatched/excess SELL quantities are not converted into
+            negative positions, and original buy prices are protected.
         </div>
 
-
-        <form
-            id="uploadForm"
-            class="upload-form"
-        >
-
-            <input
-                class="file"
-                type="file"
-                id="file"
-                name="file"
-                accept=".xlsx,.xls"
-                required
-            >
-
-            <button
-                class="btn gold"
-                id="processBtn"
-                type="submit"
-            >
-                PROCESS &amp; REPLACE PORTFOLIO
-            </button>
-
+        <form id="tradeUploadForm">
+            <div class="upload-row">
+                <input
+                    id="tradeFile"
+                    name="file"
+                    type="file"
+                    accept=".xlsx,.xls,.xlsm,.csv"
+                    required
+                >
+                <button id="processBtn" class="process-btn" type="submit">
+                    PROCESS &amp; REPLACE PORTFOLIO
+                </button>
+            </div>
         </form>
 
+        <div id="message" class="message"></div>
+    </section>
 
-        <div id="status"></div>
-
-    </div>
-
-
-    <!-- LATEST PROCESSED REPORT -->
-    <div class="card">
-
+    <section class="card">
         <h2>Latest Processed Report</h2>
 
         {% if upload_info %}
-
-            <p>
-                <b>File:</b>
-                {{ upload_info.file_name }}
-
-                ·
-
-                <b>Sheet:</b>
-                {{ upload_info.sheet_name }}
-
-                ·
-
-                <b>Rows:</b>
-                {{ upload_info.records_read }}
-
-                ·
-
-                <b>Holdings:</b>
-                {{ upload_info.holdings_inserted }}
-
-                ·
-
-                <b>Status:</b>
-                {{ upload_info.status }}
-
-                ·
-
-                <b>Time:</b>
-                {{ upload_info.upload_date }}
-            </p>
+            <div class="info-grid">
+                <div class="info-box">
+                    <div class="info-label">File</div>
+                    <div class="info-value">{{ upload_info.file_name }}</div>
+                </div>
+                <div class="info-box">
+                    <div class="info-label">Sheet</div>
+                    <div class="info-value">{{ upload_info.sheet_name }}</div>
+                </div>
+                <div class="info-box">
+                    <div class="info-label">Records Read</div>
+                    <div class="info-value">{{ upload_info.records_read }}</div>
+                </div>
+                <div class="info-box">
+                    <div class="info-label">Processed</div>
+                    <div class="info-value">{{ upload_info.upload_date }}</div>
+                </div>
+            </div>
 
             {% if upload_info.summary %}
-
-                <p>
-                    <b>BUY rows:</b>
-                    {{ upload_info.summary.buy_rows }}
-
-                    ·
-
-                    <b>SELL rows:</b>
-                    {{ upload_info.summary.sell_rows }}
-
-                    ·
-
-                    <b>Lots created:</b>
-                    {{ upload_info.summary.lots_created }}
-
-                    ·
-
-                    <b>Fully closed:</b>
-                    {{ upload_info.summary.fully_closed }}
-
-                    ·
-
-                    <b>Partial closes:</b>
-                    {{ upload_info.summary.partial_closes }}
-
-                    ·
-
-                    <b>Excess SELL ignored:</b>
-                    {{ upload_info.summary.sell_excess_ignored }}
-
-                    ·
-
-                    <b>Realised P/L:</b>
-                    {{ upload_info.summary.realised }}
-                </p>
-
+            <div class="info-grid">
+                <div class="info-box">
+                    <div class="info-label">BUY Lots Created</div>
+                    <div class="info-value">{{ upload_info.summary.lots_created }}</div>
+                </div>
+                <div class="info-box">
+                    <div class="info-label">Fully Closed</div>
+                    <div class="info-value">{{ upload_info.summary.fully_closed }}</div>
+                </div>
+                <div class="info-box">
+                    <div class="info-label">Partial Closes</div>
+                    <div class="info-value">{{ upload_info.summary.partial_closes }}</div>
+                </div>
+                <div class="info-box">
+                    <div class="info-label">Excess SELL Ignored</div>
+                    <div class="info-value">{{ upload_info.summary.sell_excess_ignored }}</div>
+                </div>
+            </div>
             {% endif %}
-
         {% else %}
-
-            <p>
-                No report uploaded in this server session yet.
-            </p>
-
+            <div class="empty">No report uploaded in this server session yet.</div>
         {% endif %}
+    </section>
 
-    </div>
-
-
-    <!-- TRADE REPORT PREVIEW -->
-    <div class="card">
-
+    <section class="card">
         <h2>Trade Report Preview</h2>
 
+        {% if trade_rows %}
         <div class="table-wrap">
-
             <table>
-
                 <thead>
                     <tr>
                         <th>Date</th>
@@ -406,429 +342,130 @@
                         <th>P/L</th>
                     </tr>
                 </thead>
-
                 <tbody>
-
-                    {% for r in trade_rows %}
-
+                {% for row in trade_rows %}
                     <tr>
-
-                        <td>{{ r.date }}</td>
-
-                        <td>{{ r.client_id }}</td>
-
-                        <td>{{ r.symbol }}</td>
-
-                        <td>{{ r.product }}</td>
-
-                        <td>{{ r.buy_qty }}</td>
-
-                        <td>{{ r.buy_avg }}</td>
-
-                        <td>{{ r.sell_qty }}</td>
-
-                        <td>{{ r.sell_avg }}</td>
-
-                        <td>{{ r.net_qty }}</td>
-
-                        <td>{{ r.net_avg }}</td>
-
-                        <td>{{ r.pnl }}</td>
-
+                        <td>{{ row.date if row.date is not none else '' }}</td>
+                        <td>{{ row.client_id }}</td>
+                        <td>{{ row.symbol }}</td>
+                        <td>{{ row.product }}</td>
+                        <td>{{ row.buy_qty }}</td>
+                        <td>{{ row.buy_avg }}</td>
+                        <td>{{ row.sell_qty }}</td>
+                        <td>{{ row.sell_avg }}</td>
+                        <td>{{ row.net_qty }}</td>
+                        <td>{{ row.net_avg }}</td>
+                        <td>{{ row.pnl }}</td>
                     </tr>
-
-                    {% else %}
-
-                    <tr>
-                        <td
-                            colspan="11"
-                            class="empty-row"
-                        >
-                            Upload a daily report to preview processed rows.
-                        </td>
-                    </tr>
-
-                    {% endfor %}
-
+                {% endfor %}
                 </tbody>
-
             </table>
-
         </div>
+        <div class="small-note">Showing up to the latest 1,000 processed report rows.</div>
+        {% else %}
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Client ID</th>
+                            <th>Symbol</th>
+                            <th>Product</th>
+                            <th>Buy Qty</th>
+                            <th>Buy Avg</th>
+                            <th>Sell Qty</th>
+                            <th>Sell Avg</th>
+                            <th>Net Qty</th>
+                            <th>Net Avg</th>
+                            <th>P/L</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td colspan="11" style="text-align:center;padding:13px;">
+                                Upload a daily report to preview processed rows.
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        {% endif %}
+    </section>
 
-    </div>
-
-
-    <!-- DOWNLOAD -->
-    <div class="card">
-
-        <a href="/download/holdings.csv">
-
-            <button
-                class="btn green"
-                type="button"
-            >
-                DOWNLOAD CURRENT PORTFOLIO CSV
-            </button>
-
+    <section class="card">
+        <a class="download" href="{{ url_for('download_holdings') }}">
+            DOWNLOAD CURRENT PORTFOLIO CSV
         </a>
+    </section>
 
-    </div>
-
-</div>
-
-
-<footer class="footer">
-    Thank you for trading with
-    <b>Latin Manharlal Securities Pvt. Ltd.</b>
-</footer>
-
+</main>
 
 <script>
+(function () {
+    const form = document.getElementById("tradeUploadForm");
+    const fileInput = document.getElementById("tradeFile");
+    const button = document.getElementById("processBtn");
+    const message = document.getElementById("message");
 
-const uploadForm = document.getElementById("uploadForm");
-const fileInput = document.getElementById("file");
-const processBtn = document.getElementById("processBtn");
-const statusBox = document.getElementById("status");
-
-
-function showStatus(message, type) {
-
-    statusBox.className = "status show " + type;
-
-    statusBox.textContent = message;
-
-}
-
-
-uploadForm.addEventListener("submit", async function (e) {
-
-    e.preventDefault();
-
-
-    const file = fileInput.files[0];
-
-
-    if (!file) {
-
-        showStatus(
-            "Please choose the Daily Trade Report Excel file.",
-            "error"
-        );
-
-        return;
+    function showMessage(text, type) {
+        message.textContent = text || "";
+        message.className = "message " + type;
     }
 
+    form.addEventListener("submit", async function (event) {
+        event.preventDefault();
 
-    const fileName = file.name.toLowerCase();
-
-
-    if (
-        !fileName.endsWith(".xlsx") &&
-        !fileName.endsWith(".xls")
-    ) {
-
-        showStatus(
-            "Please select an Excel file (.xlsx or .xls).",
-            "error"
-        );
-
-        return;
-    }
-
-
-    if (
-        !confirm(
-            "This will update the current portfolio using the selected daily file. Continue?"
-        )
-    ) {
-
-        return;
-    }
-
-
-    processBtn.disabled = true;
-
-    processBtn.textContent = "PROCESSING...";
-
-
-    showStatus(
-        "Processing Daily Trade Report. Please wait...",
-        "info"
-    );
-
-
-    const formData = new FormData();
-
-    /*
-     * IMPORTANT:
-     * Your render_server.py expects:
-     *
-     * request.files.get("file")
-     *
-     * Therefore the field name MUST be "file".
-     */
-
-    formData.append("file", file);
-
-
-    try {
-
-        const response = await fetch(
-            "/api/trade-report/upload",
-            {
-                method: "POST",
-                body: formData,
-
-                /*
-                 * Keep the current supervisor session cookie.
-                 */
-                credentials: "same-origin",
-
-                /*
-                 * Do NOT silently follow a login redirect.
-                 * Your Flask authentication can redirect to "/".
-                 */
-                redirect: "manual"
-            }
-        );
-
-
-        /*
-         * Authentication redirect.
-         *
-         * Flask's _require_supervisor() redirects to login
-         * when the supervisor session is not available.
-         */
-
-        if (
-            response.type === "opaqueredirect" ||
-            response.status === 301 ||
-            response.status === 302 ||
-            response.status === 303 ||
-            response.status === 307 ||
-            response.status === 308
-        ) {
-
-            showStatus(
-                "Your supervisor login session has expired. Please login again and then retry the Daily Trade Report.",
-                "error"
-            );
-
+        if (!fileInput.files || !fileInput.files.length) {
+            showMessage("Please select an Excel file (.xlsx, .xls or .xlsm).", "error");
             return;
         }
 
+        const formData = new FormData();
+        formData.append("file", fileInput.files[0]);
 
-        /*
-         * Read the response as TEXT first.
-         *
-         * This is important because calling response.json()
-         * directly causes:
-         *
-         * SyntaxError: Unexpected token '<'
-         *
-         * when Flask/Render sends an HTML page.
-         */
-
-        const responseText = await response.text();
-
-        const trimmed = responseText.trim();
-
-
-        /*
-         * Detect HTML responses.
-         */
-
-        if (
-            trimmed.startsWith("<!DOCTYPE") ||
-            trimmed.startsWith("<html") ||
-            trimmed.startsWith("<HTML")
-        ) {
-
-            showStatus(
-                "The server returned an HTML page instead of the expected JSON response. Please login again from the main Login page and retry.",
-                "error"
-            );
-
-            console.error(
-                "Unexpected HTML response:",
-                responseText
-            );
-
-            return;
-        }
-
-
-        /*
-         * Empty response.
-         */
-
-        if (!trimmed) {
-
-            showStatus(
-                "The server returned an empty response. HTTP " +
-                response.status +
-                ".",
-                "error"
-            );
-
-            return;
-        }
-
-
-        /*
-         * Parse JSON safely.
-         */
-
-        let data;
+        button.disabled = true;
+        button.textContent = "PROCESSING...";
+        message.className = "message";
+        message.textContent = "";
 
         try {
+            const response = await fetch("{{ url_for('upload_trade_report') }}", {
+                method: "POST",
+                body: formData,
+                credentials: "same-origin"
+            });
 
-            data = JSON.parse(trimmed);
-
-        } catch (jsonError) {
-
-            console.error(
-                "JSON parse error:",
-                jsonError
-            );
-
-            console.error(
-                "Server response:",
-                responseText
-            );
-
-            showStatus(
-                "Server returned HTTP " +
-                response.status +
-                " but the response was not valid JSON.",
-                "error"
-            );
-
-            return;
-        }
-
-
-        /*
-         * HTTP ERROR
-         */
-
-        if (!response.ok) {
-
-            let message =
-                data.message ||
-                "Daily Trade Report upload failed.";
-
-            if (data.error) {
-
-                message +=
-                    " — " +
-                    data.error;
-
+            let data = {};
+            try {
+                data = await response.json();
+            } catch (e) {
+                data = { success: false, message: "Server returned an invalid response." };
             }
 
-            showStatus(
-                "Upload failed. HTTP " +
-                response.status +
-                ": " +
-                message,
-                "error"
-            );
-
-            return;
-        }
-
-
-        /*
-         * APPLICATION ERROR
-         */
-
-        if (!data.success) {
-
-            let message =
-                data.message ||
-                "Daily Trade Report processing failed.";
-
-            if (data.error) {
-
-                message +=
-                    " — " +
-                    data.error;
-
+            if (!response.ok || !data.success) {
+                showMessage(
+                    data.message || data.error || "Trade report processing failed.",
+                    "error"
+                );
+                return;
             }
 
-            showStatus(
-                message,
-                "error"
-            );
+            showMessage(data.message || "Daily trade report processed successfully.", "success");
 
-            return;
-        }
-
-
-        /*
-         * SUCCESS
-         */
-
-        showStatus(
-            data.message ||
-            "Daily Trade Report processed successfully.",
-            "success"
-        );
-
-
-        /*
-         * The backend already returns:
-         *
-         * "redirect": url_for("trade_report")
-         */
-
-        if (data.redirect) {
-
+            // Refresh the page so Latest Processed Report and Preview
+            // show the values stored by render_server.py.
             setTimeout(function () {
+                window.location.href = data.redirect || "{{ url_for('trade_report') }}";
+            }, 700);
 
-                window.location.href =
-                    data.redirect;
-
-            }, 800);
-
-        } else {
-
-            setTimeout(function () {
-
-                window.location.reload();
-
-            }, 800);
-
+        } catch (error) {
+            showMessage("Upload failed: " + error.message, "error");
+        } finally {
+            button.disabled = false;
+            button.textContent = "PROCESS & REPLACE PORTFOLIO";
         }
-
-    } catch (error) {
-
-        console.error(
-            "Daily Trade Report upload error:",
-            error
-        );
-
-        showStatus(
-            "Upload error: " +
-            (
-                error.message ||
-                String(error)
-            ),
-            "error"
-        );
-
-    } finally {
-
-        processBtn.disabled = false;
-
-        processBtn.textContent =
-            "PROCESS & REPLACE PORTFOLIO";
-
-    }
-
-});
-
+    });
+})();
 </script>
 
 </body>
