@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>LMS Daily Trade Report</title>
+
+<style>
+:root{
+    --navy:#052d70;
+    --blue:#0b55b5;
+    --gold:#f4c400;
+    --green:#128a43;
+    --red:#d62828;
+    --line:#d3dfec
+}
+*{box-sizing:border-box}
+body{
+    margin:0;
+    font-family:Arial,Helvetica,sans-serif;
+    background:linear-gradient(135deg,#edf5ff,#fff);
+    color:#14263d
+}
+.top{
+    min-height:145px;
+    background:
+        linear-gradient(90deg,rgba(3,39,94,.98),rgba(7,65,132,.94)),
+        url('/static/images/lms_header.jpeg') center/cover no-repeat;
+    color:#fff;
+    padding:20px 28px;
+    display:flex;
+    align-items:flex-end
+}
+.top h1{margin:0;font-size:27px}
+.top p{margin:6px 0 0;color:#ffd21c;font-weight:900}
+.container{max-width:1240px;margin:18px auto;padding:0 12px}
+.card{
+    background:#fff;
+    border:1px solid #d7e2ee;
+    border-radius:14px;
+    box-shadow:0 5px 18px rgba(21,59,102,.1);
+    padding:16px;
+    margin-bottom:16px
+}
+.btn{
+    border:0;
+    border-radius:8px;
+    padding:10px 14px;
+    background:var(--blue);
+    color:#fff;
+    font-weight:900;
+    cursor:pointer
+}
+.btn:disabled{
+    opacity:.65;
+    cursor:not-allowed
+}
+.green{background:var(--green)}
+.gray{background:#69778a}
+.gold{background:#d99e00}
+.warning{
+    background:#fff8df;
+    border-left:4px solid var(--gold);
+    padding:12px;
+    font-size:13px;
+    margin-top:12px
+}
+.status{
+    padding:10px;
+    border-radius:8px;
+    background:#edf8f1;
+    color:#176b38;
+    font-weight:800;
+    margin-top:12px;
+    white-space:pre-wrap;
+    word-break:break-word
+}
+.status.error{
+    background:#fff1f1;
+    color:#a21e1e
+}
+.status.info{
+    background:#edf5ff;
+    color:#174d8d
+}
+.file{
+    padding:10px;
+    border:1px solid #cbd9e8;
+    border-radius:8px;
+    width:min(520px,100%)
+}
+.table-wrap{
+    overflow:auto;
+    max-height:560px;
+    border:1px solid var(--line);
+    border-radius:9px
+}
+table{
+    width:100%;
+    border-collapse:collapse;
+    min-width:1100px
+}
+th{
+    background:linear-gradient(90deg,#062e70,#0b55b5);
+    color:#fff;
+    padding:10px;
+    position:sticky;
+    top:0;
+    text-align:left;
+    font-size:12px
+}
+td{
+    padding:9px;
+    border-bottom:1px solid #e1e8f0;
+    font-size:12px
+}
+tr:nth-child(even) td{background:#f7faff}
+.footer{
+    background:#052d70;
+    color:#fff;
+    text-align:center;
+    padding:18px
+}
+.footer b{color:#ffd21c}
+</style>
+</head>
+
+<body>
+
+<header class="top">
+    <div>
+        <h1>LATIN MANHARLAL SECURITIES PVT. LTD.</h1>
+        <p>DAILY TRADE REPORT CONTROL PANEL</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <div class="card">
+        <button class="btn gray" onclick="location.href='/admin'">← ADMIN</button>
+    </div>
+
+    <div class="card">
+        <h2>Upload Daily Trade Report</h2>
+
+        <div class="warning">
+            <b>Important:</b>
+            The daily file is processed against the current portfolio.
+            BUY transactions create/aggregate lots, while SELL transactions
+            reduce matching lots. Fully closed lots are removed, partial lots
+            are updated, and new open lots are inserted. Negative holdings are
+            not created.
+        </div>
+
+        <form id="uploadForm" style="margin-top:15px">
+            <input
+                class="file"
+                type="file"
+                id="file"
+                name="file"
+                accept=".xlsx,.xls"
+                required
+            >
+
+            <button
+                class="btn gold"
+                id="processBtn"
+                type="submit"
+                style="margin-left:7px"
+            >
+                PROCESS &amp; UPDATE PORTFOLIO
+            </button>
+        </form>
+
+        <div id="status" aria-live="polite"></div>
+    </div>
+
+    <div class="card">
+        <h2>Latest Processed Report</h2>
+
+        {% if upload_info %}
+        <p>
+            <b>File:</b> {{ upload_info.file_name }}
+            · <b>Sheet:</b> {{ upload_info.sheet_name }}
+            · <b>Rows:</b> {{ upload_info.records_read }}
+            · <b>Holdings Inserted:</b> {{ upload_info.holdings_inserted }}
+            · <b>Old Holdings Removed:</b> {{ upload_info.old_holdings_removed }}
+            · <b>Status:</b> {{ upload_info.status }}
+            · <b>Time:</b> {{ upload_info.upload_date }}
+        </p>
+        {% else %}
+        <p>No report uploaded in this server session yet.</p>
+        {% endif %}
+    </div>
+
+    <div class="card">
+        <h2>Trade Report Preview</h2>
+
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Client ID</th>
+                        <th>Symbol</th>
+                        <th>Product</th>
+                        <th>Buy Qty</th>
+                        <th>Buy Avg</th>
+                        <th>Sell Qty</th>
+                        <th>Sell Avg</th>
+                        <th>Net Qty</th>
+                        <th>Net Avg</th>
+                        <th>P/L</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    {% for r in trade_rows %}
+                    <tr>
+                        <td>{{ r.date }}</td>
+                        <td>{{ r.client_id }}</td>
+                        <td>{{ r.symbol }}</td>
+                        <td>{{ r.product }}</td>
+                        <td>{{ r.buy_qty }}</td>
+                        <td>{{ r.buy_avg }}</td>
+                        <td>{{ r.sell_qty }}</td>
+                        <td>{{ r.sell_avg }}</td>
+                        <td>{{ r.net_qty }}</td>
+                        <td>{{ r.net_avg }}</td>
+                        <td>{{ r.pnl }}</td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="11" style="text-align:center;padding:24px">
+                            Upload a daily report to preview processed rows.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="card">
+        <a href="/download/holdings.csv">
+            <button class="btn green" type="button">
+                DOWNLOAD CURRENT PORTFOLIO CSV
+            </button>
+        </a>
+    </div>
+
+</div>
+
+<footer class="footer">
+    Thank you for trading with
+    <b>Latin Manharlal Securities Pvt. Ltd.</b>
+</footer>
+
+<script>
+document.getElementById('uploadForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+
+    const fileInput = document.getElementById('file');
+    const processBtn = document.getElementById('processBtn');
+    const status = document.getElementById('status');
+    const file = fileInput.files[0];
+
+    if (!file) {
+        status.className = 'status error';
+        status.textContent = 'Please choose the daily Excel report.';
+        return;
+    }
+
+    if (!confirm(
+        'The daily report will be processed against the current portfolio. ' +
+        'BUY lots will be created/aggregated and SELL transactions will reduce ' +
+        'matching lots. Continue?'
+    )) {
+        return;
+    }
+
+    status.className = 'status info';
+    status.textContent = 'Processing daily trade report...';
+    processBtn.disabled = true;
+    processBtn.textContent = 'PROCESSING...';
+
+    const fd = new FormData();
+    fd.append('file', file);
+
+    try {
+        const res = await fetch('/api/trade-report/upload', {
+            method: 'POST',
+            body: fd,
+            credentials: 'same-origin'
+        });
+
+        /*
+         * Do NOT call res.json() directly.
+         *
+         * If Flask/Render returns an empty response, HTML, a redirect,
+         * or another non-JSON response, res.json() itself throws
+         * "Unexpected end of JSON input".
+         *
+         * Reading text first lets us show the actual server response.
+         */
+        const responseText = await res.text();
+
+        let data = null;
+
+        if (responseText.trim() !== '') {
+            try {
+                data = JSON.parse(responseText);
+            } catch (parseError) {
+                console.error('Invalid JSON response from server:', responseText);
+                throw new Error(
+                    'Server returned invalid JSON (HTTP ' + res.status + ').\n' +
+                    'Response: ' + responseText.substring(0, 500)
+                );
+            }
+        }
+
+        /*
+         * Handle redirects/non-JSON/empty responses clearly.
+         */
+        if (!res.ok) {
+            const serverMessage =
+                (data && (data.message || data.error)) ||
+                ('HTTP ' + res.status + ' ' + res.statusText);
+
+            throw new Error(serverMessage);
+        }
+
+        if (!data) {
+            throw new Error(
+                'Server returned an empty response (HTTP ' +
+                res.status +
+                '). Please check the Render server logs.'
+            );
+        }
+
+        if (!data.success) {
+            throw new Error(
+                data.message ||
+                data.error ||
+                'Daily trade report upload failed.'
+            );
+        }
+
+        /*
+         * Success.
+         */
+        status.className = 'status';
+        status.textContent =
+            data.message ||
+            'Daily trade report processed successfully.';
+
+        /*
+         * Show useful processing information when the backend sends it.
+         */
+        const details = [];
+
+        if (data.records_read !== undefined) {
+            details.push('Rows read: ' + data.records_read);
+        }
+
+        if (data.new_lots_created !== undefined) {
+            details.push('New lots created: ' + data.new_lots_created);
+        }
+
+        if (data.full_lots_closed !== undefined) {
+            details.push('Full lots closed: ' + data.full_lots_closed);
+        }
+
+        if (data.partial_lots_changed !== undefined) {
+            details.push('Partial lots changed: ' + data.partial_lots_changed);
+        }
+
+        if (data.excess_sell_ignored !== undefined) {
+            details.push('Excess SELL ignored: ' + data.excess_sell_ignored);
+        }
+
+        if (details.length) {
+            status.textContent += '\n' + details.join(' · ');
+        }
+
+        /*
+         * Reload the report page after successful processing.
+         * Prefer the backend-provided redirect when available.
+         */
+        const redirectUrl = data.redirect || '/trade-report';
+
+        setTimeout(function() {
+            location.href = redirectUrl;
+        }, 1000);
+
+    } catch (err) {
+        console.error('Daily trade report upload error:', err);
+
+        status.className = 'status error';
+        status.textContent =
+            'Upload error: ' +
+            (err && err.message ? err.message : String(err));
+
+    } finally {
+        processBtn.disabled = false;
+        processBtn.textContent = 'PROCESS & UPDATE PORTFOLIO';
+    }
+});
+</script>
+
+</body>
+</html>
