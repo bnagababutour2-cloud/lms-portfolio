@@ -745,12 +745,18 @@ def _daily_parse_trades(raw_rows):
     return trades
 
 
-def _holding_stored_product(h):
-    """Return product only when it is actually stored, else None."""
+def _holding_stored_product(h, product_map=None):
+    """Return product only when it is actually stored, else None.
+
+    The Daily Trade Report processes the entire holdings snapshot.  Re-reading
+    holding_products.json once per holding is unnecessary and can become a
+    bottleneck on Render.  Callers that already have the map should pass it in.
+    """
     direct = h.get("product")
     if direct not in (None, ""):
         return str(direct).strip().upper()
-    pm = _load_product_map()
+
+    pm = product_map if product_map is not None else _load_product_map()
     for key in (
         str(h.get("id") or "").strip(),
         "P:" + str(h.get("portfolio_id") or "").strip(),
@@ -792,7 +798,7 @@ def _daily_prepare_display(raw_rows):
     return display_rows
 
 
-def _daily_build_result(existing_rows, trades):
+def _daily_build_result(existing_rows, trades, product_map=None):
     """
     Compute the final active portfolio in memory before any Supabase write.
 
@@ -807,6 +813,11 @@ def _daily_build_result(existing_rows, trades):
       * Excess SELL is ignored.
       * Zero quantity rows are deleted/not retained.
     """
+    # Reuse one product-map snapshot for the whole calculation.  This avoids
+    # opening/reading the JSON map once for every holding row.
+    if product_map is None:
+        product_map = _load_product_map()
+
     # Determine whether the existing row's product is explicit.
     pair_buckets = {}
     for trade in trades:
@@ -819,7 +830,7 @@ def _daily_build_result(existing_rows, trades):
             continue
         client = _clean_client_id(h.get("client_id"))
         symbol = str(h.get("symbol") or "").strip().upper()
-        stored_product = _holding_stored_product(h)
+        stored_product = _holding_stored_product(h, product_map)
         if stored_product:
             bucket = _daily_bucket(stored_product)
             # Daily Portfolio Product is intentionally normalized:
@@ -1201,9 +1212,19 @@ def upload_trade_report():
         old_rows = supabase.table("holdings").select("*").execute().data or []
         print(f"[TRADE-REPORT {request_id}] Current holdings loaded: {len(old_rows)} rows")
         old_product_map = _load_product_map()
+        print(f"[TRADE-REPORT {request_id}] Product map loaded: {len(old_product_map)} entries")
 
         stage = "calculating daily portfolio changes"
-        final_lots, all_lots, stats = _daily_build_result(old_rows, trades)
+        print(f"[TRADE-REPORT {request_id}] Building portfolio result from {len(old_rows)} holdings and {len(trades)} trades")
+        final_lots, all_lots, stats = _daily_build_result(
+            old_rows, trades, product_map=old_product_map
+        )
+        print(
+            f"[TRADE-REPORT {request_id}] Portfolio calculation complete: "
+            f"final={len(final_lots)}, all={len(all_lots)}, "
+            f"new={stats['lots_created']}, closed={stats['fully_closed']}, "
+            f"partial={stats['partial_closes']}"
+        )
 
         # Any pre-existing active lots that were fully consumed are marked delete.
         delete_lots = [lot for lot in all_lots if lot.get("db") and lot.get("delete")]
