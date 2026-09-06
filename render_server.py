@@ -1091,23 +1091,63 @@ def _daily_restore_snapshot(old_rows, old_product_map):
 
 @app.route("/api/trade-report/upload", methods=["POST"])
 def upload_trade_report():
+    """Process one complete daily trade snapshot and always return JSON.
+
+    This is an API endpoint, so authentication/database failures must never
+    return an HTML redirect. Keeping the whole handler inside the try block
+    also prevents an unexpected exception from reaching the browser as an
+    empty/non-JSON response.
+    """
     global last_trade_rows, last_upload_info
 
-    account, auth_error = _require_supervisor(can_manage=True)
-    if auth_error:
-        return auth_error
-    if not account.get("can_upload"):
-        return jsonify({"success": False, "message": "Daily report upload is restricted to an authorized supervisor."}), 403
-
-    db_error = _require_db()
-    if db_error:
-        return db_error
-
-    uploaded = request.files.get("file")
-    if uploaded is None or not uploaded.filename:
-        return jsonify({"success": False, "message": "Please choose the daily Excel report."}), 400
-
     try:
+        # API endpoints must return JSON instead of redirecting to /login.
+        supervisor_id = session.get("supervisor_id")
+        account = _get_supervisor(supervisor_id)
+        if not account:
+            return jsonify({
+                "success": False,
+                "message": "Your supervisor session has expired. Please log in again.",
+                "code": "AUTH_REQUIRED",
+            }), 401
+
+        if not account.get("can_manage"):
+            return jsonify({
+                "success": False,
+                "message": "This supervisor has view-only access.",
+                "code": "VIEW_ONLY",
+            }), 403
+
+        if not account.get("can_upload"):
+            return jsonify({
+                "success": False,
+                "message": "Daily report upload is restricted to an authorized supervisor.",
+                "code": "UPLOAD_NOT_ALLOWED",
+            }), 403
+
+        if supabase is None:
+            return jsonify({
+                "success": False,
+                "message": supabase_config_error or "Database is not configured.",
+                "code": "DATABASE_NOT_CONFIGURED",
+            }), 500
+
+        uploaded = request.files.get("file")
+        if uploaded is None or not uploaded.filename:
+            return jsonify({
+                "success": False,
+                "message": "Please choose the daily Excel report.",
+                "code": "FILE_REQUIRED",
+            }), 400
+
+        filename = os.path.basename(uploaded.filename)
+        if not filename.lower().endswith((".xlsx", ".xls")):
+            return jsonify({
+                "success": False,
+                "message": "Please upload an Excel file (.xlsx or .xls).",
+                "code": "INVALID_FILE_TYPE",
+            }), 400
+
         sheet_name, raw_rows = _read_trade_excel(uploaded)
         trades = _daily_parse_trades(raw_rows)
         display_rows = _daily_prepare_display(raw_rows)
@@ -1138,49 +1178,41 @@ def upload_trade_report():
                 "unknown_clients": unknown,
             }), 400
 
-        # Snapshot current portfolio before computing/applied daily changes.
+        # Snapshot current portfolio before computing/applying daily changes.
         old_rows = supabase.table("holdings").select("*").execute().data or []
         old_product_map = _load_product_map()
 
         final_lots, all_lots, stats = _daily_build_result(old_rows, trades)
 
-        # Any pre-existing active lots that were fully consumed are marked delete.
         delete_lots = [lot for lot in all_lots if lot.get("db") and lot.get("delete")]
         partial_lots = [
             lot for lot in all_lots
             if lot.get("db") and lot.get("changed") and not lot.get("delete")
         ]
-        new_lots = [
-            lot for lot in final_lots if not lot.get("db")
-        ]
+        new_lots = [lot for lot in final_lots if not lot.get("db")]
 
-        # Track newly generated rows so a later exception can be rolled back.
-        inserted_new = []
         try:
-            # Update partial existing BUY lots first, delete fully consumed lots,
-            # and insert new BUY lots. The in-memory result was calculated using
-            # BUY-before-SELL, so the order here does not alter the final state.
             for lot in partial_lots:
                 _daily_update_partial_lot(lot)
 
             _daily_delete_lots(delete_lots)
-
-            # Normalize Product in every remaining active lot: ONLY MTF is separate;
-            # all other broker product labels become NORMAL in the portfolio.
             _daily_normalize_existing_products(final_lots)
-
-            # Insert only new lots that still have a positive balance after SELL.
             inserted_new = _daily_insert_lots(new_lots)
 
             # Final safety verification: active holdings must never be negative.
-            final_db = supabase.table("holdings").select("id,quantity,buy_price,client_id,symbol").execute().data or []
-            negative = [r for r in final_db if _clean_number(r.get("quantity")) < -1e-9]
+            final_db = supabase.table("holdings").select(
+                "id,quantity,buy_price,client_id,symbol"
+            ).execute().data or []
+            negative = [
+                r for r in final_db
+                if _clean_number(r.get("quantity")) < -1e-9
+            ]
             if negative:
                 raise RuntimeError("Negative holding detected after daily update.")
 
             last_trade_rows = display_rows[:1000]
             last_upload_info = {
-                "file_name": uploaded.filename,
+                "file_name": filename,
                 "sheet_name": sheet_name,
                 "records_read": len(raw_rows),
                 "holdings_inserted": len(inserted_new),
@@ -1209,17 +1241,16 @@ def upload_trade_report():
             })
 
         except Exception as mutation_error:
-            # The daily update should behave like the legacy updater's
-            # work-in-memory-then-save behavior: restore the exact old snapshot
-            # if the Supabase mutation fails.
             _daily_restore_snapshot(old_rows, old_product_map)
             raise mutation_error
 
     except Exception as exc:
+        print("ERROR: /api/trade-report/upload:", repr(exc))
         return jsonify({
             "success": False,
             "message": "Trade report processing failed.",
             "error": str(exc),
+            "code": "TRADE_REPORT_PROCESSING_ERROR",
         }), 500
 
 
