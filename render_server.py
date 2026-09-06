@@ -395,6 +395,32 @@ def _load_all_clients():
     return clients
 
 
+def _load_daily_client_map(client_ids):
+    """Load only Client IDs needed by the Daily Trade Report upload.
+
+    The normal _load_all_clients() function is intentionally kept unchanged
+    because other admin/client pages need the full client records.
+    Daily Trade Report validation only needs the canonical Client ID, so
+    querying just the IDs keeps the upload lightweight.
+    """
+    client_map = {}
+    wanted = sorted({str(cid or "").strip() for cid in client_ids if str(cid or "").strip()})
+    for cid in wanted:
+        result = (
+            supabase.table("clients")
+            .select("client_id")
+            .ilike("client_id", cid)
+            .limit(1)
+            .execute()
+        )
+        for row in (result.data or []):
+            canonical = str(row.get("client_id") or "").strip()
+            if canonical:
+                client_map[canonical.lower()] = canonical
+                break
+    return client_map
+
+
 def _load_all_holdings():
     rows_db = []
     page_size = 1000
@@ -1145,11 +1171,11 @@ def upload_trade_report():
 
         stage = "validating Client IDs"
         # Canonicalize Client IDs case-insensitively BEFORE any database mutation.
-        all_clients = _load_all_clients()
-        client_map = {
-            str(c.get("client_id") or "").strip().lower(): c.get("client_id")
-            for c in all_clients if c.get("client_id")
-        }
+        # Only Client IDs present in this uploaded report are needed here.
+        report_client_ids = [trade.get("client") for trade in trades]
+        print(f"[TRADE-REPORT {request_id}] Loading {len(set(str(x or "").strip() for x in report_client_ids))} report Client IDs")
+        client_map = _load_daily_client_map(report_client_ids)
+        print(f"[TRADE-REPORT {request_id}] Client ID validation data loaded: {len(client_map)} clients")
         unknown = []
         for trade in trades:
             canonical = client_map.get(trade["client"].lower())
@@ -1173,6 +1199,7 @@ def upload_trade_report():
         stage = "reading current holdings"
         # Snapshot current portfolio before computing/applied daily changes.
         old_rows = supabase.table("holdings").select("*").execute().data or []
+        print(f"[TRADE-REPORT {request_id}] Current holdings loaded: {len(old_rows)} rows")
         old_product_map = _load_product_map()
 
         stage = "calculating daily portfolio changes"
