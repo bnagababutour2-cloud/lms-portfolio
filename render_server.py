@@ -2,16 +2,56 @@ from flask import Flask, render_template, request, jsonify, redirect, url_for, s
 from dotenv import load_dotenv
 from supabase import create_client
 import os
+import requests
 import json
 import io
 import csv
 import re
 import uuid
 import traceback
+import threading
+import time
 from datetime import datetime
 import pandas as pd
 
 load_dotenv()
+
+# ------------------------------------------------------------
+# BSE LIVE LTP CONFIGURATION
+# ------------------------------------------------------------
+# Reference implementation uses BSE's public scrip-header endpoint:
+#   /BseIndiaAPI/api/getScripHeaderData/w?scripcode=<BSE CODE>
+# The BSE code is resolved from the security master by ticker symbol.
+BSE_HEADER_URL = os.environ.get(
+    "BSE_HEADER_URL",
+    "https://api.bseindia.com/BseIndiaAPI/api/getScripHeaderData/w",
+).strip()
+BSE_MASTER_FILE = os.environ.get(
+    "BSE_MASTER_FILE",
+    os.path.join(os.path.dirname(os.path.abspath(__file__)), "BSEsecurity list.xlsx"),
+).strip()
+BSE_LTP_UPDATE_INTERVAL = max(
+    5, int(os.environ.get("BSE_LTP_UPDATE_INTERVAL", "10") or "10")
+)
+BSE_LTP_UPDATER_ENABLED = os.environ.get(
+    "BSE_LTP_UPDATER_ENABLED", "1"
+).strip().lower() not in {"0", "false", "no", "off"}
+
+BSE_HEADERS = {
+    "User-Agent": (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/151.0.0.0 Safari/537.36"
+    ),
+    "Accept": "application/json, text/plain, */*",
+    "Referer": "https://www.bseindia.com/",
+    "Origin": "https://www.bseindia.com",
+    "Connection": "keep-alive",
+}
+
+_bse_codes_cache = None
+_bse_codes_lock = threading.Lock()
+_bse_updater_started = False
 
 # ------------------------------------------------------------
 # Database connection
@@ -421,6 +461,246 @@ def _load_daily_client_map(client_ids):
     return client_map
 
 
+# ------------------------------------------------------------
+# BSE LIVE LTP HELPERS
+# ------------------------------------------------------------
+
+def _load_bse_codes(force=False):
+    """Load SYMBOL -> BSE CODE once, using the reference updater's master logic."""
+    global _bse_codes_cache
+    with _bse_codes_lock:
+        if _bse_codes_cache is not None and not force:
+            return _bse_codes_cache
+
+        try:
+            if not os.path.isfile(BSE_MASTER_FILE):
+                print(f"[BSE LTP] Security master not found: {BSE_MASTER_FILE}")
+                _bse_codes_cache = {}
+                return _bse_codes_cache
+
+            df = pd.read_excel(BSE_MASTER_FILE, dtype={"BSE CODE": str})
+
+            required = {"BSE CODE", "TckrSymb"}
+            missing = required - set(df.columns)
+            if missing:
+                print(
+                    "[BSE LTP] Security master missing required columns: "
+                    + ", ".join(sorted(missing))
+                )
+                _bse_codes_cache = {}
+                return _bse_codes_cache
+
+            df["TckrSymb"] = (
+                df["TckrSymb"]
+                .fillna("")
+                .astype(str)
+                .str.strip()
+                .str.upper()
+            )
+            df["BSE CODE"] = (
+                df["BSE CODE"]
+                .fillna("")
+                .astype(str)
+                .str.strip()
+                .str.replace(r"\.0$", "", regex=True)
+            )
+            df = df[(df["TckrSymb"] != "") & (df["BSE CODE"] != "")]
+
+            codes = {}
+            duplicate_symbols = set()
+            for _, row in df.iterrows():
+                symbol = str(row["TckrSymb"]).strip().upper()
+                bse_code = str(row["BSE CODE"]).strip()
+                if not symbol or not bse_code:
+                    continue
+                if symbol in codes:
+                    duplicate_symbols.add(symbol)
+                    continue
+                codes[symbol] = bse_code
+
+            if duplicate_symbols:
+                print(
+                    f"[BSE LTP] Duplicate symbols in security master: "
+                    f"{len(duplicate_symbols)}; first valid mapping kept."
+                )
+
+            print(f"[BSE LTP] Security master loaded: {len(codes)} symbols")
+            _bse_codes_cache = codes
+            return codes
+
+        except Exception as exc:
+            print(f"[BSE LTP] Security master load failed: {exc}")
+            _bse_codes_cache = {}
+            return _bse_codes_cache
+
+
+def _get_bse_ltp(bse_code):
+    """Fetch one BSE LTP using the same API/response shape as the reference file."""
+    try:
+        response = requests.get(
+            BSE_HEADER_URL,
+            params={"scripcode": str(bse_code)},
+            headers=BSE_HEADERS,
+            timeout=15,
+        )
+        response.raise_for_status()
+        data = response.json()
+
+        header = data.get("Header")
+        if not header:
+            print(f"[BSE LTP] API response has no Header for {bse_code}")
+            return None
+
+        ltp = header.get("LTP")
+        if ltp is None:
+            return None
+
+        try:
+            return float(ltp)
+        except (ValueError, TypeError):
+            return None
+
+    except requests.exceptions.Timeout:
+        print(f"[BSE LTP] API timeout for {bse_code}")
+        return None
+    except requests.exceptions.RequestException as exc:
+        print(f"[BSE LTP] Request error for {bse_code}: {exc}")
+        return None
+    except Exception as exc:
+        print(f"[BSE LTP] Error for {bse_code}: {exc}")
+        return None
+
+
+def _refresh_bse_ltp_once():
+    """Fetch current BSE prices and persist LTP/market value/MTM to holdings."""
+    if supabase is None:
+        return {"success": False, "updated": 0, "failed": 0, "reason": "database unavailable"}
+
+    bse_codes = _load_bse_codes()
+    if not bse_codes:
+        return {
+            "success": False,
+            "updated": 0,
+            "failed": 0,
+            "reason": "BSE security master unavailable",
+        }
+
+    try:
+        result = (
+            supabase.table("holdings")
+            .select("id,portfolio_id,symbol,exchange,quantity,buy_price")
+            .execute()
+        )
+        holdings = result.data or []
+    except Exception as exc:
+        print(f"[BSE LTP] Could not read holdings: {exc}")
+        return {"success": False, "updated": 0, "failed": 0, "reason": str(exc)}
+
+    updated = 0
+    failed = 0
+    unmapped = 0
+    seen_codes = {}
+
+    for h in holdings:
+        exchange = str(h.get("exchange") or "").strip().upper()
+        # The reference updater is specifically for BSE equity prices.
+        # Do not overwrite NSE/F&O positions.
+        if exchange and exchange != "BSE":
+            continue
+
+        symbol = str(h.get("symbol") or "").strip().upper()
+        if not symbol:
+            continue
+
+        bse_code = bse_codes.get(symbol)
+        if not bse_code:
+            unmapped += 1
+            continue
+
+        # Cache one HTTP request per symbol for this cycle, even if the
+        # same symbol exists in multiple client portfolios.
+        if symbol not in seen_codes:
+            seen_codes[symbol] = _get_bse_ltp(bse_code)
+
+        ltp = seen_codes[symbol]
+        if ltp is None:
+            failed += 1
+            continue
+
+        qty = _clean_number(h.get("quantity"))
+        buy_price = _clean_number(h.get("buy_price"))
+
+        payload = {
+            "ltp": ltp,
+            "market_value": qty * ltp,
+            "pnl": (ltp - buy_price) * qty,
+        }
+
+        try:
+            row_id = h.get("id")
+            if row_id not in (None, ""):
+                result = supabase.table("holdings").update(payload).eq("id", row_id).execute()
+            else:
+                portfolio_id = h.get("portfolio_id")
+                if portfolio_id in (None, ""):
+                    failed += 1
+                    continue
+                result = (
+                    supabase.table("holdings")
+                    .update(payload)
+                    .eq("portfolio_id", portfolio_id)
+                    .execute()
+                )
+
+            if result.data:
+                updated += len(result.data)
+            else:
+                failed += 1
+        except Exception as exc:
+            failed += 1
+            print(f"[BSE LTP] DB update failed for {symbol}: {exc}")
+
+    print(
+        f"[BSE LTP] Cycle complete | updated={updated} "
+        f"failed={failed} unmapped={unmapped} symbols={len(seen_codes)}"
+    )
+    return {
+        "success": True,
+        "updated": updated,
+        "failed": failed,
+        "unmapped": unmapped,
+        "symbols": len(seen_codes),
+    }
+
+
+def _bse_ltp_worker():
+    """Background 10-second updater, matching the reference updater's loop."""
+    print(
+        f"[BSE LTP] Background updater started; interval="
+        f"{BSE_LTP_UPDATE_INTERVAL}s"
+    )
+    while True:
+        try:
+            _refresh_bse_ltp_once()
+        except Exception as exc:
+            print(f"[BSE LTP] Background cycle error: {exc}")
+            traceback.print_exc()
+        time.sleep(BSE_LTP_UPDATE_INTERVAL)
+
+
+def _start_bse_ltp_updater():
+    global _bse_updater_started
+    if _bse_updater_started or not BSE_LTP_UPDATER_ENABLED:
+        return
+    _bse_updater_started = True
+    thread = threading.Thread(
+        target=_bse_ltp_worker,
+        name="bse-ltp-updater",
+        daemon=True,
+    )
+    thread.start()
+
+
 def _load_all_holdings():
     rows_db = []
     page_size = 1000
@@ -515,6 +795,8 @@ def client_portfolio():
     if not client_id or session.get("supervisor_id"):
         return redirect(url_for("login"))
     try:
+        # Pull a fresh BSE snapshot before rendering the client portfolio.
+        _refresh_bse_ltp_once()
         cr = (supabase.table("clients").select("client_id,client_name,mobile,email,dob,status")
               .ilike("client_id", client_id).limit(1).execute())
         if not cr.data:
@@ -559,6 +841,8 @@ def admin_portfolio():
     if not account:
         return redirect(url_for("login"))
     try:
+        # Pull a fresh BSE snapshot before rendering the admin portfolio.
+        _refresh_bse_ltp_once()
         clients = _filter_supervisor_clients(supervisor_id, _load_all_clients())
         holdings = _filter_supervisor_holdings(supervisor_id, _load_all_holdings())
         return render_template("admin.html", clients=clients, holdings=holdings,
@@ -1411,6 +1695,27 @@ def download_clients():
 
 
 # -------------------------
+# Live BSE LTP
+# -------------------------
+
+@app.route("/api/ltp/refresh", methods=["POST"])
+def api_refresh_bse_ltp():
+    """Manual BSE refresh endpoint for the admin UI/monitoring."""
+    actor_type, account, auth_error = _require_owner_or_supervisor(
+        request.get_json(silent=True).get("client_id")
+        if request.is_json and request.get_json(silent=True)
+        else None,
+        can_manage=False,
+    )
+    if auth_error:
+        return auth_error
+
+    result = _refresh_bse_ltp_once()
+    status = 200 if result.get("success") else 503
+    return jsonify(result), status
+
+
+# -------------------------
 # Holdings add / modify / delete
 # -------------------------
 
@@ -1678,6 +1983,10 @@ def get_portfolio(client_id):
     except Exception as exc:
         return jsonify({"success": False, "error": str(exc)}), 500
 
+
+# Start the BSE updater when the module is loaded by Render/Gunicorn.
+# It is daemonized so it never prevents process shutdown.
+_start_bse_ltp_updater()
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", "5000")), debug=True)
