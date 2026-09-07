@@ -830,7 +830,8 @@ def _start_bse_ltp_updater():
     except Exception as exc:
         print(f"[BSE LTP] Could not start updater: {exc}")
         
-        _start_bse_ltp_updater()
+
+_start_bse_ltp_updater()
 
 # -------------------------
 # Daily trade report
