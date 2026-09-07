@@ -650,57 +650,67 @@ def _load_bse_code_map():
             print(f"[BSE LTP] Security master error: {exc}")
             _BSE_CODE_MAP = {}
             return _BSE_CODE_MAP
-            
-def _lookup_bse_code(symbol):
-    """Find BSE scrip code when it is missing from Excel."""
+
+
+def _get_bse_ltp(symbol):
+    """Get live LTP from BSE, with NSE fallback."""
     symbol = str(symbol or "").strip().upper()
 
     if not symbol:
         return None
 
+    # =========================
+    # TRY BSE FIRST
+    # =========================
     try:
-        headers = {
-            "User-Agent": (
-                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                "AppleWebKit/537.36 (KHTML, like Gecko) "
-                "Chrome/131.0.0.0 Safari/537.36"
-            ),
-            "Accept": "*/*",
-            "Referer": "https://www.bseindia.com/",
-            "Origin": "https://www.bseindia.com",
-        }
+        code_map = _load_bse_code_map()
+        bse_code = code_map.get(symbol)
 
-        response = requests.get(
-            "https://api.bseindia.com/BseIndiaAPI/api/PeerSmartSearch/w",
-            params={
-                "Type": "SS",
-                "text": symbol,
-            },
-            headers=headers,
-            timeout=15,
-        )
+        if bse_code:
+            headers = {
+                "User-Agent": (
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                    "AppleWebKit/537.36 (KHTML, like Gecko) "
+                    "Chrome/131.0.0.0 Safari/537.36"
+                ),
+                "Accept": "application/json, text/plain, */*",
+                "Referer": "https://www.bseindia.com/",
+                "Origin": "https://www.bseindia.com",
+                "Connection": "keep-alive",
+            }
 
-        response.raise_for_status()
+            response = requests.get(
+                BSE_API_URL,
+                params={"scripcode": str(bse_code)},
+                headers=headers,
+                timeout=15,
+            )
 
-        text = response.text.replace("&nbsp;", " ")
+            response.raise_for_status()
 
-        match = re.search(
-            rf"{re.escape(symbol)}.*?(\d{{6}})",
-            text,
-            re.IGNORECASE
-        )
+            data = response.json()
+            header_data = data.get("Header") or {}
+            ltp_value = header_data.get("LTP")
 
-        if match:
-            bse_code = match.group(1)
-            print(f"[BSE LOOKUP] {symbol} -> {bse_code}")
-            return bse_code
+            if ltp_value not in (None, "", "-"):
+                ltp = float(str(ltp_value).replace(",", "").strip())
 
-        print(f"[BSE LOOKUP] No BSE code found for {symbol}")
+                if ltp > 0:
+                    print(f"[BSE LTP] {symbol}: {ltp}")
+                    return ltp
+
+            print(f"[BSE LTP] No LTP returned for {symbol}")
+
+        else:
+            print(f"[BSE LTP] No BSE code found for {symbol}")
 
     except Exception as exc:
-        print(f"[BSE LOOKUP] Error for {symbol}: {exc}")
+        print(f"[BSE LTP] Error for {symbol}: {exc}")
 
-    return None
+    # =========================
+    # NSE FALLBACK
+    # =========================
+    return _get_nse_ltp(symbol)
 
 
 def _get_nse_ltp(symbol):
@@ -711,6 +721,8 @@ def _get_nse_ltp(symbol):
         return None
 
     try:
+        session = requests.Session()
+
         headers = {
             "User-Agent": (
                 "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
@@ -718,24 +730,23 @@ def _get_nse_ltp(symbol):
                 "Chrome/131.0.0.0 Safari/537.36"
             ),
             "Accept": "application/json, text/plain, */*",
+            "Accept-Language": "en-US,en;q=0.9",
             "Referer": "https://www.nseindia.com/",
-            "Origin": "https://www.nseindia.com",
+            "Connection": "keep-alive",
         }
 
-        session = requests.Session()
-
-        # First open NSE homepage to get cookies
+        # Establish NSE cookies
         session.get(
             "https://www.nseindia.com/",
             headers=headers,
-            timeout=10
+            timeout=10,
         )
 
         response = session.get(
             "https://www.nseindia.com/api/quote-equity",
             params={"symbol": symbol},
             headers=headers,
-            timeout=15
+            timeout=15,
         )
 
         response.raise_for_status()
@@ -748,90 +759,18 @@ def _get_nse_ltp(symbol):
             ltp = float(str(ltp_value).replace(",", "").strip())
 
             if ltp > 0:
-                print(f"[NSE FALLBACK] {symbol}: {ltp:.2f}")
+                print(f"[NSE FALLBACK] {symbol}: {ltp}")
                 return ltp
 
-        print(f"[NSE] No valid LTP for {symbol}")
+        print(f"[NSE] No LTP returned for {symbol}")
 
     except Exception as exc:
         print(f"[NSE] Error for {symbol}: {exc}")
 
+    print(f"[LTP] Both BSE and NSE failed for {symbol}")
     return None
 
 
-def _get_bse_ltp(symbol):
-    """Get live LTP from BSE first, then NSE as fallback."""
-    symbol = str(symbol or "").strip().upper()
-
-    if not symbol:
-        return None
-
-    # ============================================================
-    # 1. TRY BSE FIRST
-    # ============================================================
-    bse_code = None
-
-    try:
-        code_map = _load_bse_code_map()
-        bse_code = code_map.get(symbol)
-
-        # If Excel does not contain the symbol, search BSE directly
-        if not bse_code:
-            bse_code = _lookup_bse_code(symbol)
-
-        if bse_code:
-            headers = {
-                "User-Agent": (
-                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                    "AppleWebKit/537.36 (KHTML, like Gecko) "
-                    "Chrome/131.0.0.0 Safari/537.36"
-                ),
-                "Accept": "application/json, text/plain, */*",
-                "Referer": "https://www.bseindia.com/",
-                "Origin": "https://www.bseindia.com",
-            }
-
-            response = requests.get(
-                BSE_API_URL,
-                params={"scripcode": str(bse_code)},
-                headers=headers,
-                timeout=15
-            )
-
-            response.raise_for_status()
-
-            data = response.json()
-            header_data = data.get("Header") or {}
-            ltp_value = header_data.get("LTP")
-
-            if ltp_value not in (None, "", "-"):
-                ltp = float(
-                    str(ltp_value)
-                    .replace(",", "")
-                    .strip()
-                )
-
-                if ltp > 0:
-                    print(
-                        f"[BSE LTP] {symbol}: "
-                        f"{ltp:.2f} | Code: {bse_code}"
-                    )
-                    return ltp
-
-            print(f"[BSE LTP] No valid LTP for {symbol}")
-
-        else:
-            print(f"[BSE LTP] No BSE code found for {symbol}")
-
-    except Exception as exc:
-        print(f"[BSE LTP] Error for {symbol}: {exc}")
-
-    # ============================================================
-    # 2. BSE FAILED → USE NSE FALLBACK
-    # ============================================================
-    print(f"[BSE LTP] Falling back to NSE for {symbol}")
-
-    return _get_nse_ltp(symbol)
 def _refresh_bse_ltp_once():
     """Fetch BSE prices and update the holdings table."""
     if supabase is None:
