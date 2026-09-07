@@ -818,14 +818,15 @@ def _bse_ltp_worker():
 
 
 def _start_bse_ltp_updater():
+    """Start the BSE LTP updater as a daemon thread."""
     try:
-        t = threading.Thread(
+        worker = threading.Thread(
             target=_bse_ltp_worker,
-            name="bse-ltp-updater",
-            daemon=True,
+            name="BSE-LTP-Updater",
+            daemon=True
         )
-        t.start()
-        print("[BSE LTP] Background updater started.")
+        worker.start()
+        print("[BSE LTP] Updater thread started.")
     except Exception as exc:
         print(f"[BSE LTP] Could not start updater: {exc}")
 
