@@ -1362,26 +1362,73 @@ def _daily_normalize_existing_products(lots):
 
     Business rule: ONLY MTF is distinct. Every other broker product label
     (CNC, MARGIN, DELIVERY, INTRADAY, etc.) is stored/displayed as NORMAL.
+
+    Performance fix:
+    Update holdings in two batches instead of making one Supabase UPDATE
+    request for every holding.
     """
     product_supported = _daily_product_write_supported()
     pm = _load_product_map()
-    changed_map = False
+
+    if not product_supported:
+        # Product column is not available; keep the product map updated only.
+        for lot in lots:
+            if not lot.get("db") or not lot.get("id") or lot.get("delete"):
+                continue
+
+            normalized = "MTF" if lot.get("bucket") == "MTF" else "NORMAL"
+
+            sid = str(lot.get("id") or "").strip()
+            pid = str(lot.get("portfolio_id") or "").strip()
+
+            if sid:
+                pm[sid] = normalized
+
+            if pid:
+                pm["P:" + pid] = normalized
+
+        _save_product_map(pm)
+        return
+
+    # Collect holding IDs by normalized product.
+    mtf_ids = []
+    normal_ids = []
+
     for lot in lots:
         if not lot.get("db") or not lot.get("id") or lot.get("delete"):
             continue
+
+        holding_id = lot.get("id")
         normalized = "MTF" if lot.get("bucket") == "MTF" else "NORMAL"
-        if product_supported:
-            supabase.table("holdings").update({"product": normalized}).eq("id", lot["id"]).execute()
-        sid = str(lot.get("id") or "").strip()
+
+        if normalized == "MTF":
+            mtf_ids.append(holding_id)
+        else:
+            normal_ids.append(holding_id)
+
+        # Keep the local product map in sync.
+        sid = str(holding_id or "").strip()
         pid = str(lot.get("portfolio_id") or "").strip()
+
         if sid:
             pm[sid] = normalized
-            changed_map = True
+
         if pid:
             pm["P:" + pid] = normalized
-            changed_map = True
-    if changed_map:
-        _save_product_map(pm)
+
+    # Update all MTF holdings in one database request.
+    if mtf_ids:
+        supabase.table("holdings").update(
+            {"product": "MTF"}
+        ).in_("id", mtf_ids).execute()
+
+    # Update all NORMAL holdings in one database request.
+    if normal_ids:
+        supabase.table("holdings").update(
+            {"product": "NORMAL"}
+        ).in_("id", normal_ids).execute()
+
+    _save_product_map(pm)
 
 
 def _daily_update_partial_lot(lot):
