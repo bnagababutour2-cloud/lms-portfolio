@@ -10,6 +10,9 @@ import uuid
 import traceback
 from datetime import datetime
 import pandas as pd
+import requests
+import threading
+import time
 
 load_dotenv()
 
@@ -568,6 +571,266 @@ def admin_portfolio():
     except Exception as exc:
         return f"Admin data error: {exc}", 500
 
+# ============================================================
+# BSE LIVE LTP UPDATER
+# ============================================================
+
+BSE_API_URL = "https://api.bseindia.com/BseIndiaAPI/api/getScripHeaderData/w"
+BSE_MASTER_FILE = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)),
+    "BSEsecurity list.xlsx"
+)
+
+BSE_LTP_UPDATE_INTERVAL = 10
+
+_BSE_CODE_MAP = None
+_BSE_CODE_MAP_LOCK = threading.Lock()
+
+
+def _load_bse_code_map():
+    """Load SYMBOL -> BSE CODE mapping from BSEsecurity list.xlsx."""
+    global _BSE_CODE_MAP
+
+    if _BSE_CODE_MAP is not None:
+        return _BSE_CODE_MAP
+
+    with _BSE_CODE_MAP_LOCK:
+        if _BSE_CODE_MAP is not None:
+            return _BSE_CODE_MAP
+
+        try:
+            if not os.path.exists(BSE_MASTER_FILE):
+                print(
+                    f"[BSE LTP] Security master not found: "
+                    f"{BSE_MASTER_FILE}"
+                )
+                _BSE_CODE_MAP = {}
+                return _BSE_CODE_MAP
+
+            df = pd.read_excel(BSE_MASTER_FILE)
+
+            required = {"TckrSymb", "BSE CODE"}
+            missing = required - set(df.columns)
+
+            if missing:
+                print(
+                    f"[BSE LTP] Missing columns in security master: "
+                    f"{sorted(missing)}"
+                )
+                _BSE_CODE_MAP = {}
+                return _BSE_CODE_MAP
+
+            mapping = {}
+
+            for _, row in df.iterrows():
+                symbol = str(row.get("TckrSymb") or "").strip().upper()
+                code = str(row.get("BSE CODE") or "").strip()
+
+                if not symbol or not code or symbol == "NAN":
+                    continue
+
+                # Keep BSE code as digits where possible.
+                try:
+                    code = str(int(float(code)))
+                except Exception:
+                    code = code.strip()
+
+                mapping[symbol] = code
+
+            _BSE_CODE_MAP = mapping
+
+            print(
+                f"[BSE LTP] Security master loaded: "
+                f"{len(mapping)} symbols"
+            )
+
+            return _BSE_CODE_MAP
+
+        except Exception as exc:
+            print(f"[BSE LTP] Security master error: {exc}")
+            _BSE_CODE_MAP = {}
+            return _BSE_CODE_MAP
+
+
+def _get_bse_ltp(symbol):
+    """Get live LTP from BSE API for one symbol."""
+    symbol = str(symbol or "").strip().upper()
+
+    if not symbol:
+        return None
+
+    code_map = _load_bse_code_map()
+    bse_code = code_map.get(symbol)
+
+    if not bse_code:
+        print(f"[BSE LTP] No BSE code found for {symbol}")
+        return None
+
+    headers = {
+        "User-Agent": (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/131.0.0.0 Safari/537.36"
+        ),
+        "Accept": "application/json, text/plain, */*",
+        "Referer": "https://www.bseindia.com/",
+        "Origin": "https://www.bseindia.com",
+        "Connection": "keep-alive",
+    }
+
+    try:
+        response = requests.get(
+            BSE_API_URL,
+            params={"scripcode": bse_code},
+            headers=headers,
+            timeout=15
+        )
+
+        response.raise_for_status()
+
+        data = response.json()
+
+        header_data = data.get("Header") or {}
+        ltp_value = header_data.get("LTP")
+
+        if ltp_value is None:
+            print(
+                f"[BSE LTP] No LTP returned for "
+                f"{symbol} ({bse_code})"
+            )
+            return None
+
+        # BSE may return values containing commas.
+        ltp_text = str(ltp_value).replace(",", "").strip()
+
+        ltp = float(ltp_text)
+
+        if ltp <= 0:
+            return None
+
+        return ltp
+
+    except Exception as exc:
+        print(
+            f"[BSE LTP] API error for "
+            f"{symbol} ({bse_code}): {exc}"
+        )
+        return None
+
+
+def _refresh_bse_ltp_once():
+    """Fetch BSE prices and update the holdings table."""
+    if supabase is None:
+        return 0
+
+    try:
+        result = (
+            supabase.table("holdings")
+            .select("id,symbol,exchange,quantity,buy_price")
+            .execute()
+        )
+
+        rows = result.data or []
+
+        if not rows:
+            return 0
+
+        # Avoid requesting the same BSE symbol multiple times.
+        price_cache = {}
+        updated_count = 0
+
+        for row in rows:
+            symbol = str(row.get("symbol") or "").strip().upper()
+            exchange = str(row.get("exchange") or "").strip().upper()
+
+            # Only BSE equity holdings are updated here.
+            if exchange and exchange != "BSE":
+                continue
+
+            if not symbol:
+                continue
+
+            # Get BSE price once per symbol per cycle.
+            if symbol not in price_cache:
+                price_cache[symbol] = _get_bse_ltp(symbol)
+
+            ltp = price_cache[symbol]
+
+            if ltp is None:
+                continue
+
+            try:
+                quantity = float(row.get("quantity") or 0)
+                buy_price = float(row.get("buy_price") or 0)
+
+                market_value = quantity * ltp
+                pnl = (ltp - buy_price) * quantity
+
+                (
+                    supabase.table("holdings")
+                    .update({
+                        "ltp": ltp,
+                        "market_value": market_value,
+                        "pnl": pnl
+                    })
+                    .eq("id", row.get("id"))
+                    .execute()
+                )
+
+                updated_count += 1
+
+                print(
+                    f"[BSE LTP] {symbol}: "
+                    f"{ltp:.2f} | "
+                    f"Qty: {quantity:g} | "
+                    f"MTM: {pnl:.2f}"
+                )
+
+            except Exception as exc:
+                print(
+                    f"[BSE LTP] Database update failed "
+                    f"for {symbol}: {exc}"
+                )
+
+        if updated_count:
+            print(
+                f"[BSE LTP] Updated {updated_count} holding(s)"
+            )
+
+        return updated_count
+
+    except Exception as exc:
+        print(f"[BSE LTP] Refresh error: {exc}")
+        return 0
+
+
+def _bse_ltp_worker():
+    """Background worker that refreshes BSE LTP every 10 seconds."""
+    print("[BSE LTP] Background updater started.")
+
+    while True:
+        try:
+            _refresh_bse_ltp_once()
+        except Exception as exc:
+            print(f"[BSE LTP] Worker error: {exc}")
+
+        time.sleep(BSE_LTP_UPDATE_INTERVAL)
+
+
+def _start_bse_ltp_updater():
+    """Start the BSE LTP updater as a daemon thread."""
+    try:
+        worker = threading.Thread(
+            target=_bse_ltp_worker,
+            name="BSE-LTP-Updater",
+            daemon=True
+        )
+        worker.start()
+        print("[BSE LTP] Updater thread started.")
+    except Exception as exc:
+        print(f"[BSE LTP] Could not start updater: {exc}")
+        
+        _start_bse_ltp_updater()
 
 # -------------------------
 # Daily trade report
