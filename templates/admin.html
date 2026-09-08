@@ -177,7 +177,7 @@ async function refreshLivePrices(){
   }
 }
 
-setInterval(refreshLivePrices,5000);
+setInterval(refreshLivePrices,10000);
 refreshLivePrices();
 function csvEscape(v){return '"'+String(v??'').replaceAll('"','""')+'"'}
 function downloadSelectedRows(){const rows=[...document.querySelectorAll('.row-check:checked')].map(x=>x.closest('tr'));if(!rows.length){alert('Select at least one portfolio row.');return}const head=['Client ID','Symbol','Product','Exchange','MTM','LTP','Qty','Buy Price','Change','Portfolio ID'];const lines=[head.map(csvEscape).join(',')];rows.forEach(r=>lines.push([...Array(10)].map((_,i)=>r.cells[i+1].innerText).map(csvEscape).join(',')));downloadText(lines.join('\n'),'lms_selected_portfolio.csv')}
