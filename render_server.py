@@ -610,7 +610,7 @@ BSE_MASTER_FILE = os.path.join(
     "BSEsecurity list.xlsx"
 )
 
-BSE_LTP_UPDATE_INTERVAL = 5
+BSE_LTP_UPDATE_INTERVAL = 10
 
 _BSE_CODE_MAP = None
 _BSE_CODE_MAP_LOCK = threading.Lock()
