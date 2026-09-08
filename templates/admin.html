@@ -50,20 +50,19 @@
 <th>Client <span class="sortbtn"><button onclick="sortTable(1,true)">▲</button><button onclick="sortTable(1,false)">▼</button></span></th>
 <th>Symbol <span class="sortbtn"><button onclick="sortTable(2,true)">▲</button><button onclick="sortTable(2,false)">▼</button></span></th>
 <th>Product <span class="sortbtn"><button onclick="sortTable(3,true)">▲</button><button onclick="sortTable(3,false)">▼</button></span></th>
-<th>Exchange <span class="sortbtn"><button onclick="sortTable(4,true)">▲</button><button onclick="sortTable(4,false)">▼</button></span></th>
-<th>MTM <span class="sortbtn"><button onclick="sortTable(5,true)">▲</button><button onclick="sortTable(5,false)">▼</button></span></th>
-<th>LTP <span class="sortbtn"><button onclick="sortTable(6,true)">▲</button><button onclick="sortTable(6,false)">▼</button></span></th>
-<th>Qty <span class="sortbtn"><button onclick="sortTable(7,true)">▲</button><button onclick="sortTable(7,false)">▼</button></span></th>
-<th>Buy Price <span class="sortbtn"><button onclick="sortTable(8,true)">▲</button><button onclick="sortTable(8,false)">▼</button></span></th>
-<th>Change <span class="sortbtn"><button onclick="sortTable(9,true)">▲</button><button onclick="sortTable(9,false)">▼</button></span></th>
-<th>Portfolio ID <span class="sortbtn"><button onclick="sortTable(10,true)">▲</button><button onclick="sortTable(10,false)">▼</button></span></th>
+<th>MTM <span class="sortbtn"><button onclick="sortTable(4,true)">▲</button><button onclick="sortTable(4,false)">▼</button></span></th>
+<th>LTP <span class="sortbtn"><button onclick="sortTable(5,true)">▲</button><button onclick="sortTable(5,false)">▼</button></span></th>
+<th>Qty <span class="sortbtn"><button onclick="sortTable(6,true)">▲</button><button onclick="sortTable(6,false)">▼</button></span></th>
+<th>Buy Price <span class="sortbtn"><button onclick="sortTable(7,true)">▲</button><button onclick="sortTable(7,false)">▼</button></span></th>
+<th>Change <span class="sortbtn"><button onclick="sortTable(8,true)">▲</button><button onclick="sortTable(8,false)">▼</button></span></th>
+<th>Portfolio ID <span class="sortbtn"><button onclick="sortTable(9,true)">▲</button><button onclick="sortTable(9,false)">▼</button></span></th>
 <th>Action</th></tr></thead><tbody>
 {% for h in holdings %}
 <tr data-id="{{ h.get('id','') }}" data-portfolio-id="{{ h.get('portfolio_id','') }}"
     data-client="{{ h.client_id|lower }}" data-symbol="{{ h.symbol|lower }}"
     data-product="{{ h.product|lower }}" data-exchange="{{ h.exchange|lower }}">
 <td><input class="row-check check" type="checkbox" onchange="updateRowCount()"></td>
-<td>{{ h.client_id }}</td><td>{{ h.symbol }}</td><td><b>{{ h.product }}</b></td><td>{{ h.exchange }}</td>
+<td>{{ h.client_id }}</td><td>{{ h.symbol }}</td><td><b>{{ h.product }}</b></td>
 <td class="{{ 'profit' if h.mtm >= 0 else 'loss' }}" data-mtm="{{ h.mtm }}">{{ '%.2f'|format(h.mtm) }}</td>
 <td>{{ '%.2f'|format(h.ltp) }}</td><td>{{ '%.2f'|format(h.qty) }}</td><td>{{ '%.2f'|format(h.buy_price) }}</td>
 <td>{{ '%.2f'|format(h.ltp-h.buy_price) }}</td><td>{{ h.get('id',h.get('portfolio_id','-')) }}</td>
@@ -125,23 +124,55 @@ function clearRowSelection(){document.querySelectorAll('.row-check').forEach(x=>
 function updateRowCount(){$('rowCount').textContent=document.querySelectorAll('.row-check:checked').length+' selected'}
 async function refreshLivePrices(){
   try{
-    const res=await fetch('/api/ltp/update',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});
+    const res=await fetch('/api/ltp/data',{cache:'no-store'});
     const data=await res.json();
+
     if(!data.success) return;
-    const byId={}; (data.holdings||[]).forEach(h=>byId[String(h.id)]=h);
+
+    const byId={};
+
+    (data.holdings||[]).forEach(h=>{
+      byId[String(h.id||h.portfolio_id||'')]=h;
+    });
+
     document.querySelectorAll('#portfolioTable tbody tr').forEach(r=>{
       const h=byId[String(r.dataset.id||r.dataset.portfolioId||'')];
       if(!h) return;
-      const qty=Number(h.qty||0), buy=Number(h.buy_price||0), ltp=Number(h.ltp||buy), mtm=(ltp-buy)*qty;
-      r.cells[5].textContent=mtm.toFixed(2); r.cells[5].dataset.mtm=mtm; r.cells[5].className=mtm>=0?'profit':'loss';
-      r.cells[6].textContent=ltp.toFixed(2); r.cells[9].textContent=(ltp-buy).toFixed(2);
+
+      const qty=Number(h.qty||0);
+      const buy=Number(h.buy_price||0);
+      const ltp=Number(h.ltp||buy);
+      const mtm=(ltp-buy)*qty;
+      const change=ltp-buy;
+
+      r.cells[4].textContent=mtm.toFixed(2);
+      r.cells[4].dataset.mtm=mtm;
+      r.cells[4].className=mtm>=0?'profit':'loss';
+
+      r.cells[5].textContent=ltp.toFixed(2);
+      r.cells[8].textContent=change.toFixed(2);
     });
+
     const tbody=document.querySelector('#portfolioTable tbody');
-    [...tbody.querySelectorAll('tr')].sort((a,b)=>Number((b.cells[5]?.textContent||0).replace(/,/g,''))-Number((a.cells[5]?.textContent||0).replace(/,/g,''))).forEach(r=>tbody.appendChild(r));
+
+    [...tbody.querySelectorAll('tr')]
+      .sort((a,b)=>{
+        const mtmA=Number((a.cells[4]?.textContent||0).replace(/,/g,''));
+        const mtmB=Number((b.cells[4]?.textContent||0).replace(/,/g,''));
+        return mtmB-mtmA;
+      })
+      .forEach(r=>tbody.appendChild(r));
+
     updateTotal();
     updateRowCount();
-  }catch(e){ console.warn('LTP refresh failed',e); }
+
+  }catch(e){
+    console.warn('LTP refresh failed',e);
+  }
 }
+
+setInterval(refreshLivePrices,5000);
+refreshLivePrices();
 function csvEscape(v){return '"'+String(v??'').replaceAll('"','""')+'"'}
 function downloadSelectedRows(){const rows=[...document.querySelectorAll('.row-check:checked')].map(x=>x.closest('tr'));if(!rows.length){alert('Select at least one portfolio row.');return}const head=['Client ID','Symbol','Product','Exchange','MTM','LTP','Qty','Buy Price','Change','Portfolio ID'];const lines=[head.map(csvEscape).join(',')];rows.forEach(r=>lines.push([...Array(10)].map((_,i)=>r.cells[i+1].innerText).map(csvEscape).join(',')));downloadText(lines.join('\n'),'lms_selected_portfolio.csv')}
 async function deleteSelectedRows(){
