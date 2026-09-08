@@ -1927,66 +1927,133 @@ def delete_holding():
 
 @app.route("/api/holdings/delete-selected", methods=["POST"])
 def delete_selected_holdings():
-    """Bulk delete selected portfolio rows; admin/supervisor dashboard only."""
-    account, auth_error = _require_supervisor(can_manage=True)
-    if auth_error:
-        return auth_error
-    db_error = _require_db()
-    if db_error:
-        return db_error
+    """Bulk delete selected portfolio rows using the same logic as single delete."""
     data = request.get_json(silent=True) or {}
     ids = data.get("ids") or []
-    if not isinstance(ids, list) or not ids:
-        return jsonify({"success": False, "message": "Select at least one portfolio row."}), 400
 
-    # Normalize and deduplicate IDs while preserving order.
+    if not isinstance(ids, list) or not ids:
+        return jsonify({
+            "success": False,
+            "message": "Select at least one portfolio row."
+        }), 400
+
     clean_ids = []
     seen = set()
+
     for value in ids:
-        text = str(value).strip()
-        if not text or text in seen:
-            continue
-        seen.add(text)
-        clean_ids.append(text)
+        key = str(value or "").strip()
+        if key and key not in seen:
+            seen.add(key)
+            clean_ids.append(key)
+
     if not clean_ids:
-        return jsonify({"success": False, "message": "No valid portfolio IDs were selected."}), 400
+        return jsonify({
+            "success": False,
+            "message": "No valid portfolio IDs were selected."
+        }), 400
 
     try:
-        # Resolve selected records first so scope is checked before any deletion.
-        selected_rows = []
+        deleted = 0
+
         for key in clean_ids:
-            found = None
+            row = None
+
+            # Find the actual holding by id or portfolio_id.
             for col in ("id", "portfolio_id"):
                 try:
-                    result = supabase.table("holdings").select("id,portfolio_id,client_id").eq(col, key).limit(1).execute()
+                    result = (
+                        supabase
+                        .table("holdings")
+                        .select("id,portfolio_id,client_id")
+                        .eq(col, key)
+                        .limit(1)
+                        .execute()
+                    )
+
                     if result.data:
-                        found = result.data[0]
+                        row = result.data[0]
                         break
+
                 except Exception:
                     pass
-            if found:
-                selected_rows.append(found)
 
-        if len(selected_rows) != len(clean_ids):
-            return jsonify({"success": False, "message": "One or more selected portfolio records were not found."}), 404
+            if not row:
+                return jsonify({
+                    "success": False,
+                    "message": f"Portfolio record not found: {key}"
+                }), 404
 
-        for row in selected_rows:
-            cid = row.get("client_id")
-            if not _supervisor_can_view(session.get("supervisor_id"), cid):
-                return jsonify({"success": False, "message": "One or more selected records are outside your access scope."}), 403
+            target_client = str(row.get("client_id") or "").strip()
 
-        deleted = 0
-        # Use the primary `id` for deletion because every rendered row carries it.
-        for row in selected_rows:
-            result = supabase.table("holdings").delete().eq("id", row.get("id")).execute()
+            if not target_client:
+                return jsonify({
+                    "success": False,
+                    "message": "Portfolio record has no client ID."
+                }), 400
+
+            # Use the SAME authorization logic as single delete.
+            actor_type, account, auth_error = _require_owner_or_supervisor(
+                target_client,
+                can_manage=True
+            )
+
+            if auth_error:
+                return auth_error
+
+            if (
+                actor_type == "supervisor"
+                and not _supervisor_can_view(
+                    session.get("supervisor_id"),
+                    target_client
+                )
+            ):
+                return jsonify({
+                    "success": False,
+                    "message": "One or more selected records are outside this supervisor's access scope."
+                }), 403
+
+            # Delete using the real primary id.
+            result = (
+                supabase
+                .table("holdings")
+                .delete()
+                .eq("id", row.get("id"))
+                .execute()
+            )
+
             if result.data:
                 deleted += len(result.data)
+            else:
+                # Verify deletion if Supabase returns no deleted rows.
+                verify = (
+                    supabase
+                    .table("holdings")
+                    .select("id")
+                    .eq("id", row.get("id"))
+                    .limit(1)
+                    .execute()
+                )
 
-        return jsonify({"success": True, "message": f"Deleted {deleted} selected portfolio record(s).", "deleted": deleted})
+                if not verify.data:
+                    deleted += 1
+                else:
+                    return jsonify({
+                        "success": False,
+                        "message": f"Could not delete portfolio record: {key}"
+                    }), 500
+
+        return jsonify({
+            "success": True,
+            "message": f"Deleted {deleted} selected portfolio record(s).",
+            "deleted": deleted
+        })
+
     except Exception as exc:
-        return jsonify({"success": False, "message": "Bulk delete failed.", "error": str(exc)}), 500
-
-
+        return jsonify({
+            "success": False,
+            "message": "Bulk delete failed.",
+            "error": str(exc)
+        }), 500
 @app.route("/api/clients/reset-password", methods=["POST"])
 def reset_passwords():
     account, auth_error = _require_supervisor(can_manage=True)
