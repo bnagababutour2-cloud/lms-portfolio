@@ -570,53 +570,6 @@ def admin_portfolio():
                                can_upload=account.get("can_upload", False))
     except Exception as exc:
         return f"Admin data error: {exc}", 500
-        
-@app.route("/api/ltp/data", methods=["GET"])
-def ltp_data():
-    """Return latest LTP/MTM for the logged-in supervisor."""
-    account, auth_error = _require_supervisor()
-    if auth_error:
-        return auth_error
-
-    db_error = _require_db()
-    if db_error:
-        return db_error
-
-    try:
-        holdings = _filter_supervisor_holdings(
-            session.get("supervisor_id"),
-            _load_all_holdings()
-        )
-
-        holdings.sort(
-            key=lambda h: _clean_number(h.get("mtm")),
-            reverse=True
-        )
-
-        return jsonify({
-            "success": True,
-            "holdings": [
-                {
-                    "id": h.get("id"),
-                    "portfolio_id": h.get("portfolio_id"),
-                    "client_id": h.get("client_id"),
-                    "symbol": h.get("symbol"),
-                    "qty": _clean_number(h.get("qty")),
-                    "buy_price": _clean_number(h.get("buy_price")),
-                    "ltp": _clean_number(h.get("ltp")),
-                    "mtm": _clean_number(h.get("mtm")),
-                }
-                for h in holdings
-            ],
-            "updated_at": datetime.utcnow().isoformat() + "Z",
-        })
-
-    except Exception as exc:
-        return jsonify({
-            "success": False,
-            "message": "Unable to load live LTP data.",
-            "error": str(exc),
-        }), 500
 
 # ============================================================
 # BSE LIVE LTP UPDATER
