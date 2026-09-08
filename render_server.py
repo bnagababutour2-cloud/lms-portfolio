@@ -553,52 +553,23 @@ def logout():
     return redirect(url_for("login"))
 
 
-@app.route("/api/ltp/data", methods=["GET"])
-def ltp_data():
-    """Return latest LTP/MTM for the logged-in supervisor's portfolio."""
-    account, auth_error = _require_supervisor()
-    if auth_error:
-        return auth_error
-
-    db_error = _require_db()
-    if db_error:
-        return db_error
-
+@app.route("/admin")
+def admin_portfolio():
+    if supabase is None:
+        return render_template("index.html", error=supabase_config_error)
+    supervisor_id = session.get("supervisor_id")
+    account = _get_supervisor(supervisor_id)
+    if not account:
+        return redirect(url_for("login"))
     try:
-        holdings = _filter_supervisor_holdings(
-            session.get("supervisor_id"),
-            _load_all_holdings()
-        )
-
-        holdings.sort(
-            key=lambda h: _clean_number(h.get("mtm")),
-            reverse=True
-        )
-
-        return jsonify({
-            "success": True,
-            "holdings": [
-                {
-                    "id": h.get("id"),
-                    "portfolio_id": h.get("portfolio_id"),
-                    "client_id": h.get("client_id"),
-                    "symbol": h.get("symbol"),
-                    "qty": _clean_number(h.get("qty")),
-                    "buy_price": _clean_number(h.get("buy_price")),
-                    "ltp": _clean_number(h.get("ltp")),
-                    "mtm": _clean_number(h.get("mtm")),
-                }
-                for h in holdings
-            ],
-            "updated_at": datetime.utcnow().isoformat() + "Z",
-        })
-
+        clients = _filter_supervisor_clients(supervisor_id, _load_all_clients())
+        holdings = _filter_supervisor_holdings(supervisor_id, _load_all_holdings())
+        return render_template("admin.html", clients=clients, holdings=holdings,
+                               supervisor_id=supervisor_id, supervisor_name=account.get("name"),
+                               can_manage=account.get("can_manage", False),
+                               can_upload=account.get("can_upload", False))
     except Exception as exc:
-        return jsonify({
-            "success": False,
-            "message": "Unable to load live LTP data.",
-            "error": str(exc),
-        }), 500
+        return f"Admin data error: {exc}", 500
 
 # ============================================================
 # BSE LIVE LTP UPDATER
@@ -610,7 +581,7 @@ BSE_MASTER_FILE = os.path.join(
     "BSEsecurity list.xlsx"
 )
 
-BSE_LTP_UPDATE_INTERVAL = 10
+BSE_LTP_UPDATE_INTERVAL = 5
 
 _BSE_CODE_MAP = None
 _BSE_CODE_MAP_LOCK = threading.Lock()
