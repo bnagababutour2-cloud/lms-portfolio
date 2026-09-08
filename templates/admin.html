@@ -125,23 +125,60 @@ function clearRowSelection(){document.querySelectorAll('.row-check').forEach(x=>
 function updateRowCount(){$('rowCount').textContent=document.querySelectorAll('.row-check:checked').length+' selected'}
 async function refreshLivePrices(){
   try{
-    const res=await fetch('/api/ltp/update',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});
+    const res=await fetch('/api/ltp/data',{cache:'no-store'});
     const data=await res.json();
+
     if(!data.success) return;
-    const byId={}; (data.holdings||[]).forEach(h=>byId[String(h.id)]=h);
-    document.querySelectorAll('#portfolioTable tbody tr').forEach(r=>{
-      const h=byId[String(r.dataset.id||r.dataset.portfolioId||'')];
-      if(!h) return;
-      const qty=Number(h.qty||0), buy=Number(h.buy_price||0), ltp=Number(h.ltp||buy), mtm=(ltp-buy)*qty;
-      r.cells[5].textContent=mtm.toFixed(2); r.cells[5].dataset.mtm=mtm; r.cells[5].className=mtm>=0?'profit':'loss';
-      r.cells[6].textContent=ltp.toFixed(2); r.cells[9].textContent=(ltp-buy).toFixed(2);
+
+    const byId={};
+
+    (data.holdings||[]).forEach(h=>{
+      byId[String(h.id||h.portfolio_id||'')]=h;
     });
+
+    document.querySelectorAll('#portfolioTable tbody tr').forEach(r=>{
+      const key=String(r.dataset.id||r.dataset.portfolioId||'');
+      const h=byId[key];
+
+      if(!h) return;
+
+      const qty=Number(h.qty||0);
+      const buy=Number(h.buy_price||0);
+      const ltp=Number(h.ltp||buy);
+      const mtm=(ltp-buy)*qty;
+
+      // MTM
+      r.cells[5].textContent=mtm.toFixed(2);
+      r.cells[5].dataset.mtm=mtm;
+      r.cells[5].className=mtm>=0?'profit':'loss';
+
+      // LTP
+      r.cells[6].textContent=ltp.toFixed(2);
+
+      // Change
+      r.cells[9].textContent=(ltp-buy).toFixed(2);
+    });
+
+    // Keep highest MTM first
     const tbody=document.querySelector('#portfolioTable tbody');
-    [...tbody.querySelectorAll('tr')].sort((a,b)=>Number((b.cells[5]?.textContent||0).replace(/,/g,''))-Number((a.cells[5]?.textContent||0).replace(/,/g,''))).forEach(r=>tbody.appendChild(r));
+
+    [...tbody.querySelectorAll('tr')]
+      .sort((a,b)=>
+        Number((b.cells[5]?.textContent||0).replace(/,/g,'')) -
+        Number((a.cells[5]?.textContent||0).replace(/,/g,''))
+      )
+      .forEach(r=>tbody.appendChild(r));
+
     updateTotal();
     updateRowCount();
-  }catch(e){ console.warn('LTP refresh failed',e); }
+
+  }catch(e){
+    console.warn('LTP refresh failed',e);
+  }
 }
+
+setInterval(refreshLivePrices,5000);
+refreshLivePrices();
 function csvEscape(v){return '"'+String(v??'').replaceAll('"','""')+'"'}
 function downloadSelectedRows(){const rows=[...document.querySelectorAll('.row-check:checked')].map(x=>x.closest('tr'));if(!rows.length){alert('Select at least one portfolio row.');return}const head=['Client ID','Symbol','Product','Exchange','MTM','LTP','Qty','Buy Price','Change','Portfolio ID'];const lines=[head.map(csvEscape).join(',')];rows.forEach(r=>lines.push([...Array(10)].map((_,i)=>r.cells[i+1].innerText).map(csvEscape).join(',')));downloadText(lines.join('\n'),'lms_selected_portfolio.csv')}
 async function deleteSelectedRows(){
