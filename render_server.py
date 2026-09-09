@@ -1855,13 +1855,25 @@ def add_holding():
         return jsonify({"success": False, "message": "You can only add positions to your own portfolio."}), 403
     symbol = str(data.get("symbol") or "").strip().upper()
     qty = _clean_number(data.get("quantity")); buy = _clean_number(data.get("buy_price"))
-    exchange = str(data.get("exchange") or "BSE").strip().upper()
-    product = str(data.get("product") or exchange).strip().upper()
+   exchange = str(data.get("exchange") or "BSE").strip().upper()
+
+# ONLY MTF is a separate product. Everything else is NORMAL.
+requested_product = str(data.get("product") or "NORMAL").strip().upper()
+product = "MTF" if requested_product == "MTF" else "NORMAL"
     if not client_id or not symbol or qty == 0 or buy == 0:
         return jsonify({"success": False, "message": "Valid Client ID, Symbol, Qty and Buy Price are required."}), 400
     try:
-        row = {"client_id": client_id, "symbol": symbol, "exchange": exchange, "quantity": qty,
-               "buy_price": buy, "ltp": buy, "market_value": qty * buy, "pnl": 0}
+       row = {
+    "client_id": client_id,
+    "symbol": symbol,
+    "exchange": exchange,
+    "product": product,
+    "quantity": qty,
+    "buy_price": buy,
+    "ltp": buy,
+    "market_value": qty * buy,
+    "pnl": 0
+}
         result = supabase.table("holdings").insert(row).execute()
         saved_rows = result.data or []
         if saved_rows:
