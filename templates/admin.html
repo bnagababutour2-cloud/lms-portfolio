@@ -16,15 +16,11 @@
 .action{display:flex;gap:5px}.action button{border:0;border-radius:6px;color:#fff;padding:7px 9px;font-size:10px;font-weight:900;cursor:pointer}.modify{background:#0b55b5}.delete{background:#d62828}.check{width:18px;height:18px;accent-color:#0b55b5}.selectbar{display:flex;gap:7px;align-items:center;flex-wrap:wrap;margin-bottom:10px}.pill{display:inline-block;background:#edf4fd;color:var(--navy);border:1px solid #cfdeed;padding:6px 10px;border-radius:999px;font-size:12px;font-weight:800}.footer{background:#052d70;color:#fff;text-align:center;padding:18px;margin-top:22px}.footer b{color:#ffd21c}
 .modal{display:none;position:fixed;inset:0;background:rgba(3,25,57,.62);align-items:center;justify-content:center;z-index:30}.modal.show{display:flex}.modal-box{background:#fff;width:min(480px,92vw);border-radius:14px;padding:20px}.form-grid{display:grid;gap:10px}.modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:14px}
 @media(max-width:900px){.filters{grid-template-columns:1fr}.brand h1{font-size:19px}.portfolio-bar{flex-wrap:wrap;white-space:normal;overflow-x:visible}}
-
-.admin-layout{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:16px;align-items:start}.admin-main{min-width:0}.tv-sidebar{position:sticky;top:12px;height:calc(100vh - 220px);min-height:620px;display:grid;grid-template-rows:1fr 1fr;gap:12px}.tv-card{min-height:0;background:#fff;border:1px solid #d8e4f0;border-radius:14px;box-shadow:0 5px 18px rgba(21,59,102,.10);padding:10px;display:flex;flex-direction:column;overflow:hidden}.tv-title{flex:0 0 auto;font-size:14px;font-weight:900;color:var(--navy);margin:2px 2px 8px}.tv-live{display:inline-block;margin-left:5px;padding:2px 5px;border-radius:4px;background:#d62828;color:#fff;font-size:10px;font-weight:900}.tv-frame-wrap{position:relative;flex:1 1 auto;min-height:0;background:#000;border-radius:8px;overflow:hidden}.tv-frame{position:absolute;inset:0;width:100%;height:100%;border:0}.tv-open{position:absolute;right:7px;bottom:7px;z-index:2;background:rgba(255,255,255,.95);color:var(--navy);text-decoration:none;border-radius:6px;padding:6px 8px;font-size:10px;font-weight:900;border:1px solid #cbd9e8}.tv-note{position:absolute;left:7px;bottom:7px;z-index:1;color:#fff;background:rgba(0,0,0,.6);padding:4px 6px;border-radius:4px;font-size:9px;pointer-events:none}@media(max-width:1200px){.admin-layout{grid-template-columns:1fr}.tv-sidebar{position:relative;top:auto;height:700px;min-height:700px;grid-template-rows:1fr 1fr}}@media(max-width:900px){.tv-sidebar{height:600px;min-height:600px}}
 </style>
 </head>
 <body>
 <header class="top"><div class="header-overlay"><div class="header-subtitle">ADMIN / SUPERVISOR PORTFOLIO &amp; DAILY CONTROL PANEL</div><div class="header-login">Logged in: {{ supervisor_name }} ({{ supervisor_id }}){% if not can_manage %} · VIEW ONLY{% endif %}</div></div></header>
 <div class="container">
-<div class="admin-layout">
-<div class="admin-main">
 <div class="toolbar">
 <button class="btn" onclick="location.reload()">REFRESH</button>
 {% if can_manage %}<button class="btn gold" onclick="openAdd()">ADD POSITION</button>{% endif %}
@@ -80,12 +76,6 @@
 <div class="table-wrap"><table id="clientsTable"><thead><tr><th></th><th>Client ID</th><th>Mobile</th><th>Email</th><th>DOB</th><th>Status</th></tr></thead><tbody>
 {% for c in clients %}<tr><td><input class="client-check check" type="checkbox" value="{{ c.client_id }}" onchange="updateClientCount()"></td><td>{{ c.client_id }}</td><td>{{ c.mobile or '-' }}</td><td>{{ c.email or '-' }}</td><td>{{ c.dob or '-' }}</td><td>{{ c.status or '-' }}</td></tr>{% endfor %}
 </tbody></table></div></div>
-</div>
-<aside class="tv-sidebar">
-<div class="tv-card"><div class="tv-title">CNBC-TV18 <span class="tv-live">LIVE</span></div><div class="tv-frame-wrap"><iframe class="tv-frame" src="https://www.youtube.com/embed/P857H4ej-MQ?autoplay=0&rel=0&modestbranding=1" title="CNBC-TV18 Live" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe><a class="tv-open" href="https://www.cnbctv18.com/live-tv/" target="_blank" rel="noopener">OPEN LIVE TV</a><span class="tv-note">If YouTube blocks embedding, use OPEN LIVE TV.</span></div></div>
-<div class="tv-card"><div class="tv-title">NDTV PROFIT <span class="tv-live">LIVE</span></div><div class="tv-frame-wrap"><iframe class="tv-frame" src="https://www.youtube.com/embed/ydiWklMUhcQ?autoplay=0&rel=0&modestbranding=1" title="NDTV Profit Live" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe><a class="tv-open" href="https://www.ndtvprofit.com/live-tv/" target="_blank" rel="noopener">OPEN LIVE TV</a><span class="tv-note">If YouTube blocks embedding, use OPEN LIVE TV.</span></div></div>
-</aside>
-</div>
 </div>
 <div class="footer">Thank you for trading with <b>Latin Manharlal Securities Pvt. Ltd.</b></div>
 
@@ -175,4 +165,6 @@ function viewSelectedClients(){const ids=new Set([...document.querySelectorAll('
 updateTotal();updateRowCount();updateClientCount();
 </script>
 </body></html>
+
+
 
