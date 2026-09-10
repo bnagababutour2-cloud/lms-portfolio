@@ -242,7 +242,7 @@ def _product_for_holding(h):
 # Access is deliberately scoped by Client ID so one supervisor cannot view
 # another supervisor's clients.
 MAIN_ADMIN_ID = "admin"
-MAIN_ADMIN_PASSWORD = "Adityatrishika123"
+MAIN_ADMIN_PASSWORD = "trishika123aditya"
 
 MAIN_ADMIN_ACCOUNT = {
     "password": MAIN_ADMIN_PASSWORD,
