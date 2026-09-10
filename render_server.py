@@ -256,7 +256,7 @@ MAIN_ADMIN_ACCOUNT = {
 
 SUPERVISOR_ACCOUNTS = {
     "1304": {
-        "password": "1304",
+        "password": "lk123",
         "name": "1304 Supervisor",
         "prefixes": ["1304"],
         "exact": ["130100002", "130100030"],
@@ -280,7 +280,7 @@ SUPERVISOR_ACCOUNTS = {
         "can_upload": False,
     },
     "13": {
-        "password": "13",
+        "password": "lk123",
         "name": "13 Supervisor",
         # Supervisor 13 is scoped to Client IDs beginning with 13.
         # This keeps the account restricted to its 13-series clients while
