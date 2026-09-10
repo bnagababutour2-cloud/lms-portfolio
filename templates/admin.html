@@ -60,7 +60,7 @@
 
 <div class="card">
 <div class="title">Portfolio — Click ▲ / ▼ in any header to sort</div>
-<div class="selectbar portfolio-bar"><span class="metric"><b>Visible MTM:</b> <strong id="totalMtm">0.00</strong></span><span class="metric"><b>Total Clients:</b> <strong>{{ clients|length }}</strong></span><span class="metric"><b>Portfolio Rows:</b> <strong>{{ holdings|length }}</strong></span><span class="metric"><b>Live LTP:</b> <strong id="liveLtpStatus">STARTING...</strong></span><button class="btn light" onclick="selectAllRows()">SELECT ALL ROWS</button><button class="btn light" onclick="clearRowSelection()">CLEAR</button><button class="btn green" onclick="downloadSelectedRows()">DOWNLOAD SELECTED</button>{% if can_manage %}<button class="btn red" onclick="deleteSelectedRows()">DELETE SELECTED</button>{% endif %}<span class="pill" id="rowCount">0 selected</span></div>
+<div class="selectbar portfolio-bar"><span class="metric"><b>Visible MTM:</b> <strong id="totalMtm">0.00</strong></span><span class="metric"><b>Investment:</b> <strong id="totalInvestment">0.00</strong></span><span class="metric"><b>Total Clients:</b> <strong>{{ clients|length }}</strong></span><span class="metric"><b>Portfolio Rows:</b> <strong>{{ holdings|length }}</strong></span><span class="metric"><b>Live LTP:</b> <strong id="liveLtpStatus">STARTING...</strong></span><button class="btn light" onclick="selectAllRows()">SELECT ALL ROWS</button><button class="btn light" onclick="clearRowSelection()">CLEAR</button><button class="btn green" onclick="downloadSelectedRows()">DOWNLOAD SELECTED</button>{% if can_manage %}<button class="btn red" onclick="deleteSelectedRows()">DELETE SELECTED</button>{% endif %}<span class="pill" id="rowCount">0 selected</span></div>
 <div class="table-wrap"><table id="portfolioTable"><thead><tr>
 <th><input class="check" type="checkbox" onchange="toggleAllRows(this)"></th>
 <th>Client <span class="sortbtn"><button onclick="sortTable(1,true)">▲</button><button onclick="sortTable(1,false)">▼</button></span></th>
@@ -106,7 +106,7 @@
 let editMode=false; const $=id=>document.getElementById(id);
 function money(n){return Number(n||0).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2})}
 function visibleRows(){return [...document.querySelectorAll('#portfolioTable tbody tr')].filter(r=>r.style.display!=='none')}
-function updateTotal(){let t=0;visibleRows().forEach(r=>t+=Number(r.querySelector('[data-mtm]')?.dataset.mtm||0));$('totalMtm').textContent=money(t);}
+function updateTotal(){let t=0,inv=0;visibleRows().forEach(r=>{t+=Number(r.querySelector('[data-mtm]')?.dataset.mtm||0);const qty=Number(r.cells[7]?.textContent?.replace(/,/g,'')||0);const buy=Number(r.cells[8]?.textContent?.replace(/,/g,'')||0);inv+=qty*buy;});$('totalMtm').textContent=money(t);if($('totalInvestment')) $('totalInvestment').textContent=money(inv);}
 function filterPortfolio(){
  const c=$('clientSearch').value.trim().toLowerCase(), s=$('symbolSearch').value.trim().toLowerCase(),
        p=$('productSearch').value.trim().toLowerCase(), e=$('exchangeSearch').value.trim().toLowerCase();
@@ -284,8 +284,6 @@ clearSearch=function(){
 updateTotal();updateRowCount();updateClientCount();
 </script>
 </body></html>
-
-
 
 
 
