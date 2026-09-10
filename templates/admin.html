@@ -97,17 +97,21 @@
 <div class="title">USER LOGIN CONTROL</div>
 <div class="sub">Control client login access from Admin. Existing portfolio, LTP, MTM, Excel sync and daily trade logic remain unchanged.</div>
 <div class="selectbar">
+<input id="loginClientSearch" placeholder="Search Client ID" style="padding:10px 12px;border:1px solid #cbdced;border-radius:8px;min-width:190px;font-weight:700">
+<button class="btn" onclick="searchLoginClient()">SEARCH CLIENT</button>
+<button class="btn light" onclick="clearLoginClientSearch()">SHOW ALL</button>
 <button class="btn light" onclick="selectAllLoginUsers()">SELECT ALL USERS</button>
 <button class="btn light" onclick="clearLoginUsers()">CLEAR</button>
 <button class="btn green" onclick="activateSelectedUsers()">ACTIVATE LOGIN</button>
 <button class="btn red" onclick="blockSelectedUsers()">BLOCK LOGIN</button>
 <button class="btn" onclick="resetSelectedPasswords()">RESET PASSWORD</button>
+<button class="btn light" onclick="setSelectedPasswords()">SET PASSWORD</button>
 <span class="pill" id="loginUserCount">0 selected</span>
 </div>
 <div class="table-wrap"><table id="loginControlTable"><thead><tr><th></th><th>Client ID</th><th>Client Name</th><th>Mobile</th><th>Status</th><th>Login Control</th></tr></thead><tbody>
 {% for c in clients %}<tr data-login-client="{{ c.client_id|lower }}"><td><input class="login-check check" type="checkbox" value="{{ c.client_id }}" onchange="updateLoginUserCount()"></td><td>{{ c.client_id }}</td><td>{{ c.client_name or '-' }}</td><td>{{ c.mobile or '-' }}</td><td class="login-status">{{ c.status or 'active' }}</td><td><button class="btn green" style="padding:6px 9px;font-size:10px" onclick="activateOneUser('{{ c.client_id }}')">ACTIVATE</button> <button class="btn red" style="padding:6px 9px;font-size:10px" onclick="blockOneUser('{{ c.client_id }}')">BLOCK</button> <button class="btn" style="padding:6px 9px;font-size:10px" onclick="resetOnePassword('{{ c.client_id }}')">RESET PW</button></td></tr>{% endfor %}
 </tbody></table></div>
-<div class="sub" style="margin-top:10px">Password reset uses your existing <b>/api/clients/reset-password</b> endpoint and resets the selected user's password to the Client ID. Custom passwords and database Activate/Block require backend support; this HTML does not fake those actions.</div>
+<div class="sub" style="margin-top:10px">ACTIVATE / BLOCK changes only the client's login status. RESET PASSWORD resets the password to the Client ID. SET PASSWORD lets Admin assign a new password. Portfolio, LTP, MTM, Excel sync and daily trade logic are unchanged.</div>
 </div>
 </div>
 <div class="footer">Thank you for trading with <b>Latin Manharlal Securities Pvt. Ltd.</b></div>
@@ -410,15 +414,49 @@ updateTotal();updateRowCount();updateClientCount();applyLiveView();
 // ===== USER LOGIN CONTROL =====
 function loginChecks(){return [...document.querySelectorAll('.login-check:checked')].map(x=>x.value)}
 function updateLoginUserCount(){$('loginUserCount').textContent=loginChecks().length+' selected'}
-function selectAllLoginUsers(){document.querySelectorAll('.login-check').forEach(x=>x.checked=true);updateLoginUserCount()}
+function selectAllLoginUsers(){document.querySelectorAll('.login-check').forEach(x=>{if(x.closest('tr').style.display!=='none')x.checked=true});updateLoginUserCount()}
 function clearLoginUsers(){document.querySelectorAll('.login-check').forEach(x=>x.checked=false);updateLoginUserCount()}
 
-// These two functions intentionally do not pretend to change the database.
-// The current backend has no status-update endpoint.
-function activateOneUser(id){alert('ACTIVATE LOGIN needs a backend status endpoint. No database or portfolio logic was changed by this HTML.')}
-function blockOneUser(id){alert('BLOCK LOGIN needs a backend status endpoint. No database or portfolio logic was changed by this HTML.')}
-function activateSelectedUsers(){const ids=loginChecks();if(!ids.length){alert('Select at least one client.');return;}activateOneUser(ids[0])}
-function blockSelectedUsers(){const ids=loginChecks();if(!ids.length){alert('Select at least one client.');return;}blockOneUser(ids[0])}
+function searchLoginClient(){
+  const q=($('loginClientSearch').value||'').trim().toLowerCase();
+  const rows=document.querySelectorAll('#loginControlTable tbody tr');
+  let found=0;
+  rows.forEach(r=>{
+    const id=(r.dataset.loginClient||'').toLowerCase();
+    const show=!q || id.includes(q);
+    r.style.display=show?'':'none';
+    if(show) found++;
+  });
+  if(q && !found) alert('Client ID not found: '+q);
+  updateLoginUserCount();
+}
+
+function clearLoginClientSearch(){
+  $('loginClientSearch').value='';
+  document.querySelectorAll('#loginControlTable tbody tr').forEach(r=>r.style.display='');
+  updateLoginUserCount();
+}
+
+$('loginClientSearch').addEventListener('keydown',function(e){
+  if(e.key==='Enter'){e.preventDefault();searchLoginClient();}
+});
+
+async function updateLoginStatus(ids, action){
+  if(!ids.length){alert('Select at least one client.');return;}
+  const word=action==='activate'?'ACTIVATE':'BLOCK';
+  if(!confirm(word+' login for '+ids.length+' selected client(s)?')) return;
+  try{
+    const res=await fetch('/api/clients/login-control',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({client_ids:ids,action})});
+    const data=await res.json();
+    if(!data.success){alert(data.message||data.error||('Could not '+word.toLowerCase()+' login'));return;}
+    alert(data.message||('Login '+action+'d successfully.'));
+    location.reload();
+  }catch(e){alert('Login control failed: '+e.message)}
+}
+function activateOneUser(id){updateLoginStatus([id],'activate')}
+function blockOneUser(id){updateLoginStatus([id],'block')}
+function activateSelectedUsers(){updateLoginStatus(loginChecks(),'activate')}
+function blockSelectedUsers(){updateLoginStatus(loginChecks(),'block')}
 
 async function resetOnePassword(id){
   if(!confirm('Reset password for '+id+' to the Client ID?')) return;
@@ -441,8 +479,30 @@ async function resetSelectedPasswords(){
     alert(data.message||'Password reset completed.');
   }catch(e){alert('Password reset failed: '+e.message)}
 }
+
+async function setSelectedPasswords(){
+  const ids=loginChecks();
+  if(!ids.length){alert('Select at least one client.');return;}
+  const password=prompt('Enter the new password for '+ids.length+' selected client(s):');
+  if(password===null)return;
+  if(password.trim().length<4){alert('Password must contain at least 4 characters.');return;}
+  const confirmPassword=prompt('Confirm the new password:');
+  if(confirmPassword===null)return;
+  if(password!==confirmPassword){alert('Passwords do not match.');return;}
+  try{
+    const res=await fetch('/api/clients/set-password',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({client_ids:ids,password:password})});
+    const data=await res.json();
+    if(!data.success){alert(data.message||data.error||'Password update failed');return;}
+    alert(data.message||'Password updated successfully.');
+  }catch(e){alert('Password update failed: '+e.message)}
+}
 </script>
 </body></html>
+
+
+
+
+
 
 
 
