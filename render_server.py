@@ -571,6 +571,64 @@ def admin_portfolio():
     except Exception as exc:
         return f"Admin data error: {exc}", 500
 
+
+@app.route("/api/ltp/latest", methods=["GET"])
+def latest_ltp():
+    """Return the latest LTP/MTM values already stored in Supabase.
+
+    IMPORTANT: this endpoint NEVER calls BSE/NSE and NEVER writes to Supabase.
+    The background LTP worker is the only component that fetches market prices
+    and updates the holdings table. This endpoint only reads the same holdings
+    data used by the Admin page and returns it to the browser.
+    """
+    if supabase is None:
+        return jsonify({"success": False, "message": supabase_config_error}), 500
+
+    supervisor_id = session.get("supervisor_id")
+    account = _get_supervisor(supervisor_id)
+    if not account:
+        return jsonify({"success": False, "message": "Login required."}), 401
+
+    try:
+        # Use the existing central holdings loader so supervisor filtering,
+        # pagination, Product mapping, LTP and MTM calculation stay identical
+        # to the normal /admin page.
+        holdings = _filter_supervisor_holdings(
+            supervisor_id,
+            _load_all_holdings()
+        )
+
+        live_rows = []
+        for h in holdings:
+            live_rows.append({
+                "id": h.get("id"),
+                "portfolio_id": h.get("portfolio_id"),
+                "client_id": h.get("client_id"),
+                "qty": _clean_number(h.get("qty")),
+                "buy_price": _clean_number(h.get("buy_price")),
+                "ltp": _clean_number(h.get("ltp"), h.get("buy_price")),
+                "mtm": _clean_number(h.get("mtm")),
+            })
+
+        response = jsonify({
+            "success": True,
+            "holdings": live_rows,
+            "updated_at": datetime.now().isoformat(),
+        })
+        response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
+        return response
+
+    except Exception as exc:
+        print(f"[LTP API] Latest-value refresh failed: {exc}")
+        traceback.print_exc()
+        return jsonify({
+            "success": False,
+            "message": "Could not read latest LTP values.",
+            "error": str(exc),
+        }), 500
+
 # ============================================================
 # BSE / NSE LIVE LTP UPDATER
 # ============================================================
