@@ -524,6 +524,9 @@ def client_portfolio():
             session.clear()
             return redirect(url_for("login"))
         client = cr.data[0]
+        if str(client.get("status") or "").lower() not in ("", "active"):
+            session.clear()
+            return redirect(url_for("login"))
         result = supabase.table("holdings").select("*").ilike("client_id", client_id).execute()
         holdings = []
         for h in (result.data or []):
@@ -2405,6 +2408,67 @@ def delete_selected_holdings():
             "message": "Bulk delete failed.",
             "error": str(exc)
         }), 500
+@app.route("/api/clients/login-control", methods=["POST"])
+def client_login_control():
+    """Admin/supervisor-only login access control.
+
+    This changes ONLY clients.status. Holdings, LTP, MTM, Excel sync and
+    daily-trade logic are not touched.
+    """
+    account, auth_error = _require_supervisor(can_manage=True)
+    if auth_error:
+        return auth_error
+    db_error = _require_db()
+    if db_error:
+        return db_error
+
+    data = request.get_json(silent=True) or {}
+    ids = data.get("client_ids") or []
+    action = str(data.get("action") or "").strip().lower()
+    if not isinstance(ids, list) or not ids:
+        return jsonify({"success": False, "message": "Select at least one client."}), 400
+    if action not in ("activate", "block"):
+        return jsonify({"success": False, "message": "Invalid login control action."}), 400
+
+    try:
+        all_clients = _load_all_clients()
+        cmap = {str(c.get("client_id") or "").strip().lower(): c.get("client_id") for c in all_clients}
+        new_status = "active" if action == "activate" else "blocked"
+        changed = 0
+        denied = []
+
+        for cid in ids:
+            canonical = cmap.get(str(cid).strip().lower())
+            if not canonical:
+                continue
+            if not _supervisor_can_view(session.get("supervisor_id"), canonical):
+                denied.append(canonical)
+                continue
+
+            result = (supabase.table("clients")
+                      .update({"status": new_status})
+                      .eq("client_id", canonical)
+                      .execute())
+            if result.data is not None:
+                changed += 1
+
+        if denied:
+            return jsonify({
+                "success": False,
+                "message": f"{changed} client(s) updated. Some clients are outside your access scope.",
+                "changed": changed,
+                "denied": denied
+            }), 403
+
+        return jsonify({
+            "success": True,
+            "message": f"Login {new_status} for {changed} client(s).",
+            "changed": changed
+        })
+    except Exception as exc:
+        return jsonify({"success": False, "message": "Login access update failed.", "error": str(exc)}), 500
+
+
 @app.route("/api/clients/reset-password", methods=["POST"])
 def reset_passwords():
     account, auth_error = _require_supervisor(can_manage=True)
@@ -2423,11 +2487,45 @@ def reset_passwords():
         for cid in ids:
             canonical = cmap.get(str(cid).strip().lower())
             if canonical and _supervisor_can_view(session.get("supervisor_id"), canonical):
-                supabase.table("clients").update({"password_hash": canonical, "status": "active"}).eq("client_id", canonical).execute()
+                # Reset password to Client ID, but DO NOT change login status.
+                # A blocked account must remain blocked after a password reset.
+                supabase.table("clients").update({"password_hash": canonical}).eq("client_id", canonical).execute()
                 changed += 1
         return jsonify({"success": True, "message": f"Password reset to Client ID for {changed} client(s)."})
     except Exception as exc:
         return jsonify({"success": False, "message": "Password reset failed.", "error": str(exc)}), 500
+
+
+@app.route("/api/clients/set-password", methods=["POST"])
+def set_passwords():
+    """Set a chosen password from Admin without changing account status."""
+    account, auth_error = _require_supervisor(can_manage=True)
+    if auth_error:
+        return auth_error
+    db_error = _require_db()
+    if db_error:
+        return db_error
+
+    data = request.get_json(silent=True) or {}
+    ids = data.get("client_ids") or []
+    password = str(data.get("password") or "").strip()
+    if not isinstance(ids, list) or not ids:
+        return jsonify({"success": False, "message": "Select at least one client."}), 400
+    if len(password) < 4:
+        return jsonify({"success": False, "message": "Password must contain at least 4 characters."}), 400
+
+    try:
+        all_clients = _load_all_clients()
+        cmap = {str(c.get("client_id") or "").lower(): c.get("client_id") for c in all_clients}
+        changed = 0
+        for cid in ids:
+            canonical = cmap.get(str(cid).strip().lower())
+            if canonical and _supervisor_can_view(session.get("supervisor_id"), canonical):
+                supabase.table("clients").update({"password_hash": password}).eq("client_id", canonical).execute()
+                changed += 1
+        return jsonify({"success": True, "message": f"Password updated for {changed} client(s)."})
+    except Exception as exc:
+        return jsonify({"success": False, "message": "Password update failed.", "error": str(exc)}), 500
 
 
 @app.route("/api/login", methods=["POST"])
