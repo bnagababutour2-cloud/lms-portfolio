@@ -572,19 +572,56 @@ def admin_portfolio():
         return f"Admin data error: {exc}", 500
 
 # ============================================================
-# BSE LIVE LTP UPDATER
+# BSE / NSE LIVE LTP UPDATER
 # ============================================================
 
 BSE_API_URL = "https://api.bseindia.com/BseIndiaAPI/api/getScripHeaderData/w"
+NSE_HOME_URL = "https://www.nseindia.com/"
+NSE_QUOTE_URL = "https://www.nseindia.com/api/quote-equity"
+
 BSE_MASTER_FILE = os.path.join(
     os.path.dirname(os.path.abspath(__file__)),
     "BSEsecurity list.xlsx"
 )
 
+# Target refresh interval between cycles.
 BSE_LTP_UPDATE_INTERVAL = 5
+
+# Number of simultaneous market-data requests.
+# 8 is deliberately kept moderate to avoid excessive exchange requests.
+LTP_FETCH_WORKERS = 8
+
+# Number of simultaneous database updates.
+LTP_DB_WORKERS = 8
 
 _BSE_CODE_MAP = None
 _BSE_CODE_MAP_LOCK = threading.Lock()
+
+# One HTTP session per worker thread.
+_LTP_THREAD_LOCAL = threading.local()
+
+
+def _get_ltp_session():
+    """Return a reusable requests session for the current worker thread."""
+    session = getattr(_LTP_THREAD_LOCAL, "session", None)
+
+    if session is None:
+        session = requests.Session()
+
+        session.headers.update({
+            "User-Agent": (
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                "AppleWebKit/537.36 (KHTML, like Gecko) "
+                "Chrome/131.0.0.0 Safari/537.36"
+            ),
+            "Accept": "application/json, text/plain, */*",
+            "Accept-Language": "en-US,en;q=0.9",
+            "Connection": "keep-alive",
+        })
+
+        _LTP_THREAD_LOCAL.session = session
+
+    return session
 
 
 def _load_bse_code_map():
@@ -629,7 +666,6 @@ def _load_bse_code_map():
                 if not symbol or not code or symbol == "NAN":
                     continue
 
-                # Keep BSE code as digits where possible.
                 try:
                     code = str(int(float(code)))
                 except Exception:
@@ -652,239 +688,496 @@ def _load_bse_code_map():
             return _BSE_CODE_MAP
 
 
-def _get_bse_ltp(symbol):
-    """Get live LTP from BSE, with NSE fallback."""
+def _get_bse_ltp_only(symbol):
+    """Get LTP directly from BSE. No NSE fallback here."""
     symbol = str(symbol or "").strip().upper()
 
     if not symbol:
         return None
 
-    # =========================
-    # TRY BSE FIRST
-    # =========================
     try:
         code_map = _load_bse_code_map()
         bse_code = code_map.get(symbol)
 
-        if bse_code:
-            headers = {
-                "User-Agent": (
-                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                    "AppleWebKit/537.36 (KHTML, like Gecko) "
-                    "Chrome/131.0.0.0 Safari/537.36"
-                ),
-                "Accept": "application/json, text/plain, */*",
-                "Referer": "https://www.bseindia.com/",
-                "Origin": "https://www.bseindia.com",
-                "Connection": "keep-alive",
-            }
+        if not bse_code:
+            return None
 
-            response = requests.get(
-                BSE_API_URL,
-                params={"scripcode": str(bse_code)},
-                headers=headers,
-                timeout=15,
+        session = _get_ltp_session()
+
+        headers = {
+            "Referer": "https://www.bseindia.com/",
+            "Origin": "https://www.bseindia.com",
+        }
+
+        response = session.get(
+            BSE_API_URL,
+            params={"scripcode": str(bse_code)},
+            headers=headers,
+            timeout=7,
+        )
+
+        response.raise_for_status()
+
+        data = response.json()
+        header_data = data.get("Header") or {}
+
+        ltp_value = header_data.get("LTP")
+
+        if ltp_value not in (None, "", "-"):
+            ltp = float(
+                str(ltp_value)
+                .replace(",", "")
+                .strip()
             )
 
-            response.raise_for_status()
-
-            data = response.json()
-            header_data = data.get("Header") or {}
-            ltp_value = header_data.get("LTP")
-
-            if ltp_value not in (None, "", "-"):
-                ltp = float(str(ltp_value).replace(",", "").strip())
-
-                if ltp > 0:
-                    print(f"[BSE LTP] {symbol}: {ltp}")
-                    return ltp
-
-            print(f"[BSE LTP] No LTP returned for {symbol}")
-
-        else:
-            print(f"[BSE LTP] No BSE code found for {symbol}")
+            if ltp > 0:
+                return ltp
 
     except Exception as exc:
-        print(f"[BSE LTP] Error for {symbol}: {exc}")
+        print(f"[BSE LTP] {symbol} failed: {exc}")
 
-    # =========================
-    # NSE FALLBACK
-    # =========================
-    return _get_nse_ltp(symbol)
+    return None
 
 
-def _get_nse_ltp(symbol):
-    """Get live LTP from NSE as fallback."""
+def _get_nse_ltp_only(symbol):
+    """Get LTP directly from NSE. No BSE fallback here."""
     symbol = str(symbol or "").strip().upper()
 
     if not symbol:
         return None
 
     try:
-        session = requests.Session()
+        session = _get_ltp_session()
 
         headers = {
-            "User-Agent": (
-                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                "AppleWebKit/537.36 (KHTML, like Gecko) "
-                "Chrome/131.0.0.0 Safari/537.36"
-            ),
-            "Accept": "application/json, text/plain, */*",
-            "Accept-Language": "en-US,en;q=0.9",
             "Referer": "https://www.nseindia.com/",
-            "Connection": "keep-alive",
         }
 
-        # Establish NSE cookies
-        session.get(
-            "https://www.nseindia.com/",
-            headers=headers,
-            timeout=10,
-        )
+        # Establish / refresh NSE cookies for this reusable session.
+        try:
+            session.get(
+                NSE_HOME_URL,
+                headers=headers,
+                timeout=5,
+            )
+        except Exception:
+            pass
 
         response = session.get(
-            "https://www.nseindia.com/api/quote-equity",
+            NSE_QUOTE_URL,
             params={"symbol": symbol},
             headers=headers,
-            timeout=15,
+            timeout=7,
         )
 
         response.raise_for_status()
 
         data = response.json()
         price_info = data.get("priceInfo") or {}
+
         ltp_value = price_info.get("lastPrice")
 
         if ltp_value not in (None, "", "-"):
-            ltp = float(str(ltp_value).replace(",", "").strip())
+            ltp = float(
+                str(ltp_value)
+                .replace(",", "")
+                .strip()
+            )
 
             if ltp > 0:
-                print(f"[NSE FALLBACK] {symbol}: {ltp}")
                 return ltp
 
-        print(f"[NSE] No LTP returned for {symbol}")
-
     except Exception as exc:
-        print(f"[NSE] Error for {symbol}: {exc}")
+        print(f"[NSE LTP] {symbol} failed: {exc}")
 
-    print(f"[LTP] Both BSE and NSE failed for {symbol}")
     return None
 
 
+def _get_exchange_ltp(symbol, exchange):
+    """
+    Get live LTP using the holding's exchange.
+
+    BSE holding:
+        BSE first -> NSE fallback
+
+    NSE holding:
+        NSE first -> BSE fallback
+
+    Blank/unknown exchange:
+        BSE first -> NSE fallback
+    """
+    symbol = str(symbol or "").strip().upper()
+    exchange = str(exchange or "").strip().upper()
+
+    if not symbol:
+        return None
+
+    # --------------------------------------------------------
+    # BSE HOLDING
+    # --------------------------------------------------------
+    if exchange == "BSE" or not exchange:
+        ltp = _get_bse_ltp_only(symbol)
+
+        if ltp is not None:
+            return ltp
+
+        # BSE failed -> NSE fallback
+        ltp = _get_nse_ltp_only(symbol)
+
+        if ltp is not None:
+            print(
+                f"[LTP] {symbol}: NSE fallback = {ltp:.2f}"
+            )
+
+        return ltp
+
+    # --------------------------------------------------------
+    # NSE HOLDING
+    # --------------------------------------------------------
+    if exchange == "NSE":
+        ltp = _get_nse_ltp_only(symbol)
+
+        if ltp is not None:
+            return ltp
+
+        # NSE failed -> BSE fallback
+        ltp = _get_bse_ltp_only(symbol)
+
+        if ltp is not None:
+            print(
+                f"[LTP] {symbol}: BSE fallback = {ltp:.2f}"
+            )
+
+        return ltp
+
+    # --------------------------------------------------------
+    # UNKNOWN EXCHANGE
+    # --------------------------------------------------------
+    ltp = _get_bse_ltp_only(symbol)
+
+    if ltp is not None:
+        return ltp
+
+    return _get_nse_ltp_only(symbol)
+
+
+def _fetch_one_ltp(item):
+    """Worker function for parallel market-data fetching."""
+    key, symbol, exchange = item
+
+    try:
+        ltp = _get_exchange_ltp(symbol, exchange)
+        return key, ltp
+    except Exception as exc:
+        print(
+            f"[LTP] Fetch error for {symbol} "
+            f"({exchange}): {exc}"
+        )
+        return key, None
+
+
+def _update_one_holding_ltp(item):
+    """Worker function for one Supabase/PostgreSQL holding update."""
+    row, ltp = item
+
+    try:
+        quantity = float(row.get("quantity") or 0)
+        buy_price = float(row.get("buy_price") or 0)
+
+        market_value = quantity * ltp
+        pnl = (ltp - buy_price) * quantity
+
+        (
+            supabase.table("holdings")
+            .update({
+                # IMPORTANT:
+                # Only market values are changed here.
+                # Product / MTF / NORMAL is NOT touched.
+                "ltp": ltp,
+                "market_value": market_value,
+                "pnl": pnl,
+            })
+            .eq("id", row.get("id"))
+            .execute()
+        )
+
+        return True
+
+    except Exception as exc:
+        symbol = str(row.get("symbol") or "").strip().upper()
+
+        print(
+            f"[LTP] Database update failed "
+            f"for {symbol}: {exc}"
+        )
+
+        return False
+
+
 def _refresh_bse_ltp_once():
-    """Fetch BSE prices and update the holdings table."""
+    """
+    Refresh live LTP and MTM for ALL holdings.
+
+    Improvements over the old updater:
+      1. BSE holdings are handled as BSE.
+      2. NSE holdings are handled as NSE.
+      3. BSE/NSE fallback is still available.
+      4. Unique symbols are fetched only once per cycle.
+      5. Price requests run in parallel.
+      6. Database updates run in parallel.
+      7. Existing Product / MTF / NORMAL values are untouched.
+      8. The cycle does not unnecessarily wait another full
+         5 seconds after a slow refresh.
+    """
     if supabase is None:
         return 0
+
+    cycle_start = time.time()
 
     try:
         result = (
             supabase.table("holdings")
-            .select("id,symbol,exchange,quantity,buy_price")
+            .select(
+                "id,symbol,exchange,quantity,buy_price"
+            )
             .execute()
         )
 
         rows = result.data or []
 
         if not rows:
+            print("[LTP] No holdings found.")
             return 0
 
-        # Avoid requesting the same BSE symbol multiple times.
-        price_cache = {}
-        updated_count = 0
+        # ----------------------------------------------------
+        # STEP 1: Build unique symbol/exchange list
+        # ----------------------------------------------------
+        unique_symbols = {}
+
+        valid_rows = []
 
         for row in rows:
-            symbol = str(row.get("symbol") or "").strip().upper()
-            exchange = str(row.get("exchange") or "").strip().upper()
+            symbol = str(
+                row.get("symbol") or ""
+            ).strip().upper()
 
-            # Only BSE equity holdings are updated here.
-            if exchange and exchange != "BSE":
-                continue
+            exchange = str(
+                row.get("exchange") or ""
+            ).strip().upper()
 
             if not symbol:
                 continue
 
-            # Get BSE price once per symbol per cycle.
-            if symbol not in price_cache:
-                price_cache[symbol] = _get_bse_ltp(symbol)
+            # Preserve current behaviour:
+            # blank exchange is treated as BSE.
+            if not exchange:
+                exchange = "BSE"
 
-            ltp = price_cache[symbol]
+            key = (exchange, symbol)
+
+            unique_symbols[key] = (
+                symbol,
+                exchange,
+            )
+
+            valid_rows.append(row)
+
+        if not unique_symbols:
+            return 0
+
+        # ----------------------------------------------------
+        # STEP 2: FETCH ALL UNIQUE PRICES IN PARALLEL
+        # ----------------------------------------------------
+        price_cache = {}
+
+        print(
+            f"[LTP] Starting price refresh: "
+            f"{len(valid_rows)} holdings / "
+            f"{len(unique_symbols)} unique symbols"
+        )
+
+        import concurrent.futures
+
+        fetch_items = [
+            (key, symbol, exchange)
+            for key, (symbol, exchange)
+            in unique_symbols.items()
+        ]
+
+        with concurrent.futures.ThreadPoolExecutor(
+            max_workers=LTP_FETCH_WORKERS
+        ) as executor:
+
+            futures = [
+                executor.submit(
+                    _fetch_one_ltp,
+                    item
+                )
+                for item in fetch_items
+            ]
+
+            for future in concurrent.futures.as_completed(
+                futures
+            ):
+                try:
+                    key, ltp = future.result()
+
+                    if ltp is not None and ltp > 0:
+                        price_cache[key] = ltp
+
+                except Exception as exc:
+                    print(
+                        f"[LTP] Price worker error: {exc}"
+                    )
+
+        if not price_cache:
+            print(
+                "[LTP] No live prices received "
+                "this cycle."
+            )
+            return 0
+
+        # ----------------------------------------------------
+        # STEP 3: PREPARE HOLDING UPDATES
+        # ----------------------------------------------------
+        update_items = []
+
+        for row in valid_rows:
+            symbol = str(
+                row.get("symbol") or ""
+            ).strip().upper()
+
+            exchange = str(
+                row.get("exchange") or ""
+            ).strip().upper()
+
+            if not exchange:
+                exchange = "BSE"
+
+            key = (exchange, symbol)
+
+            ltp = price_cache.get(key)
 
             if ltp is None:
                 continue
 
-            try:
-                quantity = float(row.get("quantity") or 0)
-                buy_price = float(row.get("buy_price") or 0)
-
-                market_value = quantity * ltp
-                pnl = (ltp - buy_price) * quantity
-
-                (
-                    supabase.table("holdings")
-                    .update({
-                        "ltp": ltp,
-                        "market_value": market_value,
-                        "pnl": pnl
-                    })
-                    .eq("id", row.get("id"))
-                    .execute()
-                )
-
-                updated_count += 1
-
-                print(
-                    f"[BSE LTP] {symbol}: "
-                    f"{ltp:.2f} | "
-                    f"Qty: {quantity:g} | "
-                    f"MTM: {pnl:.2f}"
-                )
-
-            except Exception as exc:
-                print(
-                    f"[BSE LTP] Database update failed "
-                    f"for {symbol}: {exc}"
-                )
-
-        if updated_count:
-            print(
-                f"[BSE LTP] Updated {updated_count} holding(s)"
+            update_items.append(
+                (row, ltp)
             )
+
+        # ----------------------------------------------------
+        # STEP 4: UPDATE DATABASE IN PARALLEL
+        # ----------------------------------------------------
+        updated_count = 0
+
+        if update_items:
+            with concurrent.futures.ThreadPoolExecutor(
+                max_workers=LTP_DB_WORKERS
+            ) as executor:
+
+                futures = [
+                    executor.submit(
+                        _update_one_holding_ltp,
+                        item
+                    )
+                    for item in update_items
+                ]
+
+                for future in concurrent.futures.as_completed(
+                    futures
+                ):
+                    try:
+                        if future.result():
+                            updated_count += 1
+                    except Exception as exc:
+                        print(
+                            f"[LTP] Database worker error: "
+                            f"{exc}"
+                        )
+
+        failed_prices = len(unique_symbols) - len(price_cache)
+
+        elapsed = time.time() - cycle_start
+
+        print(
+            f"[LTP] Refresh complete: "
+            f"{updated_count}/{len(valid_rows)} holdings updated | "
+            f"{len(price_cache)}/{len(unique_symbols)} prices received | "
+            f"{failed_prices} price failures | "
+            f"{elapsed:.2f}s"
+        )
 
         return updated_count
 
     except Exception as exc:
-        print(f"[BSE LTP] Refresh error: {exc}")
+        print(
+            f"[LTP] Refresh error: {exc}"
+        )
+        traceback.print_exc()
         return 0
 
 
 def _bse_ltp_worker():
-    """Background worker that refreshes BSE LTP every 10 seconds."""
-    print("[BSE LTP] Background updater started.")
+    """
+    Background worker for continuous BSE/NSE LTP updates.
+
+    The next cycle starts after the configured interval,
+    but a slow cycle is NOT followed by another unnecessary
+    full interval.
+    """
+    print(
+        "[LTP] BSE/NSE background updater started."
+    )
 
     while True:
+        cycle_start = time.time()
+
         try:
             _refresh_bse_ltp_once()
-        except Exception as exc:
-            print(f"[BSE LTP] Worker error: {exc}")
 
-        time.sleep(BSE_LTP_UPDATE_INTERVAL)
+        except Exception as exc:
+            print(
+                f"[LTP] Worker error: {exc}"
+            )
+
+        # Keep approximately 5-second cycle spacing
+        # whenever the refresh itself finishes faster.
+        elapsed = time.time() - cycle_start
+        sleep_for = max(
+            0,
+            BSE_LTP_UPDATE_INTERVAL - elapsed
+        )
+
+        if sleep_for > 0:
+            time.sleep(sleep_for)
 
 
 def _start_bse_ltp_updater():
-    """Start the BSE LTP updater as a daemon thread."""
+    """Start the BSE/NSE LTP updater as a daemon thread."""
     try:
         worker = threading.Thread(
             target=_bse_ltp_worker,
             name="BSE-LTP-Updater",
             daemon=True
         )
+
         worker.start()
-        print("[BSE LTP] Updater thread started.")
+
+        print(
+            "[LTP] BSE/NSE updater thread started."
+        )
+
     except Exception as exc:
-        print(f"[BSE LTP] Could not start updater: {exc}")
+        print(
+            f"[LTP] Could not start updater: {exc}"
+        )
 
 
 _start_bse_ltp_updater()
+
+# -------------------------
+# Daily trade report
+# -------------------------
 
 # -------------------------
 # Daily trade report
