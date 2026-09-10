@@ -13,7 +13,7 @@
 .filters{display:grid;grid-template-columns:1.05fr 1.05fr 1.15fr .75fr 1.15fr auto auto;gap:10px;align-items:center}.multi-client-wrap{position:relative;min-width:0}.multi-client-btn{width:100%;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.multi-client-menu{display:none;position:absolute;top:calc(100% + 6px);left:0;width:360px;max-width:90vw;background:#fff;border:1px solid #cbd9e8;border-radius:10px;box-shadow:0 8px 25px rgba(21,59,102,.20);padding:10px;z-index:20}.multi-client-menu.show{display:block}.multi-client-search{margin-bottom:8px}.multi-client-actions{display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap}.multi-client-list{max-height:300px;overflow:auto;border:1px solid #d8e4f0;border-radius:7px}.multi-client-item{display:flex;align-items:center;gap:8px;padding:7px 9px;border-bottom:1px solid #edf2f7;font-size:12px;cursor:pointer}.multi-client-item:last-child{border-bottom:0}.multi-client-item:hover{background:#f4f8fd}.multi-client-item input{width:17px;height:17px;flex:0 0 auto}.multi-client-footer{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:9px}.multi-client-count{font-size:12px;color:var(--navy);font-weight:800}.search-actions{display:flex;gap:8px;align-items:center;margin-top:0}.portfolio-bar{flex-wrap:nowrap;overflow-x:auto;white-space:nowrap}.metric{padding:8px 11px;border:1px solid #d5e2f1;border-radius:8px;background:#f7faff;color:var(--navy);font-size:12px}.metric strong{font-size:15px}.portfolio-bar .btn,.portfolio-bar .pill{flex:0 0 auto}input,select{width:100%;padding:11px;border:1px solid #cbd9e8;border-radius:8px;background:#fff;font-size:14px}.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:0 0 14px}.stat{padding:14px;border-radius:10px;border:1px solid #d5e2f1;background:linear-gradient(135deg,#edf5ff,#fff)}.stat small{display:block;color:var(--muted);font-weight:800}.stat strong{display:block;margin-top:5px;color:var(--navy);font-size:22px}
 .table-wrap{overflow:auto;max-height:570px;border:1px solid var(--line);border-radius:9px}table{width:100%;border-collapse:collapse;min-width:1120px}th{background:linear-gradient(90deg,#062e70,#0b55b5);color:#fff;padding:10px 8px;text-align:left;position:sticky;top:0;z-index:1;font-size:12px;white-space:nowrap}td{padding:9px;border-bottom:1px solid #e0e8f1;font-size:12px;background:#fff}tr:nth-child(even) td{background:#f7faff}.profit{color:var(--green);font-weight:900}.loss{color:var(--red);font-weight:900}
 .sortbtn{display:inline-flex;flex-direction:column;vertical-align:middle;margin-left:5px;gap:0}.sortbtn button{border:0;background:transparent;color:#fff;padding:0 2px;font-size:9px;line-height:8px;cursor:pointer}.sortbtn button:hover{color:#ffd21c}
-.action{display:flex;gap:5px}.action button{border:0;border-radius:6px;color:#fff;padding:7px 9px;font-size:10px;font-weight:900;cursor:pointer}.modify{background:#0b55b5}.delete{background:#d62828}.check{width:18px;height:18px;accent-color:#0b55b5}.selectbar{display:flex;gap:7px;align-items:center;flex-wrap:wrap;margin-bottom:10px}.pill{display:inline-block;background:#edf4fd;color:var(--navy);border:1px solid #cfdeed;padding:6px 10px;border-radius:999px;font-size:12px;font-weight:800}.footer{background:#052d70;color:#fff;text-align:center;padding:18px;margin-top:22px}.footer b{color:#ffd21c}
+.action{display:flex;gap:5px}.action button{border:0;border-radius:6px;color:#fff;padding:7px 9px;font-size:10px;font-weight:900;cursor:pointer}.modify{background:#0b55b5}.delete{background:#d62828}.check{width:18px;height:18px;accent-color:#0b55b5}.selectbar{display:flex;gap:7px;align-items:center;flex-wrap:wrap;margin-bottom:10px}.pill{display:inline-block;background:#edf4fd;color:var(--navy);border:1px solid #cfdeed;padding:6px 10px;border-radius:999px;font-size:12px;font-weight:800}.live-control{display:flex;gap:6px;align-items:center;flex-wrap:wrap;padding:6px 8px;border:1px solid #d5e2f1;border-radius:8px;background:#f7faff}.live-label{font-size:11px;font-weight:900;color:var(--navy)}.live-active{box-shadow:0 0 0 2px rgba(11,85,181,.18) inset}.footer{background:#052d70;color:#fff;text-align:center;padding:18px;margin-top:22px}.footer b{color:#ffd21c}
 .modal{display:none;position:fixed;inset:0;background:rgba(3,25,57,.62);align-items:center;justify-content:center;z-index:30}.modal.show{display:flex}.modal-box{background:#fff;width:min(480px,92vw);border-radius:14px;padding:20px}.form-grid{display:grid;gap:10px}.modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:14px}
 @media(max-width:900px){.filters{grid-template-columns:1fr}.multi-client-menu{position:fixed;left:5vw;right:5vw;width:auto;top:25vh}.brand h1{font-size:19px}.portfolio-bar{flex-wrap:wrap;white-space:normal;overflow-x:visible}}
 </style>
@@ -60,7 +60,7 @@
 
 <div class="card">
 <div class="title">Portfolio — Click ▲ / ▼ in any header to sort</div>
-<div class="selectbar portfolio-bar"><span class="metric"><b>Visible MTM:</b> <strong id="totalMtm">0.00</strong></span><span class="metric"><b>Investment:</b> <strong id="totalInvestment">0.00</strong></span><span class="metric"><b>Total Clients:</b> <strong>{{ clients|length }}</strong></span><span class="metric"><b>Portfolio Rows:</b> <strong>{{ holdings|length }}</strong></span><span class="metric"><b>Live LTP:</b> <strong id="liveLtpStatus">STARTING...</strong></span><button class="btn light" onclick="selectAllRows()">SELECT ALL ROWS</button><button class="btn light" onclick="clearRowSelection()">CLEAR</button><button class="btn green" onclick="downloadSelectedRows()">DOWNLOAD SELECTED</button>{% if can_manage %}<button class="btn red" onclick="deleteSelectedRows()">DELETE SELECTED</button>{% endif %}<span class="pill" id="rowCount">0 selected</span></div>
+<div class="selectbar portfolio-bar"><span class="metric"><b>Visible MTM:</b> <strong id="totalMtm">0.00</strong></span><span class="metric"><b>Investment:</b> <strong id="totalInvestment">0.00</strong></span><span class="metric"><b>Total Clients:</b> <strong>{{ clients|length }}</strong></span><span class="metric"><b>Portfolio Rows:</b> <strong>{{ holdings|length }}</strong></span><span class="metric"><b>Live LTP:</b> <strong id="liveLtpStatus">STARTING...</strong></span><button class="btn light" onclick="selectAllRows()">SELECT ALL ROWS</button><button class="btn light" onclick="clearRowSelection()">CLEAR</button><span class="live-control"><span class="live-label">LIVE VIEW:</span><button class="btn light" id="liveAllBtn" onclick="setLiveViewAll()">ALL</button><button class="btn light" id="liveHideBtn" onclick="hideSelectedFromLive()">HIDE SELECTED</button><button class="btn light" id="liveFocusBtn" onclick="focusSelectedLive()">FOCUS SELECTED</button><button class="btn light" onclick="clearLiveView()">SHOW ALL</button></span><button class="btn green" onclick="downloadSelectedRows()">DOWNLOAD SELECTED</button>{% if can_manage %}<button class="btn red" onclick="deleteSelectedRows()">DELETE SELECTED</button>{% endif %}<span class="pill" id="rowCount">0 selected</span><span class="pill" id="liveViewStatus">LIVE VIEW: ALL</span></div>
 <div class="table-wrap"><table id="portfolioTable"><thead><tr>
 <th><input class="check" type="checkbox" onchange="toggleAllRows(this)"></th>
 <th>Client <span class="sortbtn"><button onclick="sortTable(1,true)">▲</button><button onclick="sortTable(1,false)">▼</button></span></th>
@@ -181,6 +181,7 @@ async function refreshLivePrices(){
 
     updateTotal();
     updateRowCount();
+    if(typeof window.__applyAdminLiveView==='function') window.__applyAdminLiveView();
 
     if($('liveLtpStatus')) $('liveLtpStatus').textContent='LIVE '+new Date().toLocaleTimeString('en-IN');
   }catch(e){
@@ -254,6 +255,111 @@ document.addEventListener('click',function(e){
 
 // Replace portfolio filter so selected clients + symbol/product/exchange work together.
 const _filterPortfolio=filterPortfolio;
+
+const LIVE_VIEW_KEY='lms_admin_live_view_v1';
+let liveViewMode='all';
+let hiddenLiveIds=new Set();
+
+function loadLiveView(){
+  try{
+    const saved=JSON.parse(localStorage.getItem(LIVE_VIEW_KEY)||'{}');
+    liveViewMode=saved.mode||'all';
+    hiddenLiveIds=new Set((saved.hiddenIds||[]).map(String));
+    window.__focusLiveIds=new Set((saved.focusIds||[]).map(String));
+  }catch(e){
+    liveViewMode='all';
+    hiddenLiveIds=new Set();
+    window.__focusLiveIds=null;
+  }
+}
+
+function saveLiveView(){
+  localStorage.setItem(LIVE_VIEW_KEY,JSON.stringify({
+    mode:liveViewMode,
+    hiddenIds:[...hiddenLiveIds],
+    focusIds: window.__focusLiveIds ? [...window.__focusLiveIds] : []
+  }));
+}
+
+function rowLiveId(r){
+  return String(r.dataset.id||r.dataset.portfolioId||'').trim();
+}
+
+function liveViewAllows(r){
+  const id=rowLiveId(r);
+  if(liveViewMode==='focus'){
+    return window.__focusLiveIds ? window.__focusLiveIds.has(id) : false;
+  }
+  if(liveViewMode==='hide'){
+    return !hiddenLiveIds.has(id);
+  }
+  return true;
+}
+
+function updateLiveViewStatus(){
+  const el=$('liveViewStatus');
+  if(!el) return;
+  if(liveViewMode==='hide') el.textContent='LIVE VIEW: HIDDEN '+hiddenLiveIds.size;
+  else if(liveViewMode==='focus') el.textContent='LIVE VIEW: FOCUS SELECTED';
+  else el.textContent='LIVE VIEW: ALL';
+  ['liveAllBtn','liveHideBtn','liveFocusBtn'].forEach(id=>{
+    const b=$(id);
+    if(b) b.classList.remove('live-active');
+  });
+  const active=liveViewMode==='all'?'liveAllBtn':liveViewMode==='hide'?'liveHideBtn':'liveFocusBtn';
+  if($(active)) $(active).classList.add('live-active');
+}
+
+function applyLiveView(){
+  filterPortfolio();
+  updateLiveViewStatus();
+}
+
+function setLiveViewAll(){
+  liveViewMode='all';
+  window.__focusLiveIds=null;
+  saveLiveView();
+  applyLiveView();
+}
+
+function hideSelectedFromLive(){
+  const rows=[...document.querySelectorAll('.row-check:checked')].map(x=>x.closest('tr')).filter(Boolean);
+  if(!rows.length){alert('Select the long-term rows you want to hide from the live view.');return;}
+  rows.forEach(r=>{
+    const id=rowLiveId(r);
+    if(id) hiddenLiveIds.add(id);
+  });
+  liveViewMode='hide';
+  window.__focusLiveIds=null;
+  saveLiveView();
+  clearRowSelection();
+  applyLiveView();
+}
+
+function focusSelectedLive(){
+  const rows=[...document.querySelectorAll('.row-check:checked')].map(x=>x.closest('tr')).filter(Boolean);
+  if(!rows.length){alert('Select the scripts/clients you want to watch live.');return;}
+  const ids=new Set(rows.map(rowLiveId).filter(Boolean));
+  window.__focusLiveIds=ids;
+  liveViewMode='focus';
+  saveLiveView();
+  clearRowSelection();
+  applyLiveView();
+}
+
+function clearLiveView(){
+  liveViewMode='all';
+  window.__focusLiveIds=null;
+  hiddenLiveIds.clear();
+  saveLiveView();
+  applyLiveView();
+}
+
+loadLiveView();
+if(liveViewMode!=='focus') window.__focusLiveIds=null;
+
+window.__applyAdminLiveView=applyLiveView;
+
 filterPortfolio=function(){
   const selected=[...document.querySelectorAll('.multi-client-check:checked')].map(x=>x.value.toLowerCase());
   const c=$('clientSearch').value.trim().toLowerCase();
@@ -264,7 +370,7 @@ filterPortfolio=function(){
   document.querySelectorAll('#portfolioTable tbody tr').forEach(r=>{
     const client=(r.dataset.client||'');
     const clientOk=selected.length ? selected.includes(client) : (!c || client.includes(c));
-    const ok=clientOk &&
+    const ok=liveViewAllows(r) && clientOk &&
       (!c || client.includes(c)) &&
       (!s || (r.dataset.symbol||'').includes(s)) &&
       (!p || (r.dataset.product||'').includes(p)) &&
@@ -272,6 +378,7 @@ filterPortfolio=function(){
     r.style.display=ok?'':'none';
   });
   updateTotal();
+  updateLiveViewStatus();
 };
 const _clearSearch=clearSearch;
 clearSearch=function(){
@@ -281,9 +388,13 @@ clearSearch=function(){
   filterMultiClientList();
   $('multiClientMenu').classList.remove('show');
 };
-updateTotal();updateRowCount();updateClientCount();
+updateTotal();updateRowCount();updateClientCount();applyLiveView();
 </script>
 </body></html>
+
+
+
+
 
 
 
