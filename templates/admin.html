@@ -60,7 +60,7 @@
 
 <div class="card">
 <div class="title">Portfolio — Click ▲ / ▼ in any header to sort</div>
-<div class="selectbar portfolio-bar"><span class="metric"><b>Visible MTM:</b> <strong id="totalMtm">0.00</strong></span><span class="metric"><b>Total Clients:</b> <strong>{{ clients|length }}</strong></span><span class="metric"><b>Portfolio Rows:</b> <strong>{{ holdings|length }}</strong></span><button class="btn light" onclick="selectAllRows()">SELECT ALL ROWS</button><button class="btn light" onclick="clearRowSelection()">CLEAR</button><button class="btn green" onclick="downloadSelectedRows()">DOWNLOAD SELECTED</button>{% if can_manage %}<button class="btn red" onclick="deleteSelectedRows()">DELETE SELECTED</button>{% endif %}<span class="pill" id="rowCount">0 selected</span></div>
+<div class="selectbar portfolio-bar"><span class="metric"><b>Visible MTM:</b> <strong id="totalMtm">0.00</strong></span><span class="metric"><b>Total Clients:</b> <strong>{{ clients|length }}</strong></span><span class="metric"><b>Portfolio Rows:</b> <strong>{{ holdings|length }}</strong></span><span class="metric"><b>Live LTP:</b> <strong id="liveLtpStatus">STARTING...</strong></span><button class="btn light" onclick="selectAllRows()">SELECT ALL ROWS</button><button class="btn light" onclick="clearRowSelection()">CLEAR</button><button class="btn green" onclick="downloadSelectedRows()">DOWNLOAD SELECTED</button>{% if can_manage %}<button class="btn red" onclick="deleteSelectedRows()">DELETE SELECTED</button>{% endif %}<span class="pill" id="rowCount">0 selected</span></div>
 <div class="table-wrap"><table id="portfolioTable"><thead><tr>
 <th><input class="check" type="checkbox" onchange="toggleAllRows(this)"></th>
 <th>Client <span class="sortbtn"><button onclick="sortTable(1,true)">▲</button><button onclick="sortTable(1,false)">▼</button></span></th>
@@ -140,24 +140,63 @@ function selectAllRows(){visibleRows().forEach(r=>r.querySelector('.row-check').
 function clearRowSelection(){document.querySelectorAll('.row-check').forEach(x=>x.checked=false);updateRowCount()}
 function updateRowCount(){$('rowCount').textContent=document.querySelectorAll('.row-check:checked').length+' selected'}
 async function refreshLivePrices(){
+  if(window.__ltpRefreshInProgress) return;
+  window.__ltpRefreshInProgress=true;
   try{
-    const res=await fetch('/api/ltp/update',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});
+    const res=await fetch('/api/ltp/latest?_='+Date.now(),{
+      method:'GET',
+      cache:'no-store',
+      headers:{'Cache-Control':'no-cache'}
+    });
     const data=await res.json();
-    if(!data.success) return;
-    const byId={}; (data.holdings||[]).forEach(h=>byId[String(h.id)]=h);
+    if(!data.success){
+      if($('liveLtpStatus')) $('liveLtpStatus').textContent='RETRYING';
+      return;
+    }
+
+    const byId={};
+    (data.holdings||[]).forEach(h=>byId[String(h.id)]=h);
+
     document.querySelectorAll('#portfolioTable tbody tr').forEach(r=>{
       const h=byId[String(r.dataset.id||r.dataset.portfolioId||'')];
       if(!h) return;
-      const qty=Number(h.qty||0), buy=Number(h.buy_price||0), ltp=Number(h.ltp||buy), mtm=(ltp-buy)*qty;
-      r.cells[5].textContent=mtm.toFixed(2); r.cells[5].dataset.mtm=mtm; r.cells[5].className=mtm>=0?'profit':'loss';
-      r.cells[6].textContent=ltp.toFixed(2); r.cells[9].textContent=(ltp-buy).toFixed(2);
+
+      const qty=Number(h.qty||0);
+      const buy=Number(h.buy_price||0);
+      const ltp=Number(h.ltp||buy);
+      const mtm=(ltp-buy)*qty;
+
+      r.cells[5].textContent=mtm.toFixed(2);
+      r.cells[5].dataset.mtm=mtm;
+      r.cells[5].className=mtm>=0?'profit':'loss';
+      r.cells[6].textContent=ltp.toFixed(2);
+      r.cells[9].textContent=(ltp-buy).toFixed(2);
     });
+
+    // Keep the existing MTM HIGH -> LOW display behaviour.
     const tbody=document.querySelector('#portfolioTable tbody');
-    [...tbody.querySelectorAll('tr')].sort((a,b)=>Number((b.cells[5]?.textContent||0).replace(/,/g,''))-Number((a.cells[5]?.textContent||0).replace(/,/g,''))).forEach(r=>tbody.appendChild(r));
+    [...tbody.querySelectorAll('tr')]
+      .sort((a,b)=>Number((b.cells[5]?.textContent||0).replace(/,/g,''))-Number((a.cells[5]?.textContent||0).replace(/,/g,'')))
+      .forEach(r=>tbody.appendChild(r));
+
     updateTotal();
     updateRowCount();
-  }catch(e){ console.warn('LTP refresh failed',e); }
+
+    if($('liveLtpStatus')) $('liveLtpStatus').textContent='LIVE '+new Date().toLocaleTimeString('en-IN');
+  }catch(e){
+    console.warn('LTP refresh failed',e);
+    if($('liveLtpStatus')) $('liveLtpStatus').textContent='RETRYING';
+  }finally{
+    window.__ltpRefreshInProgress=false;
+  }
 }
+
+// Refresh the Admin display every 5 seconds.
+// This reads the latest values already written by the server-side LTP worker;
+// it does NOT make additional BSE/NSE requests.
+refreshLivePrices();
+setInterval(refreshLivePrices,5000);
+
 function csvEscape(v){return '"'+String(v??'').replaceAll('"','""')+'"'}
 function downloadSelectedRows(){const rows=[...document.querySelectorAll('.row-check:checked')].map(x=>x.closest('tr'));if(!rows.length){alert('Select at least one portfolio row.');return}const head=['Client ID','Symbol','Product','Exchange','MTM','LTP','Qty','Buy Price','Change','Portfolio ID'];const lines=[head.map(csvEscape).join(',')];rows.forEach(r=>lines.push([...Array(10)].map((_,i)=>r.cells[i+1].innerText).map(csvEscape).join(',')));downloadText(lines.join('\n'),'lms_selected_portfolio.csv')}
 async function deleteSelectedRows(){
@@ -245,6 +284,9 @@ clearSearch=function(){
 updateTotal();updateRowCount();updateClientCount();
 </script>
 </body></html>
+
+
+
 
 
 
