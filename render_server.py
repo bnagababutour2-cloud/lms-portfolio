@@ -290,6 +290,15 @@ SUPERVISOR_ACCOUNTS = {
         "can_manage": True,
         "can_upload": True,
     },
+    "1309": {
+        "password": "sn123",
+        "name": "1309 Supervisor",
+        # Supervisor 1309 is restricted to these exact Client IDs only.
+        "prefixes": [],
+        "exact": ["130900004", "12015335", "1219957"],
+        "can_manage": True,
+        "can_upload": True,
+    },
 }
 
 
