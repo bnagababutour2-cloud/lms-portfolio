@@ -321,12 +321,28 @@ def _filter_supervisor_holdings(supervisor_id, holdings):
 
 
 def _require_supervisor(can_manage=False):
+    """Require an authenticated admin/supervisor.
+
+    API endpoints MUST return JSON on authentication failure.  Returning the
+    normal HTML login redirect from an /api/* endpoint causes browser code
+    using response.json() to fail with: Unexpected token '<'.
+    """
     supervisor_id = session.get("supervisor_id")
     account = _get_supervisor(supervisor_id)
     if not account:
+        if request.path.startswith("/api/"):
+            return None, (jsonify({
+                "success": False,
+                "message": "Login required.",
+                "error": "AUTH_REQUIRED"
+            }), 401)
         return None, redirect(url_for("login"))
     if can_manage and not account.get("can_manage"):
-        return None, (jsonify({"success": False, "message": "This supervisor has view-only access."}), 403)
+        return None, (jsonify({
+            "success": False,
+            "message": "This supervisor has view-only access.",
+            "error": "VIEW_ONLY"
+        }), 403)
     return account, None
 
 
@@ -2408,6 +2424,28 @@ def delete_selected_holdings():
             "message": "Bulk delete failed.",
             "error": str(exc)
         }), 500
+# API error handlers: never send an HTML error page to fetch().json().
+@app.errorhandler(404)
+def api_404(error):
+    if request.path.startswith("/api/"):
+        return jsonify({"success": False, "message": "API endpoint not found.", "error": str(error)}), 404
+    return error
+
+
+@app.errorhandler(405)
+def api_405(error):
+    if request.path.startswith("/api/"):
+        return jsonify({"success": False, "message": "HTTP method not allowed.", "error": str(error)}), 405
+    return error
+
+
+@app.errorhandler(500)
+def api_500(error):
+    if request.path.startswith("/api/"):
+        return jsonify({"success": False, "message": "Internal server error.", "error": str(error)}), 500
+    return error
+
+
 @app.route("/api/clients/login-control", methods=["POST"])
 def client_login_control():
     """Admin/supervisor-only login access control.
