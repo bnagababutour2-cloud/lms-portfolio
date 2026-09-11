@@ -2450,8 +2450,9 @@ def api_500(error):
 def client_login_control():
     """Admin/supervisor-only login access control.
 
-    This changes ONLY clients.status. Holdings, LTP, MTM, Excel sync and
-    daily-trade logic are not touched.
+    Changes ONLY clients.status. Supports one client, multi-client selection,
+    and Select All. Holdings, LTP, MTM, Excel sync and daily-trade logic are
+    not touched.
     """
     account, auth_error = _require_supervisor(can_manage=True)
     if auth_error:
@@ -2463,6 +2464,7 @@ def client_login_control():
     data = request.get_json(silent=True) or {}
     ids = data.get("client_ids") or []
     action = str(data.get("action") or "").strip().lower()
+
     if not isinstance(ids, list) or not ids:
         return jsonify({"success": False, "message": "Select at least one client."}), 400
     if action not in ("activate", "block"):
@@ -2470,41 +2472,146 @@ def client_login_control():
 
     try:
         all_clients = _load_all_clients()
-        cmap = {str(c.get("client_id") or "").strip().lower(): c.get("client_id") for c in all_clients}
-        new_status = "active" if action == "activate" else "blocked"
-        changed = 0
+        cmap = {
+            str(c.get("client_id") or "").strip().lower(): c.get("client_id")
+            for c in all_clients
+            if str(c.get("client_id") or "").strip()
+        }
+
+        # Clean and de-duplicate the selection. This is important for
+        # multi-select and Select All requests.
+        canonical_ids = []
+        seen = set()
+        missing = []
         denied = []
 
         for cid in ids:
-            canonical = cmap.get(str(cid).strip().lower())
+            key = str(cid or "").strip().lower()
+            if not key or key in seen:
+                continue
+            seen.add(key)
+            canonical = cmap.get(key)
             if not canonical:
+                missing.append(str(cid))
                 continue
             if not _supervisor_can_view(session.get("supervisor_id"), canonical):
                 denied.append(canonical)
                 continue
+            canonical_ids.append(canonical)
 
-            result = (supabase.table("clients")
-                      .update({"status": new_status})
-                      .eq("client_id", canonical)
-                      .execute())
-            if result.data is not None:
-                changed += 1
-
-        if denied:
+        if not canonical_ids:
             return jsonify({
                 "success": False,
-                "message": f"{changed} client(s) updated. Some clients are outside your access scope.",
-                "changed": changed,
-                "denied": denied
-            }), 403
+                "message": "No selected clients are available for this action.",
+                "changed": 0,
+                "blocked_count": sum(
+                    1 for c in all_clients
+                    if str(c.get("status") or "").strip().lower() == "blocked"
+                    and _supervisor_can_view(session.get("supervisor_id"), c.get("client_id"))
+                ),
+                "denied": denied,
+                "missing": missing
+            }), 403 if denied else 400
+
+        new_status = "active" if action == "activate" else "blocked"
+
+        # Use ONE database update for the whole selection instead of one
+        # request per client. This makes multi-client and Select All reliable
+        # and avoids partial UI/API behaviour from repeated requests.
+        result = (
+            supabase.table("clients")
+            .update({"status": new_status})
+            .in_("client_id", canonical_ids)
+            .execute()
+        )
+
+        # Supabase normally returns updated rows. If it does not, count the
+        # operation from the selected IDs so the UI still gets a useful result.
+        changed = len(result.data) if isinstance(result.data, list) else len(canonical_ids)
+
+        # Refresh the visible count after the update.
+        refreshed = _load_all_clients()
+        visible = [
+            c for c in refreshed
+            if _supervisor_can_view(session.get("supervisor_id"), c.get("client_id"))
+        ]
+        blocked_count = sum(
+            1 for c in visible
+            if str(c.get("status") or "").strip().lower() == "blocked"
+        )
+        active_count = sum(
+            1 for c in visible
+            if str(c.get("status") or "").strip().lower() in ("", "active")
+        )
+
+        response = {
+            "success": True,
+            "message": f"Login {new_status} for {changed} client(s).",
+            "action": action,
+            "changed": changed,
+            "blocked_count": blocked_count,
+            "active_count": active_count,
+            "total_count": len(visible),
+            "denied": denied,
+            "missing": missing,
+        }
+
+        if denied or missing:
+            response["message"] += " Some selected clients were not changed."
+
+        return jsonify(response)
+
+    except Exception as exc:
+        traceback.print_exc()
+        return jsonify({
+            "success": False,
+            "message": "Login access update failed.",
+            "error": str(exc)
+        }), 500
+
+
+@app.route("/api/clients/login-control-summary", methods=["GET"])
+def client_login_control_summary():
+    """Return login status counts for the clients visible to this admin/supervisor.
+
+    The frontend can use this for a dedicated 'Blocked Clients' button/count.
+    """
+    account, auth_error = _require_supervisor(can_manage=False)
+    if auth_error:
+        return auth_error
+    db_error = _require_db()
+    if db_error:
+        return db_error
+
+    try:
+        all_clients = _load_all_clients()
+        visible = [
+            c for c in all_clients
+            if _supervisor_can_view(session.get("supervisor_id"), c.get("client_id"))
+        ]
+        blocked = [
+            c for c in visible
+            if str(c.get("status") or "").strip().lower() == "blocked"
+        ]
+        active = [
+            c for c in visible
+            if str(c.get("status") or "").strip().lower() in ("", "active")
+        ]
 
         return jsonify({
             "success": True,
-            "message": f"Login {new_status} for {changed} client(s).",
-            "changed": changed
+            "blocked_count": len(blocked),
+            "active_count": len(active),
+            "total_count": len(visible),
+            "blocked_client_ids": [c.get("client_id") for c in blocked],
         })
     except Exception as exc:
-        return jsonify({"success": False, "message": "Login access update failed.", "error": str(exc)}), 500
+        traceback.print_exc()
+        return jsonify({
+            "success": False,
+            "message": "Could not load login status summary.",
+            "error": str(exc)
+        }), 500
 
 
 @app.route("/api/clients/reset-password", methods=["POST"])
