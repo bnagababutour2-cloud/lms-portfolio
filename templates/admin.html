@@ -72,7 +72,8 @@
 <th>Qty <span class="sortbtn"><button onclick="sortTable(7,true)">▲</button><button onclick="sortTable(7,false)">▼</button></span></th>
 <th>Buy Price <span class="sortbtn"><button onclick="sortTable(8,true)">▲</button><button onclick="sortTable(8,false)">▼</button></span></th>
 <th>Change <span class="sortbtn"><button onclick="sortTable(9,true)">▲</button><button onclick="sortTable(9,false)">▼</button></span></th>
-<th>Portfolio ID <span class="sortbtn"><button onclick="sortTable(10,true)">▲</button><button onclick="sortTable(10,false)">▼</button></span></th>
+<th>Trade Date <span class="sortbtn"><button onclick="sortTable(10,true)">▲</button><button onclick="sortTable(10,false)">▼</button></span></th>
+<th>Portfolio ID <span class="sortbtn"><button onclick="sortTable(11,true)">▲</button><button onclick="sortTable(11,false)">▼</button></span></th>
 <th>Action</th></tr></thead><tbody>
 {% for h in holdings %}
 <tr data-id="{{ h.get('id','') }}" data-portfolio-id="{{ h.get('portfolio_id','') }}"
@@ -82,7 +83,7 @@
 <td>{{ h.client_id }}</td><td>{{ h.symbol }}</td><td><b>{{ h.product }}</b></td><td>{{ h.exchange }}</td>
 <td class="{{ 'profit' if h.mtm >= 0 else 'loss' }}" data-mtm="{{ h.mtm }}">{{ '%.2f'|format(h.mtm) }}</td>
 <td>{{ '%.2f'|format(h.ltp) }}</td><td>{{ '%.2f'|format(h.qty) }}</td><td>{{ '%.2f'|format(h.buy_price) }}</td>
-<td>{{ '%.2f'|format(h.ltp-h.buy_price) }}</td><td>{{ h.get('id',h.get('portfolio_id','-')) }}</td>
+<td>{{ '%.2f'|format(h.ltp-h.buy_price) }}</td><td>{{ h.get('trade_date') or '-' }}</td><td>{{ h.get('id',h.get('portfolio_id','-')) }}</td>
 <td>{% if can_manage %}<div class="action"><button class="modify" onclick="openEdit(this)">MODIFY</button><button class="delete" onclick="deleteHolding(this)">DELETE</button></div>{% else %}<span class="pill">VIEW ONLY</span>{% endif %}</td>
 </tr>{% endfor %}
 </tbody></table></div></div>
@@ -143,7 +144,7 @@ function clearSearch(){['clientSearch','symbolSearch','productSearch'].forEach(i
 
 function sortTable(col,ascending){
  const tbody=document.querySelector('#portfolioTable tbody'); const rows=[...tbody.querySelectorAll('tr')];
- const numeric=[5,6,7,8,9,10].includes(col);
+ const numeric=[5,6,7,8,9,11].includes(col);
  rows.sort((a,b)=>{
    let av=a.cells[col].innerText.trim(), bv=b.cells[col].innerText.trim();
    if(numeric){av=parseFloat(av.replace(/,/g,''))||0;bv=parseFloat(bv.replace(/,/g,''))||0;return ascending?av-bv:bv-av}
@@ -220,7 +221,7 @@ refreshLivePrices();
 setInterval(refreshLivePrices,5000);
 
 function csvEscape(v){return '"'+String(v??'').replaceAll('"','""')+'"'}
-function downloadSelectedRows(){const rows=[...document.querySelectorAll('.row-check:checked')].map(x=>x.closest('tr'));if(!rows.length){alert('Select at least one portfolio row.');return}const head=['Client ID','Symbol','Product','Exchange','MTM','LTP','Qty','Buy Price','Change','Portfolio ID'];const lines=[head.map(csvEscape).join(',')];rows.forEach(r=>lines.push([...Array(10)].map((_,i)=>r.cells[i+1].innerText).map(csvEscape).join(',')));downloadText(lines.join('\n'),'lms_selected_portfolio.csv')}
+function downloadSelectedRows(){const rows=[...document.querySelectorAll('.row-check:checked')].map(x=>x.closest('tr'));if(!rows.length){alert('Select at least one portfolio row.');return}const head=['Client ID','Symbol','Product','Exchange','MTM','LTP','Qty','Buy Price','Change','Trade Date','Portfolio ID'];const lines=[head.map(csvEscape).join(',')];rows.forEach(r=>lines.push([...Array(11)].map((_,i)=>r.cells[i+1].innerText).map(csvEscape).join(',')));downloadText(lines.join('\n'),'lms_selected_portfolio.csv')}
 async function deleteSelectedRows(){
  const rows=[...document.querySelectorAll('.row-check:checked')].map(x=>x.closest('tr'));
  if(!rows.length){alert('Select at least one portfolio row.');return}
@@ -498,6 +499,25 @@ async function setSelectedPasswords(){
 }
 </script>
 </body></html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
