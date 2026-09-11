@@ -521,6 +521,11 @@ def login():
             return render_template("index.html", error="Invalid Client/Supervisor ID or Password.")
         session.clear()
         session["client_id"] = client.get("client_id")
+        # A client whose password is still the default Client ID must change it
+        # before accessing the portfolio. This also applies after Admin Reset Password.
+        session["password_change_required"] = (
+            stored_password.lower() == str(client.get("client_id") or "").strip().lower()
+        )
         return redirect(url_for("client_portfolio"))
     except Exception as exc:
         return render_template("index.html", error=f"Login error: {exc}")
@@ -533,6 +538,8 @@ def client_portfolio():
     client_id = session.get("client_id")
     if not client_id or session.get("supervisor_id"):
         return redirect(url_for("login"))
+    if session.get("password_change_required"):
+        return redirect(url_for("change_password"))
     try:
         cr = (supabase.table("clients").select("client_id,client_name,mobile,email,dob,status")
               .ilike("client_id", client_id).limit(1).execute())
@@ -2671,6 +2678,103 @@ def set_passwords():
         return jsonify({"success": True, "message": f"Password updated for {changed} client(s)."})
     except Exception as exc:
         return jsonify({"success": False, "message": "Password update failed.", "error": str(exc)}), 500
+
+
+@app.route("/change-password", methods=["GET"])
+def change_password():
+    """Client self-service password change page.
+
+    The page is intentionally generated here so this security feature does not
+    require replacing any existing client dashboard HTML template.
+    """
+    client_id = session.get("client_id")
+    if not client_id or session.get("supervisor_id"):
+        return redirect(url_for("login"))
+
+    return """<!doctype html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Change Password</title>
+<style>
+body{font-family:Arial,sans-serif;background:#f4f6f8;margin:0;display:flex;align-items:center;justify-content:center;min-height:100vh}
+.box{background:#fff;width:min(420px,92%);padding:28px;border-radius:14px;box-shadow:0 8px 30px rgba(0,0,0,.12)}
+h2{margin-top:0}.note{color:#555;font-size:14px;line-height:1.5}.row{margin:14px 0}label{display:block;font-weight:600;margin-bottom:6px}input{width:100%;box-sizing:border-box;padding:11px;border:1px solid #ccc;border-radius:8px;font-size:16px}
+button{width:100%;padding:12px;border:0;border-radius:8px;background:#1769aa;color:white;font-size:16px;font-weight:600;cursor:pointer}.msg{margin-top:14px;padding:10px;border-radius:8px;display:none}.ok{background:#e7f7ed;color:#146c35}.err{background:#fdeaea;color:#a11}
+</style></head><body><div class="box">
+<h2>Change Password</h2>
+<p class="note">For your security, please create a new password before entering your portfolio.</p>
+<form id="f">
+<div class="row"><label>Current Password</label><input id="current_password" type="password" autocomplete="current-password" required></div>
+<div class="row"><label>New Password</label><input id="new_password" type="password" autocomplete="new-password" minlength="4" required></div>
+<div class="row"><label>Confirm New Password</label><input id="confirm_password" type="password" autocomplete="new-password" minlength="4" required></div>
+<button type="submit">Change Password</button><div id="msg" class="msg"></div>
+</form></div>
+<script>
+const f=document.getElementById('f'),msg=document.getElementById('msg');
+f.addEventListener('submit',async e=>{e.preventDefault();msg.style.display='none';
+const current_password=document.getElementById('current_password').value;
+const new_password=document.getElementById('new_password').value;
+const confirm_password=document.getElementById('confirm_password').value;
+if(new_password!==confirm_password){msg.className='msg err';msg.textContent='New password and confirmation do not match.';msg.style.display='block';return;}
+try{const r=await fetch('/api/client/change-password',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({current_password,new_password,confirm_password})});
+const text=await r.text();let d;try{d=JSON.parse(text)}catch(_){throw new Error('Server returned an invalid response.');}
+if(!r.ok||!d.success){throw new Error(d.message||'Password change failed.');}
+msg.className='msg ok';msg.textContent=d.message||'Password changed successfully.';msg.style.display='block';
+setTimeout(()=>window.location.href='/client',900);
+}catch(err){msg.className='msg err';msg.textContent=err.message;msg.style.display='block';}});
+</script></body></html>"""
+
+@app.route("/api/client/change-password", methods=["POST"])
+def client_change_password():
+    """Allow an authenticated client to change their own password."""
+    if not session.get("client_id") or session.get("supervisor_id"):
+        return jsonify({"success": False, "message": "Client login required."}), 401
+    if supabase is None:
+        return jsonify({"success": False, "message": supabase_config_error}), 500
+
+    data = request.get_json(silent=True) or {}
+    current_password = str(data.get("current_password") or "").strip()
+    new_password = str(data.get("new_password") or "").strip()
+    confirm_password = str(data.get("confirm_password") or "").strip()
+
+    if not current_password or not new_password or not confirm_password:
+        return jsonify({"success": False, "message": "All password fields are required."}), 400
+    if len(new_password) < 4:
+        return jsonify({"success": False, "message": "New password must contain at least 4 characters."}), 400
+    if new_password != confirm_password:
+        return jsonify({"success": False, "message": "New password and confirmation do not match."}), 400
+
+    try:
+        client_id = session.get("client_id")
+        result = (supabase.table("clients")
+                  .select("client_id,password_hash,status")
+                  .ilike("client_id", client_id).limit(1).execute())
+        if not result.data:
+            session.clear()
+            return jsonify({"success": False, "message": "Client account not found."}), 404
+
+        client = result.data[0]
+        if str(client.get("status") or "").lower() not in ("", "active"):
+            session.clear()
+            return jsonify({"success": False, "message": "This account is not active."}), 403
+
+        stored = str(client.get("password_hash") or "")
+        if stored.lower() != current_password.lower():
+            return jsonify({"success": False, "message": "Current password is incorrect."}), 401
+        if new_password.lower() == stored.lower():
+            return jsonify({"success": False, "message": "New password must be different from the current password."}), 400
+
+        update = (supabase.table("clients")
+                  .update({"password_hash": new_password})
+                  .eq("client_id", client.get("client_id"))
+                  .execute())
+        if update.data is None:
+            return jsonify({"success": False, "message": "Could not save the new password."}), 500
+
+        session["password_change_required"] = False
+        return jsonify({"success": True, "message": "Password changed successfully."})
+    except Exception as exc:
+        traceback.print_exc()
+        return jsonify({"success": False, "message": "Password change failed.", "error": str(exc)}), 500
 
 
 @app.route("/api/login", methods=["POST"])
