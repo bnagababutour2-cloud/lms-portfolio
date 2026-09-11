@@ -393,6 +393,19 @@ def _clean_client_id(value):
     return text
 
 
+def _clean_trade_date(value):
+    """Normalize Daily Trade Report Date to ISO YYYY-MM-DD for Supabase DATE."""
+    if value is None or (isinstance(value, str) and not value.strip()):
+        return None
+    try:
+        parsed = pd.to_datetime(value, errors="coerce")
+    except Exception:
+        return None
+    if pd.isna(parsed):
+        return None
+    return parsed.date().isoformat()
+
+
 def _is_fno(symbol, product):
     s = str(symbol or "").upper().strip()
     p = str(product or "").upper().strip()
@@ -474,6 +487,7 @@ def _load_all_holdings():
             "portfolio_id": h.get("portfolio_id"),
             "client_id": h.get("client_id"),
             "symbol": h.get("symbol"),
+            "trade_date": h.get("trade_date"),
             "product": _product_for_holding(h),
             "exchange": h.get("exchange") or "-",
             "qty": qty,
@@ -567,7 +581,8 @@ def client_portfolio():
             ltp = _clean_number(h.get("ltp"), buy_price)
             holdings.append({
                 "id": h.get("id"), "portfolio_id": h.get("portfolio_id"),
-                "symbol": h.get("symbol"), "product": _product_for_holding(h), "exchange": h.get("exchange") or "-",
+                "symbol": h.get("symbol"), "trade_date": h.get("trade_date"),
+                "product": _product_for_holding(h), "exchange": h.get("exchange") or "-",
                 "qty": qty, "buy_price": buy_price, "ltp": ltp,
                 "market_value": qty * ltp, "mtm": (ltp - buy_price) * qty
             })
@@ -1417,6 +1432,9 @@ def _daily_parse_trades(raw_rows):
             raise ValueError(f"Daily report row {row_number}: missing Client/Symbol/Product.")
 
         bucket = _daily_bucket(product)
+        trade_date = _clean_trade_date(row.get("Date"))
+        if not trade_date:
+            raise ValueError(f"Daily report row {row_number}: missing or invalid Date.")
         buy_qty = _daily_number(row.get("BQty"), "BQty", row_number)
         sell_qty = _daily_number(row.get("SQty"), "SQty", row_number)
         buy_price_raw = row.get("BAvg")
@@ -1432,7 +1450,7 @@ def _daily_parse_trades(raw_rows):
 
         trades.append({
             "source_row": row_number,
-            "date": row.get("Date"),
+            "date": trade_date,
             "client": client,
             "symbol": symbol,
             "product": product,
@@ -1558,6 +1576,7 @@ def _daily_build_result(existing_rows, trades, product_map=None):
             "ltp": _clean_number(h.get("ltp"), _clean_number(h.get("buy_price"))),
             "market_value": _clean_number(h.get("market_value")),
             "pnl": _clean_number(h.get("pnl")),
+            "trade_date": h.get("trade_date"),
             "delete": False,
             "changed": False,
         })
@@ -1628,6 +1647,7 @@ def _daily_build_result(existing_rows, trades, product_map=None):
             "ltp": float(buy["buy_price"]),
             "market_value": float(buy["qty"]) * float(buy["buy_price"]),
             "pnl": 0.0,
+            "trade_date": buy["date"],
             "delete": False,
             "changed": False,
             "buy_date": buy["date"],
@@ -1720,6 +1740,7 @@ def _daily_insert_lots(new_lots):
                 "ltp": lot["ltp"],
                 "market_value": lot["market_value"],
                 "pnl": lot["pnl"],
+                "trade_date": _clean_trade_date(lot.get("trade_date")),
             }
             if product_supported:
                 row["product"] = lot["product"]
@@ -2111,11 +2132,13 @@ def download_holdings():
         return db_error
     try:
         rows = _filter_supervisor_holdings(session.get("supervisor_id"), _load_all_holdings())
-        export = [{"Client ID": r["client_id"], "Symbol": r["symbol"], "Exchange": r["product"],
+        export = [{"Client ID": r["client_id"], "Symbol": r["symbol"], "Product": r["product"],
+                   "Exchange": r["exchange"], "Trade Date": r.get("trade_date") or "",
                    "MTM": r["mtm"], "LTP": r["ltp"], "Qty": r["qty"], "Buy Price": r["buy_price"],
                    "Change": r["ltp"] - r["buy_price"], "Portfolio ID": r.get("id") or r.get("portfolio_id") or ""}
                   for r in rows]
-        return _csv_response(export, list(export[0].keys()) if export else ["Client ID", "Symbol", "Exchange", "MTM", "LTP", "Qty", "Buy Price", "Change", "Portfolio ID"], "lms_portfolio.csv")
+        default_cols = ["Client ID", "Symbol", "Product", "Exchange", "Trade Date", "MTM", "LTP", "Qty", "Buy Price", "Change", "Portfolio ID"]
+        return _csv_response(export, list(export[0].keys()) if export else default_cols, "lms_portfolio.csv")
     except Exception as exc:
         return jsonify({"success": False, "error": str(exc)}), 500
 
@@ -2133,11 +2156,12 @@ def download_client_portfolio():
         rows = []
         for h in result.data or []:
             qty = _clean_number(h.get("quantity")); buy = _clean_number(h.get("buy_price")); ltp = _clean_number(h.get("ltp"), buy)
-            rows.append({"Client ID": h.get("client_id"), "Symbol": h.get("symbol"), "Exchange": h.get("exchange"),
+            rows.append({"Client ID": h.get("client_id"), "Symbol": h.get("symbol"), "Product": _product_for_holding(h),
+                         "Exchange": h.get("exchange"), "Trade Date": h.get("trade_date") or "",
                          "MTM": (ltp-buy)*qty, "LTP": ltp, "Qty": qty, "Buy Price": buy, "Change": ltp-buy,
                          "Portfolio ID": h.get("id") or h.get("portfolio_id") or ""})
         rows.sort(key=lambda x: x["MTM"], reverse=True)
-        cols = ["Client ID", "Symbol", "Exchange", "MTM", "LTP", "Qty", "Buy Price", "Change", "Portfolio ID"]
+        cols = ["Client ID", "Symbol", "Product", "Exchange", "Trade Date", "MTM", "LTP", "Qty", "Buy Price", "Change", "Portfolio ID"]
         return _csv_response(rows, cols, f"portfolio_{cid}.csv")
     except Exception as exc:
         return jsonify({"success": False, "error": str(exc)}), 500
@@ -2185,6 +2209,11 @@ def _holding_update(key, payload):
             "exchange": str(payload.get("exchange") or "BSE").strip().upper(),
             "quantity": _clean_number(payload.get("quantity")),
             "buy_price": _clean_number(payload.get("buy_price"))}
+    if payload.get("trade_date") not in (None, ""):
+        clean_date = _clean_trade_date(payload.get("trade_date"))
+        if not clean_date:
+            raise ValueError("Invalid trade date.")
+        data["trade_date"] = clean_date
     # Preserve existing LTP on modify; market data remains read-only.
     current = None
     for col in ("id", "portfolio_id"):
@@ -2248,6 +2277,11 @@ def add_holding():
     try:
         row = {"client_id": client_id, "symbol": symbol, "exchange": exchange, "quantity": qty,
                "buy_price": buy, "ltp": buy, "market_value": qty * buy, "pnl": 0}
+        if data.get("trade_date") not in (None, ""):
+            clean_date = _clean_trade_date(data.get("trade_date"))
+            if not clean_date:
+                return jsonify({"success": False, "message": "Invalid trade date."}), 400
+            row["trade_date"] = clean_date
         result = supabase.table("holdings").insert(row).execute()
         saved_rows = result.data or []
         if saved_rows:
