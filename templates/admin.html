@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5, user-scalable=yes, viewport-fit=cover">
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>LMS Portfolio — Admin</title>
 <style>
 :root{--navy:#052d70;--blue:#0b55b5;--gold:#f4c400;--green:#128a43;--red:#d62828;--bg:#eef5fc;--line:#d4e0ee;--text:#14263d;--muted:#60748a}
@@ -17,87 +17,26 @@
 .modal{display:none;position:fixed;inset:0;background:rgba(3,25,57,.62);align-items:center;justify-content:center;z-index:30}.modal.show{display:flex}.modal-box{background:#fff;width:min(480px,92vw);border-radius:14px;padding:20px}.form-grid{display:grid;gap:10px}.modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:14px}
 @media(max-width:900px){.filters{grid-template-columns:1fr}.multi-client-menu{position:fixed;left:5vw;right:5vw;width:auto;top:25vh}.brand h1{font-size:19px}.portfolio-bar{flex-wrap:wrap;white-space:normal;overflow-x:visible}}
 
-
-/* ==========================================================
-   LM SECURITIES MOBILE ADMIN VIEW
-   Desktop styles above remain unchanged. These rules activate
-   only on small screens and present the same server-rendered
-   Admin data as a compact MTM monitoring application.
-   ========================================================== */
-
-/* Mobile v2 enhancements: 10-row focus, selection/hide controls, all-clients,
-   login/password control, and symbol-to-details interaction. */
-.lms-mobile-tools{display:none}
-.lms-mobile-clients,.lms-mobile-security{display:none}
-@media (max-width:600px){
-  html,body{background:#fff!important;overflow-x:hidden;touch-action:pan-x pan-y pinch-zoom}
-  .lms-mobile{background:#fff!important}
-  .lms-mobile-head{background:linear-gradient(135deg,#063b82,#0754a8)}
-  .lms-mobile-content{background:#fff;max-width:none;padding:7px 7px 12px}
-  .lms-mobile-list{background:#fff;border-color:#dce7f2}
-  .lms-mobile-columns,.lms-mobile-row{grid-template-columns:1.02fr 1.12fr 1.16fr .70fr 1.08fr 1.22fr}
-  .lms-mobile-row{min-height:42px;padding:5px 4px}
-  .lms-mobile-row.is-hidden{display:none}.lms-mobile-row.hidden-unhide{display:grid!important;background:#fff7e6}
-  .lms-mobile-row.is-selected{background:#eaf4ff;box-shadow:inset 3px 0 #0b6dcc}
-  .lms-mobile-select{display:flex!important;align-items:center;justify-content:center}
-  .lms-mobile-select input{width:14px;height:14px;margin:0;accent-color:#0b55b5}
-  .lms-mobile-tools{display:flex!important;gap:5px;overflow-x:auto;padding:3px 2px 7px;scrollbar-width:none}
-  .lms-mobile-tools::-webkit-scrollbar{display:none}
-  .lms-mobile-tool{flex:0 0 auto;border:1px solid #cbdced;background:#edf5ff;color:#063b82;border-radius:9px;padding:6px 8px;font-size:8px;font-weight:900;white-space:nowrap}
-  .lms-mobile-tool.primary{background:#0b55b5;color:#fff;border-color:#0b55b5}
-  .lms-mobile-view-status{font-size:8px;color:#5f7692;font-weight:800;padding:0 3px 6px}
-  .lms-mobile-columns{grid-template-columns:.58fr .98fr 1.05fr 1.12fr .68fr 1.02fr 1.14fr}
-  .lms-mobile-row{grid-template-columns:.58fr .98fr 1.05fr 1.12fr .68fr 1.02fr 1.14fr}
-  .lms-mobile-symbol{cursor:pointer;color:#0b55b5;text-decoration:underline;text-decoration-color:#c4d9ee;text-underline-offset:2px}
-  .lms-mobile-row>div{padding:0 1px}
-  .lms-mobile-client{font-size:8.4px}.lms-mobile-symbol{font-size:7.4px}.lms-mobile-mtm{font-size:8.4px}.lms-mobile-qty,.lms-mobile-ltp,.lms-mobile-buy{font-size:7.3px}
-  .lms-mobile-drawer{z-index:200}
-  .lms-mobile-panel{width:min(86vw,340px);background:linear-gradient(180deg,#063b82,#032d68)}
-  .lms-menu-item{padding:11px 10px;font-size:12px}
-  .lms-mobile-clients,.lms-mobile-security{position:fixed;inset:0;z-index:150;background:#fff;overflow:auto}
-  .lms-mobile-clients.open,.lms-mobile-security.open{display:block}
-  .lms-mobile-pagehead{position:sticky;top:0;z-index:2;background:linear-gradient(135deg,#063b82,#0754a8);color:#fff;padding:calc(9px + env(safe-area-inset-top)) 11px 11px;display:flex;align-items:center;gap:9px}
-  .lms-mobile-pagehead h2{margin:0;font-size:17px;flex:1}.lms-mobile-pagebody{padding:10px 9px 30px;max-width:650px;margin:auto}
-  .lms-client-search{display:flex;gap:6px;margin-bottom:9px}.lms-client-search input{flex:1;border:1px solid #cbdced;border-radius:9px;padding:10px;font-size:13px;color:#12365f}.lms-client-search button{border:0;border-radius:9px;background:#0b55b5;color:#fff;font-weight:900;padding:0 12px}
-  .lms-client-list{background:#fff;border:1px solid #dbe6f1;border-radius:12px;overflow:hidden}.lms-client-item{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;padding:11px;border-bottom:1px solid #e2eaf3}.lms-client-item:last-child{border-bottom:0}.lms-client-item strong{font-size:12px;color:#082e68}.lms-client-item small{display:block;font-size:9px;color:#7086a0;margin-top:2px}.lms-client-open{border:0;border-radius:8px;background:#edf5ff;color:#0754a8;padding:7px 9px;font-size:9px;font-weight:900}
-  .lms-security-card{background:#fff;border:1px solid #dbe6f1;border-radius:13px;padding:11px;margin-bottom:9px;box-shadow:0 2px 10px rgba(21,59,102,.06)}.lms-security-card h3{margin:0 0 8px;color:#082e68;font-size:13px}.lms-security-actions{display:grid;grid-template-columns:1fr 1fr;gap:6px}.lms-security-actions button{border:0;border-radius:8px;padding:9px;font-size:9px;font-weight:900;color:#fff;background:#0b55b5}.lms-security-actions .danger{background:#d62828}.lms-security-actions .ok{background:#128a43}.lms-security-actions .light{background:#edf5ff;color:#082e68;border:1px solid #cbdced}
-  .lms-mobile-bottom button.more-active{color:#0764d1}
-}
-@media(max-width:360px){
- .lms-mobile-columns,.lms-mobile-row{grid-template-columns:.55fr .92fr 1fr 1.05fr .64fr .96fr 1.08fr}
- .lms-mobile-columns{font-size:6.4px}.lms-mobile-client,.lms-mobile-mtm{font-size:7.6px}.lms-mobile-symbol,.lms-mobile-qty,.lms-mobile-ltp,.lms-mobile-buy{font-size:6.6px}
-}
-
-@media (max-width: 600px){
-  html,body{width:100%;overflow-x:hidden;background:#f4f8fd}
-  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;padding-bottom:70px}
+/* ===== MOBILE ADMIN VIEW: monitoring-only presentation layer ===== */
+.mobile-admin{display:none}
+@media(max-width:700px){
+  html,body{width:100%;min-width:0;background:#fff!important;overflow-x:hidden}
+  body{font-size:16px}
   .top,.container>.toolbar,.container>.card,.footer{display:none!important}
-  .lms-mobile{display:flex!important;min-height:100vh;flex-direction:column;background:#f4f8fd}
-  .lms-mobile-head{position:sticky;top:0;z-index:60;color:#fff;background:linear-gradient(135deg,#063b82,#0754a8);padding:calc(9px + env(safe-area-inset-top)) 12px 11px;box-shadow:0 3px 14px rgba(0,35,80,.25)}
-  .lms-mobile-headrow{display:flex;align-items:center;gap:10px}
-  .lms-mobile-menu-btn,.lms-mobile-back,.lms-mobile-close{width:40px;height:40px;border:0;border-radius:11px;background:rgba(255,255,255,.12);color:#fff;font-size:23px;display:grid;place-items:center}
-  .lms-mobile-brand{flex:1;min-width:0}.lms-mobile-brand strong{display:block;font-size:18px;line-height:20px}.lms-mobile-brand small{display:block;font-size:8px;letter-spacing:.7px;opacity:.78;margin-top:2px}
-  .lms-mobile-live{font-size:9px;font-weight:900;line-height:12px;white-space:nowrap;text-align:right}.lms-live-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#13df6e;box-shadow:0 0 0 3px rgba(19,223,110,.13);margin-right:4px}
-  .lms-mobile-summary{margin-top:9px;border-radius:14px;padding:9px 6px;background:linear-gradient(135deg,#0b6dcc,#0754a8);display:grid;grid-template-columns:repeat(3,1fr);box-shadow:inset 0 1px 0 rgba(255,255,255,.12)}
-  .lms-mobile-summary-item{min-width:0;padding:0 8px;border-right:1px solid rgba(255,255,255,.22)}.lms-mobile-summary-item:last-child{border-right:0}.lms-mobile-summary small{display:block;font-size:9px;font-weight:800;opacity:.9}.lms-mobile-summary-value{font-size:14px;font-weight:900;color:#fff;margin-top:3px;white-space:nowrap}.lms-mobile-summary-value.green{color:#13df6e}.lms-mobile-total{font-size:22px;font-weight:900;color:#13df6e;margin-top:2px}.lms-mobile-time{font-size:9px;opacity:.78;text-align:right;grid-column:1/-1;padding:5px 8px 0;display:flex;justify-content:flex-end;gap:6px}
-  .lms-mobile-content{width:100%;max-width:620px;margin:0 auto;padding:8px 8px 12px}
-  .lms-mobile-toolbar{display:flex;justify-content:space-between;align-items:center;padding:2px 3px 7px}.lms-mobile-title{font-size:13px;font-weight:900;color:#082e68}.lms-mobile-count{font-size:10px;color:#7186a1}
-  .lms-mobile-list{background:#fff;border-radius:13px;overflow:hidden;box-shadow:0 2px 12px rgba(21,59,102,.09);border:1px solid #dfe8f3}
-  .lms-mobile-columns{display:grid;grid-template-columns:1.05fr 1.15fr 1.18fr .72fr 1.15fr 1.35fr;gap:0;align-items:center;background:linear-gradient(90deg,#063b82,#0754a8);color:#fff;padding:7px 5px;font-size:7.8px;font-weight:900;text-transform:uppercase;letter-spacing:.15px}
-  .lms-mobile-columns span{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.lms-mobile-columns span:nth-child(n+3){text-align:right}
-  .lms-mobile-row{width:100%;border:0;border-bottom:1px solid #e2eaf3;background:#fff;display:grid;grid-template-columns:1.05fr 1.15fr 1.18fr .72fr 1.15fr 1.35fr;gap:0;align-items:center;text-align:left;padding:6px 5px;min-height:43px;cursor:pointer;-webkit-tap-highlight-color:transparent}
-  .lms-mobile-row:last-child{border-bottom:0}.lms-mobile-row:active{background:#eaf4ff}.lms-mobile-row>div{min-width:0;padding:0 2px}.lms-mobile-client{font-size:8.7px;font-weight:900;color:#082e68;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.lms-mobile-symbol{font-size:7.6px;color:#7186a1;font-weight:700;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.lms-mobile-qty,.lms-mobile-ltp,.lms-mobile-buy{font-size:7.8px;color:#365c82;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.lms-mobile-mtm{font-size:8.7px;font-weight:900;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.lms-profit{color:#08ad55}.lms-loss{color:#e33445}.lms-mobile-row .lms-mobile-ltp{color:#234f7c}.lms-mobile-row .lms-mobile-buy{color:#234f7c}
-  .lms-mobile-drawer{position:fixed;inset:0;z-index:100;display:none}.lms-mobile-drawer.open{display:block}.lms-mobile-scrim{position:absolute;inset:0;background:rgba(0,18,45,.5)}.lms-mobile-panel{position:absolute;left:0;top:0;bottom:0;width:min(82vw,325px);background:linear-gradient(180deg,#063b82,#032d68);color:#fff;padding:calc(16px + env(safe-area-inset-top)) 13px 20px;box-shadow:8px 0 28px rgba(0,0,0,.22);overflow:auto}
-  .lms-drawer-brand{display:flex;align-items:center;gap:10px;padding:5px 8px 18px}.lms-drawer-logo{width:43px;height:43px;border-radius:50%;background:#fff;color:#0754a8;display:grid;place-items:center;font-size:18px;font-weight:900}.lms-drawer-brand strong{font-size:17px}.lms-drawer-brand small{display:block;font-size:8px;opacity:.75;letter-spacing:.7px;margin-top:2px}.lms-drawer-close{margin-left:auto;background:transparent;border:0;color:#fff;font-size:26px}
-  .lms-menu-item{width:100%;border:0;background:transparent;color:#fff;text-align:left;border-radius:11px;padding:12px 11px;margin:2px 0;font-weight:800;font-size:13px;display:flex;align-items:center;gap:12px}.lms-menu-item:active,.lms-menu-item.active{background:rgba(255,255,255,.13)}.lms-menu-icon{width:21px;text-align:center;font-size:17px}.lms-drawer-foot{position:absolute;left:21px;bottom:calc(18px + env(safe-area-inset-bottom));font-size:9px;opacity:.78}
-  .lms-mobile-bottom{position:fixed;z-index:70;left:0;right:0;bottom:0;background:#fff;border-top:1px solid #dbe5f0;display:grid;grid-template-columns:repeat(4,1fr);padding:5px 4px calc(5px + env(safe-area-inset-bottom));box-shadow:0 -3px 15px rgba(0,40,90,.08)}.lms-mobile-bottom button{border:0;background:transparent;color:#7890ad;font-size:9px;font-weight:800;padding:3px;display:flex;flex-direction:column;align-items:center;gap:2px}.lms-mobile-bottom button.active{color:#0764d1}.lms-mobile-bottom i{font-style:normal;font-size:18px}
-  .lms-detail{position:fixed;inset:0;z-index:90;background:#f4f8fd;display:none;overflow:auto}.lms-detail.open{display:block}.lms-detail-head{position:sticky;top:0;z-index:2;background:linear-gradient(135deg,#063b82,#0754a8);color:#fff;padding:calc(9px + env(safe-area-inset-top)) 12px 11px;display:flex;align-items:center;gap:9px}.lms-detail-head h2{font-size:17px;margin:0;flex:1}.lms-detail-body{max-width:620px;margin:auto;padding:10px 9px 28px}.lms-client-card{background:linear-gradient(135deg,#0b6dcc,#0754a8);color:#fff;border-radius:14px;padding:13px;display:flex;align-items:center;gap:10px;margin-bottom:9px}.lms-avatar{width:46px;height:46px;border-radius:50%;background:#2c82ed;display:grid;place-items:center;font-weight:900}.lms-client-card strong{font-size:16px}.lms-client-card small{display:block;font-size:9px;opacity:.75}.lms-badge{margin-left:auto;background:#13df6e;color:#063b2a;border-radius:18px;padding:5px 8px;font-size:9px;font-weight:900}.lms-detail-mtm{background:#fff;border-radius:14px;padding:12px;margin-bottom:9px;box-shadow:0 2px 10px rgba(21,59,102,.08)}.lms-detail-mtm small{color:#7186a1;font-weight:800;font-size:10px}.lms-detail-mtm strong{display:block;font-size:24px;margin-top:3px}.lms-detail-table{background:#fff;border-radius:14px;padding:10px;box-shadow:0 2px 10px rgba(21,59,102,.08)}.lms-detail-table h3{margin:2px 2px 9px;font-size:13px;color:#082e68}.lms-detail-table table{min-width:0;width:100%;font-size:9px}.lms-detail-table th{position:static;background:#edf5ff;color:#355b84;padding:7px 4px;font-size:9px}.lms-detail-table td{padding:8px 4px;font-size:9px}.lms-detail-table td.num,.lms-detail-table th.num{text-align:right}.lms-detail-total{margin-top:9px;background:#dceeff;border-radius:11px;padding:9px;display:flex;justify-content:space-between;gap:8px}.lms-detail-total small{display:block;color:#35638e;font-size:8px}.lms-detail-total strong{display:block;margin-top:3px;font-size:13px}
+  .mobile-admin{display:block;min-height:100vh;background:#fff;color:#062e70;padding-bottom:72px}
+  .m-head{background:linear-gradient(180deg,#063b82,#0b55b5);color:#fff;padding:22px 14px 14px;position:sticky;top:0;z-index:10;box-shadow:0 3px 12px rgba(0,30,80,.22)}
+  .m-head-row{display:flex;align-items:center;justify-content:space-between;gap:10px}
+  .m-menu,.m-icon{border:0;background:rgba(255,255,255,.12);color:#fff;border-radius:10px;width:44px;height:44px;font-size:25px;cursor:pointer}
+  .m-brand{font-size:22px;font-weight:900;flex:1}.m-brand small{display:block;font-size:10px;letter-spacing:.4px;font-weight:700;margin-top:2px}
+  .m-live{display:flex;align-items:center;gap:7px;font-size:15px;font-weight:900;margin-top:15px}.m-dot{width:13px;height:13px;border-radius:50%;background:#00e676;display:inline-block}
+  .m-summary{margin-top:10px;background:linear-gradient(135deg,#0b67d2,#0870d9);border:1px solid rgba(255,255,255,.15);border-radius:14px;padding:12px 10px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px}
+  .m-summary div{padding:0 8px;border-right:1px solid rgba(255,255,255,.25)}.m-summary div:last-child{border-right:0}.m-summary span{display:block;font-size:14px;font-weight:800}.m-summary strong{display:block;font-size:22px;line-height:1.2;margin-top:4px;color:#fff}.m-summary .down strong{color:#00f57a}
+  .m-body{padding:12px 10px}.m-title{font-size:21px;font-weight:900;margin:2px 4px 8px}.m-tools{display:flex;gap:7px;overflow-x:auto;padding:2px 4px 8px}.m-tools button{flex:0 0 auto;border:1px solid #cbd9e8;background:#edf4fd;color:#062e70;border-radius:10px;padding:9px 12px;font-weight:900;font-size:13px}.m-tools input{width:150px;flex:0 0 150px;font-size:15px}
+  .m-list{border:1px solid #d4e0ee;border-radius:10px;overflow:hidden;background:#fff}.m-row{display:grid;grid-template-columns:1.05fr 1.1fr 1fr;align-items:center;min-height:58px;padding:7px 9px;border-bottom:1px solid #dfe7ef;cursor:pointer}.m-row:last-child{border-bottom:0}.m-row:nth-child(even){background:#f7faff}.m-cell{font-size:18px;font-weight:900;line-height:1.05;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.m-symbol{font-size:18px}.m-mtm{text-align:right;font-size:19px}.m-profit{color:#128a43}.m-loss{color:#d62828}.m-sub{display:block;font-size:12px;font-weight:700;color:#60748a;margin-top:3px}
+  .m-bottom{position:fixed;bottom:0;left:0;right:0;height:68px;background:#fff;border-top:1px solid #cbd9e8;display:grid;grid-template-columns:repeat(4,1fr);z-index:20}.m-bottom button{border:0;background:#fff;color:#143b68;font-weight:900;font-size:12px}.m-bottom button span{display:block;font-size:21px;margin-bottom:1px}
+  .m-drawer{display:none;position:fixed;inset:0;background:rgba(0,0,0,.42);z-index:50}.m-drawer.show{display:block}.m-panel{width:82%;max-width:340px;height:100%;background:#063b82;color:#fff;padding:28px 16px;box-shadow:8px 0 25px rgba(0,0,0,.25)}.m-panel h2{margin:0 0 20px;font-size:22px}.m-panel button{width:100%;text-align:left;border:0;background:transparent;color:#fff;padding:15px 10px;font-size:17px;font-weight:900;border-radius:9px}.m-panel button:hover{background:rgba(255,255,255,.12)}
+  .m-detail{display:none;position:fixed;inset:0;background:#fff;z-index:40;overflow:auto}.m-detail.show{display:block}.m-detail-head{background:#063b82;color:#fff;padding:20px 14px;font-size:21px;font-weight:900}.m-detail-body{padding:12px}.m-detail-card{border:1px solid #d4e0ee;border-radius:12px;margin-bottom:10px;padding:13px}.m-detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.m-detail-grid b{display:block;font-size:12px;color:#60748a}.m-detail-grid strong{font-size:17px}.m-close{float:left;margin-right:12px;border:0;background:rgba(255,255,255,.12);color:#fff;border-radius:8px;padding:4px 10px;font-size:20px}
 }
-@media(max-width:360px){
-  .lms-mobile-content{padding-left:5px;padding-right:5px}.lms-mobile-columns,.lms-mobile-row{grid-template-columns:1fr 1.08fr 1.15fr .68fr 1.08fr 1.25fr}.lms-mobile-columns{font-size:7px}.lms-mobile-client,.lms-mobile-mtm{font-size:8px}.lms-mobile-symbol,.lms-mobile-qty,.lms-mobile-ltp,.lms-mobile-buy{font-size:7px}.lms-mobile-row{padding-left:3px;padding-right:3px}.lms-mobile-row>div{padding:0 1px}
-}
-
-@media(min-width:601px){.lms-mobile{display:none!important}}
 </style>
 </head>
 <body>
@@ -198,96 +137,78 @@
 </div>
 </div>
 
-
-<!-- Mobile-only presentation layer. Existing desktop Admin remains untouched. -->
-<div class="lms-mobile" id="lmsMobileApp">
-  <header class="lms-mobile-head">
-    <div class="lms-mobile-headrow">
-      <button class="lms-mobile-menu-btn" type="button" onclick="lmsOpenDrawer()" aria-label="Open menu">☰</button>
-      <div class="lms-mobile-brand"><strong>LM Securities</strong><small>YOUR WEALTH YOUR PRIORITY</small></div>
-      <div class="lms-mobile-live"><span class="lms-live-dot"></span>LIVE<br>MTM</div>
+<!-- Mobile-only MTM monitoring view. Desktop markup above remains unchanged. -->
+<section class="mobile-admin" id="mobileAdmin">
+  <header class="m-head">
+    <div class="m-head-row">
+      <button class="m-menu" onclick="mOpenDrawer()" aria-label="Menu">☰</button>
+      <div class="m-brand">LM Securities<small>YOUR WEALTH, YOUR PRIORITY</small></div>
+      <button class="m-icon" onclick="mRefresh()" aria-label="Refresh">↻</button>
     </div>
-    <div class="lms-mobile-summary">
-      <div class="lms-mobile-summary-item"><small>LTP</small><div id="lmsMobileLtp" class="lms-mobile-summary-value">₹ 0.00</div></div>
-      <div class="lms-mobile-summary-item"><small>Buy Price</small><div id="lmsMobileBuy" class="lms-mobile-summary-value">₹ 0.00</div></div>
-      <div class="lms-mobile-summary-item"><small>Down</small><div id="lmsMobileDown" class="lms-mobile-summary-value green">+0.00%</div></div>
-      <div class="lms-mobile-time"><span>Market <b>● Open</b></span><span id="lmsMobileUpdated">Updating…</span></div>
+    <div class="m-live"><span class="m-dot"></span> Live Portfolio (MTM)</div>
+    <div class="m-summary">
+      <div><span>LTP</span><strong id="mLtp">—</strong></div>
+      <div><span>Buy Price</span><strong id="mBuy">—</strong></div>
+      <div class="down"><span>Down</span><strong id="mDown">—</strong></div>
     </div>
   </header>
-  <main class="lms-mobile-content">
-    <div class="lms-mobile-toolbar"><div class="lms-mobile-title">Top Movers (by MTM)</div><div class="lms-mobile-count" id="lmsMobileCount">0 entries</div></div>
-    <div class="lms-mobile-tools">
-      <button class="lms-mobile-tool primary" type="button" onclick="lmsSelectVisible()">SELECT</button>
-      <button class="lms-mobile-tool" type="button" onclick="lmsHideSelected()">HIDE SELECTED</button>
-      <button class="lms-mobile-tool" type="button" onclick="lmsFocusSelected()">FOCUS SELECTED</button>
-      <button class="lms-mobile-tool" type="button" onclick="lmsShowHiddenRows()">HIDDEN</button><button class="lms-mobile-tool" type="button" onclick="lmsUnhideSelected()">UNHIDE</button><button class="lms-mobile-tool" type="button" onclick="lmsShowAllRows()">SHOW ALL</button>
-      <button class="lms-mobile-tool" type="button" onclick="lmsOpenClients()">ALL CLIENTS</button>
-      <button class="lms-mobile-tool" type="button" onclick="lmsOpenSecurity()">PASSWORD</button>
+  <main class="m-body">
+    <div class="m-title">Top Movers (by MTM)</div>
+    <div class="m-tools">
+      <input id="mClientSearch" placeholder="Client ID" oninput="mFilter()">
+      <button onclick="mSelect10()">SELECT 10</button>
+      <button onclick="mHideSelected()">HIDE SELECTED</button>
+      <button onclick="mShowAll()">SHOW ALL</button>
     </div>
-    <div class="lms-mobile-view-status" id="lmsMobileViewStatus">SHOWING TOP 10 · LIVE</div>
-    <div class="lms-mobile-list" id="lmsMobileList">
-      <div class="lms-mobile-columns" aria-hidden="true"><span></span><span>Client ID</span><span>Symbol</span><span>MTM</span><span>Qty</span><span>LTP</span><span>Buy Price</span></div>
-      {% for h in holdings %}
-      <button type="button" class="lms-mobile-row" data-client="{{ h.client_id|lower }}" data-client-display="{{ h.client_id }}" data-symbol="{{ h.symbol }}" data-qty="{{ h.qty }}" data-buy="{{ h.buy_price }}" data-ltp="{{ h.ltp }}" data-mtm="{{ h.mtm }}" data-product="{{ h.product }}" data-exchange="{{ h.exchange }}" data-trade-date="{{ h.get('trade_date') or '-' }}" data-portfolio-id="{{ h.get('portfolio_id','') }}" onclick="lmsOpenClient(this)">
-        <div class="lms-mobile-select"><input type="checkbox" aria-label="Select row" onclick="event.stopPropagation();lmsSyncSelection(this)"></div>
-        <div><div class="lms-mobile-client">{{ h.client_id }}</div></div>
-        <div><div class="lms-mobile-symbol" onclick="event.stopPropagation();lmsOpenClient(this.closest('.lms-mobile-row'))">{{ h.symbol }}</div></div>
-        <div class="lms-mobile-mtm {{ 'lms-profit' if h.mtm >= 0 else 'lms-loss' }}">{{ '+' if h.mtm >= 0 else '-' }} ₹{{ '%.2f'|format(h.mtm|abs) }}</div>
-        <div class="lms-mobile-qty">{{ '%.2f'|format(h.qty) }}</div>
-        <div class="lms-mobile-ltp">₹ {{ '%.2f'|format(h.ltp) }}</div>
-        <div class="lms-mobile-buy">₹ {{ '%.2f'|format(h.buy_price) }}</div>
-      </button>
-      {% endfor %}
-    </div>
+    <div class="m-list" id="mList"></div>
   </main>
-  <nav class="lms-mobile-bottom">
-    <button class="active" type="button" onclick="lmsScrollTop()"><i>⌂</i>Portfolio</button>
-    <button type="button" onclick="lmsOpenClients()"><i>▥</i>All Clients</button>
-    <button type="button" onclick="lmsOpenSecurity()"><i>🔒</i>Password</button>
-    <button type="button" onclick="lmsOpenDrawer()"><i>▦</i>More</button>
+  <nav class="m-bottom">
+    <button onclick="mGoHome()"><span>⌂</span>Portfolio</button>
+    <button onclick="mGoAllClients()"><span>▥</span>All Clients</button>
+    <button onclick="mGoPassword()"><span>🔒</span>Password</button>
+    <button onclick="mOpenDrawer()"><span>☷</span>More</button>
   </nav>
-</div>
+</section>
+<div class="m-drawer" id="mDrawer" onclick="if(event.target===this)mCloseDrawer()"><aside class="m-panel">
+  <h2>LM Securities <button onclick="mCloseDrawer()" style="float:right;width:auto;padding:0 8px;font-size:24px">×</button></h2>
+  <button onclick="mGoHome()">▥ &nbsp; Client Portfolio</button>
+  <button onclick="mGoAllClients()">👥 &nbsp; All Clients (MTM)</button>
+  <button onclick="mGoHome()">★ &nbsp; Watchlist</button>
+  <button onclick="mGoHome()">▣ &nbsp; Reports / Portfolio</button>
+  <button onclick="mGoPassword()">⚙ &nbsp; Settings / Login Control</button>
+  <button onclick="mGoPassword()">🔒 &nbsp; Password</button>
+  <button onclick="location.href='/logout'">↪ &nbsp; Logout</button>
+</aside></div>
+<div class="m-detail" id="mDetail"><div class="m-detail-head"><button class="m-close" onclick="mCloseDetail()">‹</button>Client Details</div><div class="m-detail-body" id="mDetailBody"></div></div>
+<script>
+(function(){
+ const rows=[...document.querySelectorAll('#portfolioTable tbody tr')].map((r,i)=>({r,i,client:(r.dataset.client||'').toUpperCase(),symbol:(r.dataset.symbol||'').toUpperCase(),mtm:Number(r.querySelector('[data-mtm]')?.dataset.mtm||0),ltp:r.cells[6]?.innerText.trim()||'-',qty:r.cells[7]?.innerText.trim()||'-',buy:r.cells[8]?.innerText.trim()||'-',product:r.cells[3]?.innerText.trim()||'-',exchange:r.cells[4]?.innerText.trim()||'-',date:r.cells[10]?.innerText.trim()||'-'}));
+ window._mRows=rows;
+ window.mRender=function(){
+   const q=(document.getElementById('mClientSearch').value||'').trim().toUpperCase();
+   const hidden=JSON.parse(localStorage.getItem('lm_mobile_hidden_rows')||'[]');
+   const list=document.getElementById('mList'); list.innerHTML='';
+   rows.slice().sort((a,b)=>b.mtm-a.mtm).filter(x=>!hidden.includes(x.i)&&(!q||x.client.includes(q))).slice(0,100).forEach(x=>{
+     const d=document.createElement('div');d.className='m-row';d.dataset.idx=x.i;
+     const mtm=(x.mtm>=0?'+ ₹ ':'- ₹ ')+Math.abs(x.mtm).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
+     d.innerHTML='<div class="m-cell">'+esc(x.client)+'</div><div class="m-cell m-symbol">'+esc(x.symbol)+'</div><div class="m-cell m-mtm '+(x.mtm>=0?'m-profit':'m-loss')+'">'+mtm+'</div>';
+     d.onclick=()=>mOpenDetail(x);list.appendChild(d);
+   });
+   const first=rows.slice().sort((a,b)=>b.mtm-a.mtm)[0]; if(first){document.getElementById('mLtp').textContent='₹ '+first.ltp;document.getElementById('mBuy').textContent='₹ '+first.buy;const pct=first.buy&&first.ltp?((Number(first.ltp.replace(/,/g,''))-Number(first.buy.replace(/,/g,'')))/Number(first.buy.replace(/,/g,''))*100):0;document.getElementById('mDown').textContent=(pct>=0?'+':'')+pct.toFixed(2)+'%';}
+ };
+ window.mFilter=mRender;
+ window.mSelect10=function(){let selected=JSON.parse(localStorage.getItem('lm_mobile_selected_rows')||'[]');const hidden=JSON.parse(localStorage.getItem('lm_mobile_hidden_rows')||'[]');rows.slice().sort((a,b)=>b.mtm-a.mtm).filter(x=>!hidden.includes(x.i)).slice(0,10).forEach(x=>{if(!selected.includes(x.i))selected.push(x.i)});localStorage.setItem('lm_mobile_selected_rows',JSON.stringify(selected));alert('10 rows selected. Tap HIDE SELECTED to hide them.');};
+ window.mHideSelected=function(){const selected=JSON.parse(localStorage.getItem('lm_mobile_selected_rows')||'[]');const hidden=JSON.parse(localStorage.getItem('lm_mobile_hidden_rows')||'[]');const merged=[...new Set(hidden.concat(selected))];localStorage.setItem('lm_mobile_hidden_rows',JSON.stringify(merged));localStorage.setItem('lm_mobile_selected_rows','[]');mRender();};
+ window.mShowAll=function(){localStorage.setItem('lm_mobile_hidden_rows','[]');localStorage.setItem('lm_mobile_selected_rows','[]');mRender();};
+ window.mOpenDetail=function(x){const body=document.getElementById('mDetailBody');body.innerHTML='<div class="m-detail-card"><div class="m-detail-grid"><div><b>Client ID</b><strong>'+esc(x.client)+'</strong></div><div><b>Symbol</b><strong>'+esc(x.symbol)+'</strong></div><div><b>Product</b><strong>'+esc(x.product)+'</strong></div><div><b>Exchange</b><strong>'+esc(x.exchange)+'</strong></div><div><b>Quantity</b><strong>'+esc(x.qty)+'</strong></div><div><b>Buy Price</b><strong>₹ '+esc(x.buy)+'</strong></div><div><b>LTP</b><strong>₹ '+esc(x.ltp)+'</strong></div><div><b>MTM</b><strong class="'+(x.mtm>=0?'m-profit':'m-loss')+'">'+(x.mtm>=0?'+':'-')+' ₹ '+Math.abs(x.mtm).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2})+'</strong></div></div></div>';document.getElementById('mDetail').classList.add('show')};
+ window.mCloseDetail=()=>document.getElementById('mDetail').classList.remove('show');
+ window.mOpenDrawer=()=>document.getElementById('mDrawer').classList.add('show');window.mCloseDrawer=()=>document.getElementById('mDrawer').classList.remove('show');
+ window.mRefresh=()=>location.reload();window.mGoHome=()=>{mCloseDrawer();mCloseDetail();window.scrollTo(0,0)};window.mGoAllClients=()=>{mCloseDrawer();document.getElementById('mClientSearch').focus();document.getElementById('mClientSearch').value='';mRender()};window.mGoPassword=()=>{mCloseDrawer();const el=document.getElementById('userLoginControl');if(el){document.querySelector('.top')?.style.removeProperty('display');location.hash='userLoginControl';alert('Password & Login Control is available in the existing Admin controls.');}};
+ function esc(v){return String(v).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
+ mRender();
+})();
+</script>
 
-<div class="lms-mobile-drawer" id="lmsMobileDrawer" aria-hidden="true">
-  <div class="lms-mobile-scrim" onclick="lmsCloseDrawer()"></div>
-  <aside class="lms-mobile-panel">
-    <div class="lms-drawer-brand"><div class="lms-drawer-logo">LM</div><div><strong>LM Securities</strong><small>YOUR WEALTH YOUR PRIORITY</small></div><button class="lms-drawer-close" onclick="lmsCloseDrawer()">×</button></div>
-    <button class="lms-menu-item active" onclick="lmsCloseDrawer();lmsScrollTop()"><span class="lms-menu-icon">▥</span>Client Portfolio</button>
-    <button class="lms-menu-item" onclick="lmsCloseDrawer();lmsGoToDesktopSection('portfolioTable')"><span class="lms-menu-icon">👥</span>All Clients (MTM)</button>
-    <button class="lms-menu-item" onclick="lmsCloseDrawer();lmsGoToDesktopSection('portfolioTable')"><span class="lms-menu-icon">★</span>Watchlist</button>
-    <button class="lms-menu-item" onclick="lmsCloseDrawer();lmsGoToDesktopSection('portfolioTable')"><span class="lms-menu-icon">▣</span>Reports / Portfolio</button>
-    <button class="lms-menu-item" onclick="lmsCloseDrawer();lmsGoToDesktopSection('userLoginControl')"><span class="lms-menu-icon">⚙</span>Settings / Login Control</button>
-    <button class="lms-menu-item" onclick="lmsCloseDrawer();window.location.href='/change-password'"><span class="lms-menu-icon">🔒</span>Password</button>
-    <button class="lms-menu-item" onclick="window.location.href='/logout'"><span class="lms-menu-icon">↪</span>Logout</button>
-    <div class="lms-drawer-foot"><span class="lms-live-dot"></span> Live Data · Powered by Supabase</div>
-  </aside>
-</div>
-
-
-<div class="lms-mobile-clients" id="lmsMobileClients" aria-hidden="true">
-  <div class="lms-mobile-pagehead"><button class="lms-mobile-back" onclick="lmsCloseClients()">‹</button><h2>All Clients (MTM)</h2><div>⌕</div></div>
-  <div class="lms-mobile-pagebody">
-    <div class="lms-client-search"><input id="lmsAllClientSearch" placeholder="Search Client ID"><button onclick="lmsFilterClients()">SEARCH</button></div>
-    <div class="lms-client-list" id="lmsAllClientList">
-      {% for c in clients %}<div class="lms-client-item" data-client-search="{{ c.client_id|lower }}"><div><strong>{{ c.client_id }}</strong><small>{{ c.client_name or '-' }} · {{ c.status or 'active' }}</small></div><button class="lms-client-open" onclick="lmsOpenClientById('{{ c.client_id }}')">VIEW</button></div>{% endfor %}
-    </div>
-  </div>
-</div>
-<div class="lms-mobile-security" id="lmsMobileSecurity" aria-hidden="true">
-  <div class="lms-mobile-pagehead"><button class="lms-mobile-back" onclick="lmsCloseSecurity()">‹</button><h2>Password & Login Control</h2><div>🔒</div></div>
-  <div class="lms-mobile-pagebody">
-    <div class="lms-security-card"><h3>Admin Password</h3><div class="lms-security-actions"><button class="light" onclick="window.location.href='/change-password'">CHANGE PASSWORD</button><button class="light" onclick="lmsCloseSecurity();lmsOpenDrawer()">SECURITY MENU</button></div></div>
-    <div class="lms-security-card"><h3>Client Login Control</h3><div class="lms-client-search"><input id="lmsSecuritySearch" placeholder="Search Client ID"><button onclick="lmsFilterSecurity()">SEARCH</button></div><div class="lms-security-actions"><button class="ok" onclick="lmsActivateSelectedUsers()">ACTIVATE</button><button class="danger" onclick="lmsBlockSelectedUsers()">BLOCK</button><button onclick="lmsResetSelectedPasswords()">RESET PW</button><button class="light" onclick="lmsSetSelectedPasswords()">SET PW</button></div></div>
-    <div class="lms-client-list" id="lmsSecurityList">
-      {% for c in clients %}<div class="lms-client-item" data-security-client="{{ c.client_id|lower }}"><div><strong>{{ c.client_id }}</strong><small>{{ c.client_name or '-' }} · {{ c.status or 'active' }}</small></div><input class="login-check check lms-security-login-check" type="checkbox" value="{{ c.client_id }}"></div>{% endfor %}
-    </div>
-  </div>
-</div>
-
-<div class="lms-detail" id="lmsDetail" aria-hidden="true">
-  <div class="lms-detail-head"><button class="lms-mobile-back" onclick="lmsCloseClient()">‹</button><h2>Client Details</h2><div style="font-size:20px">⋮</div></div>
-  <div class="lms-detail-body" id="lmsDetailBody"></div>
-</div>
 <div class="footer">Thank you for trading with <b>Latin Manharlal Securities Pvt. Ltd.</b></div>
 
 <div id="positionModal" class="modal"><div class="modal-box"><h3 id="modalTitle">Add Portfolio Position</h3><div class="form-grid">
@@ -670,125 +591,9 @@ async function setSelectedPasswords(){
     alert(data.message||'Password updated successfully.');
   }catch(e){alert('Password update failed: '+e.message)}
 }
-
-
-
-/* ===== Mobile v2 controls ===== */
-(function(){
-  var MOBILE_VIEW_KEY='lms_mobile_view_v2';
-  var mobileMode='top10', mobileHidden=new Set(), mobileFocus=new Set();
-  function mobileRows(){return [].slice.call(document.querySelectorAll('.lms-mobile-row'));}
-  function rowId(r){return String(r.dataset.id||r.dataset.portfolioId||((r.dataset.client||'')+'|'+(r.dataset.symbol||'')))}
-  function selectedRows(){return mobileRows().filter(function(r){var c=r.querySelector('.lms-mobile-select input');return c&&c.checked;});}
-  function save(){try{localStorage.setItem(MOBILE_VIEW_KEY,JSON.stringify({mode:mobileMode,hidden:[...mobileHidden],focus:[...mobileFocus]}));}catch(e){}}
-  function load(){try{var x=JSON.parse(localStorage.getItem(MOBILE_VIEW_KEY)||'{}');mobileMode=x.mode||'top10';mobileHidden=new Set((x.hidden||[]).map(String));mobileFocus=new Set((x.focus||[]).map(String));}catch(e){}}
-  function apply(){
-    var rows=mobileRows().sort(function(a,b){return Number(b.dataset.mtm||0)-Number(a.dataset.mtm||0)});
-    var list=document.getElementById('lmsMobileList'); rows.forEach(function(r){list.appendChild(r);});
-    rows.forEach(function(r,i){var id=rowId(r), show=true;r.classList.remove('is-hidden');
-      if(mobileMode==='top10') show=i<10 && !mobileHidden.has(id);
-      else if(mobileMode==='hide') show=!mobileHidden.has(id);
-      else if(mobileMode==='focus') show=mobileFocus.has(id);
-      else if(mobileMode==='hidden') show=mobileHidden.has(id);
-      else show=!mobileHidden.has(id);
-      if(!show)r.classList.add('is-hidden');
-      if(mobileMode==='hidden' && show)r.classList.add('hidden-unhide');
-    });
-    var shown=rows.filter(function(r){return !r.classList.contains('is-hidden')}).length;
-    var st=document.getElementById('lmsMobileViewStatus'); if(st)st.textContent=(mobileMode==='top10'?'SHOWING TOP 10':mobileMode==='focus'?'FOCUS SELECTED':mobileMode==='hide'?'HIDDEN LONG-TERM REMOVED':mobileMode==='hidden'?'HIDDEN ROWS':'SHOWING ALL')+' · '+shown+' VISIBLE';
-    var c=document.getElementById('lmsMobileCount');if(c)c.textContent=shown+' visible';
-    save();
-  }
-  window.__lmsApplyMobileV2=apply;
-  window.lmsSyncSelection=function(cb){var r=cb.closest('.lms-mobile-row');if(r)r.classList.toggle('is-selected',cb.checked);};
-  window.lmsSelectVisible=function(){var rows=mobileRows().filter(function(r){return !r.classList.contains('is-hidden')});rows.forEach(function(r){var c=r.querySelector('.lms-mobile-select input');if(c)c.checked=true;r.classList.add('is-selected');});};
-  window.lmsHideSelected=function(){var rows=selectedRows();if(!rows.length){alert('Select the long-term rows you want to hide.');return;}rows.forEach(function(r){mobileHidden.add(rowId(r));var c=r.querySelector('input');if(c)c.checked=false;r.classList.remove('is-selected');});mobileMode='hide';apply();};
-  window.lmsShowHiddenRows=function(){mobileMode='hidden';mobileRows().forEach(function(r){r.classList.remove('is-hidden','is-selected');if(!mobileHidden.has(rowId(r)))r.classList.add('is-hidden');var c=r.querySelector('.lms-mobile-select input');if(c)c.checked=false;});var st=document.getElementById('lmsMobileViewStatus');if(st)st.textContent='HIDDEN LONG-TERM · SELECT TO UNHIDE';save();};
-  window.lmsUnhideSelected=function(){var rows=selectedRows();if(!rows.length){alert('Select hidden rows to unhide.');return;}rows.forEach(function(r){mobileHidden.delete(rowId(r));var c=r.querySelector('.lms-mobile-select input');if(c)c.checked=false;r.classList.remove('is-selected','hidden-unhide');});mobileMode='top10';apply();};
-  window.lmsFocusSelected=function(){var rows=selectedRows();if(!rows.length){alert('Select the rows/clients you want to focus.');return;}mobileFocus=new Set(rows.map(rowId));mobileMode='focus';rows.forEach(function(r){var c=r.querySelector('input');if(c)c.checked=false;r.classList.remove('is-selected')});apply();};
-  window.lmsShowAllRows=function(){mobileHidden.clear();mobileFocus.clear();mobileMode='all';apply();};
-  window.lmsOpenClients=function(){lmsCloseDrawer();document.getElementById('lmsMobileClients').classList.add('open');document.getElementById('lmsMobileClients').setAttribute('aria-hidden','false');};
-  window.lmsCloseClients=function(){document.getElementById('lmsMobileClients').classList.remove('open');};
-  window.lmsFilterClients=function(){var q=(document.getElementById('lmsAllClientSearch').value||'').trim().toLowerCase();document.querySelectorAll('#lmsAllClientList .lms-client-item').forEach(function(r){r.style.display=!q||(r.dataset.clientSearch||'').includes(q)?'':'none';});};
-  window.lmsOpenSecurity=function(){lmsCloseDrawer();document.getElementById('lmsMobileSecurity').classList.add('open');document.getElementById('lmsMobileSecurity').setAttribute('aria-hidden','false');};
-  window.lmsCloseSecurity=function(){document.getElementById('lmsMobileSecurity').classList.remove('open');};
-  window.lmsFilterSecurity=function(){var q=(document.getElementById('lmsSecuritySearch').value||'').trim().toLowerCase();document.querySelectorAll('#lmsSecurityList .lms-client-item').forEach(function(r){r.style.display=!q||(r.dataset.securityClient||'').includes(q)?'':'none';});};
-  window.lmsSecuritySelected=function(){return [].slice.call(document.querySelectorAll('.lms-security-login-check:checked')).map(function(x){return x.value;});};
-  window.lmsActivateSelectedUsers=function(){var ids=lmsSecuritySelected();if(!ids.length){alert('Select client(s) first.');return;}updateLoginStatus(ids,'activate');};
-  window.lmsBlockSelectedUsers=function(){var ids=lmsSecuritySelected();if(!ids.length){alert('Select client(s) first.');return;}updateLoginStatus(ids,'block');};
-  window.lmsResetSelectedPasswords=async function(){var ids=lmsSecuritySelected();if(!ids.length){alert('Select client(s) first.');return;}if(!confirm('Reset password to Client ID for '+ids.length+' selected client(s)?'))return;try{var res=await fetch('/api/clients/reset-password',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({client_ids:ids})});var data=await res.json();if(!data.success){alert(data.message||data.error||'Password reset failed');return;}alert(data.message||'Password reset completed.');}catch(e){alert('Password reset failed: '+e.message)}};
-  window.lmsSetSelectedPasswords=async function(){var ids=lmsSecuritySelected();if(!ids.length){alert('Select client(s) first.');return;}var password=prompt('Enter the new password for '+ids.length+' selected client(s):');if(password===null)return;if(password.trim().length<4){alert('Password must contain at least 4 characters.');return;}var confirmPassword=prompt('Confirm the new password:');if(confirmPassword===null)return;if(password!==confirmPassword){alert('Passwords do not match.');return;}try{var res=await fetch('/api/clients/set-password',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({client_ids:ids,password:password})});var data=await res.json();if(!data.success){alert(data.message||data.error||'Password update failed');return;}alert(data.message||'Password updated successfully.');}catch(e){alert('Password update failed: '+e.message)}};
-  window.lmsOpenClientById=function(cid){var r=mobileRows().find(function(x){return (x.dataset.clientDisplay||'').toLowerCase()===String(cid).toLowerCase()});lmsCloseClients();if(r)lmsOpenClient(r);else alert('No portfolio row found for '+cid);};
-  load();setTimeout(apply,120);
-})();
-
-/* ===== Mobile Admin behaviour ===== */
-(function(){
-  function fmt(n){return Number(n||0).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2})}
-  function mtmText(n){var v=Number(n||0);return (v>=0?'+':'-')+' ₹'+fmt(Math.abs(v))}
-  function refreshMobileSummary(){
-    var rows=[].slice.call(document.querySelectorAll('.lms-mobile-row'));
-    var total=rows.reduce(function(a,r){return a+Number(r.dataset.mtm||0)},0);
-    rows.sort(function(a,b){return Number(b.dataset.mtm||0)-Number(a.dataset.mtm||0)});
-    var list=document.getElementById('lmsMobileList');
-    rows.forEach(function(r){list.appendChild(r)});
-    var c=document.getElementById('lmsMobileCount'); if(c)c.textContent=rows.length+(rows.length===1?' entry':' entries');
-    var first=rows[0];
-    var ltp=first?Number(first.dataset.ltp||0):0;
-    var buy=first?Number(first.dataset.buy||0):0;
-    var pct=buy?((ltp-buy)/buy)*100:0;
-    var l=document.getElementById('lmsMobileLtp'); if(l)l.textContent='₹ '+fmt(ltp);
-    var b=document.getElementById('lmsMobileBuy'); if(b)b.textContent='₹ '+fmt(buy);
-    var d=document.getElementById('lmsMobileDown'); if(d){d.textContent=(pct>=0?'+':'-')+Math.abs(pct).toFixed(2)+'%';d.className='lms-mobile-summary-value '+(pct>=0?'green':'lms-loss')}
-    var u=document.getElementById('lmsMobileUpdated'); if(u)u.textContent=new Date().toLocaleTimeString('en-IN');
-  }
-  window.lmsOpenDrawer=function(){var d=document.getElementById('lmsMobileDrawer');if(d)d.classList.add('open')}
-  window.lmsCloseDrawer=function(){var d=document.getElementById('lmsMobileDrawer');if(d)d.classList.remove('open')}
-  window.lmsScrollTop=function(){window.scrollTo({top:0,behavior:'smooth'});lmsCloseDrawer()}
-  window.lmsGoToDesktopSection=function(id){lmsCloseDrawer();var el=document.getElementById(id);if(el){document.querySelectorAll('.lms-mobile').forEach(function(x){x.style.display='none'});document.querySelectorAll('.top,.container>.toolbar,.container>.card,.footer').forEach(function(x){x.style.display=''});setTimeout(function(){el.scrollIntoView({behavior:'smooth',block:'start'});},30);setTimeout(function(){location.reload()},500)}}
-  window.lmsCloseClient=function(){var d=document.getElementById('lmsDetail');if(d)d.classList.remove('open')}
-  window.lmsOpenClient=function(row){
-    var cid=row.dataset.clientDisplay||row.dataset.client||'';
-    var clientRows=[].slice.call(document.querySelectorAll('#portfolioTable tbody tr')).filter(function(r){return (r.dataset.client||'').toLowerCase()===cid.toLowerCase()});
-    if(!clientRows.length){clientRows=[].slice.call(document.querySelectorAll('.lms-mobile-row')).filter(function(r){return (r.dataset.clientDisplay||'').toLowerCase()===cid.toLowerCase()})}
-    var total=clientRows.reduce(function(a,r){return a+Number(r.dataset.mtm||r.querySelector('[data-mtm]')?.dataset.mtm||0)},0);
-    var html='<section class="lms-client-card"><div class="lms-avatar">LM</div><div><strong>'+esc(cid)+'</strong><small>Client ID</small></div><div class="lms-badge">'+(clientRows.some(function(r){return String(r.dataset.product||'').toUpperCase()==='MTF'})?'MTF':'NORMAL')+'</div></section>';
-    html+='<section class="lms-detail-mtm"><small>Total MTM</small><strong class="'+(total>=0?'lms-profit':'lms-loss')+'">'+mtmText(total)+'</strong></section>';
-    html+='<section class="lms-detail-table"><h3>Holdings</h3><table><thead><tr><th>Symbol</th><th class="num">Qty</th><th class="num">Buy Price</th><th class="num">LTP</th><th class="num">MTM</th></tr></thead><tbody>';
-    clientRows.forEach(function(r){
-      var cells=r.cells||[];
-      var symbol=r.dataset.symbol|| (cells[2]?cells[2].innerText.trim():'-');
-      var qty=Number(r.dataset.qty|| (cells[7]?cells[7].innerText.replace(/,/g,''):0));
-      var buy=Number(r.dataset.buy|| (cells[8]?cells[8].innerText.replace(/,/g,''):0));
-      var ltp=Number(r.dataset.ltp|| (cells[6]?cells[6].innerText.replace(/,/g,''):0));
-      var mtm=Number(r.dataset.mtm|| (cells[5]?cells[5].innerText.replace(/,/g,''):0));
-      html+='<tr><td><b>'+esc(symbol)+'</b><br><small>'+esc(r.dataset.product||'NORMAL')+'</small></td><td class="num">'+fmt(qty)+'</td><td class="num">'+fmt(buy)+'</td><td class="num">'+fmt(ltp)+'</td><td class="num '+(mtm>=0?'lms-profit':'lms-loss')+'">'+mtmText(mtm)+'</td></tr>';
-    });
-    html+='</tbody></table><div class="lms-detail-total"><div><small>Total Holdings Value</small><strong>₹ '+fmt(clientRows.reduce(function(a,r){var q=Number(r.dataset.qty||0),l=Number(r.dataset.ltp||0);return a+q*l},0))+'</strong></div><div style="text-align:right"><small>Total MTM</small><strong class="'+(total>=0?'lms-profit':'lms-loss')+'">'+mtmText(total)+'</strong></div></div></section>';
-    document.getElementById('lmsDetailBody').innerHTML=html;
-    document.getElementById('lmsDetail').classList.add('open');
-  }
-  function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
-  function syncMobileFromDesktop(){
-    var source=[].slice.call(document.querySelectorAll('#portfolioTable tbody tr'));
-    var mobile=document.getElementById('lmsMobileList'); if(!mobile||!source.length)return;
-    var map={}; source.forEach(function(r){var id=String(r.dataset.id||r.dataset.portfolioId||'');map[id]=r});
-    document.querySelectorAll('.lms-mobile-row').forEach(function(m){
-      var cid=m.dataset.client||'';var symbol=m.dataset.symbol||'';
-      var found=source.find(function(r){return (r.dataset.client||'')===cid && (r.dataset.symbol||'')===symbol});
-      if(found){m.dataset.qty=found.cells[7]?.innerText.replace(/,/g,'')||m.dataset.qty;m.dataset.buy=found.cells[8]?.innerText.replace(/,/g,'')||m.dataset.buy;m.dataset.ltp=found.cells[6]?.innerText.replace(/,/g,'')||m.dataset.ltp;m.dataset.mtm=found.cells[5]?.dataset.mtm||found.cells[5]?.innerText.replace(/,/g,'')||m.dataset.mtm;m.dataset.product=found.dataset.product||m.dataset.product;m.dataset.exchange=found.dataset.exchange||m.dataset.exchange;var mt=m.querySelector('.lms-mobile-mtm');if(mt){var v=Number(m.dataset.mtm||0);mt.textContent=mtmText(v);mt.className='lms-mobile-mtm '+(v>=0?'lms-profit':'lms-loss')}var q=m.querySelector('.lms-mobile-qty');if(q)q.textContent=fmt(Number(m.dataset.qty||0));var lp=m.querySelector('.lms-mobile-ltp');if(lp)lp.textContent='₹ '+fmt(Number(m.dataset.ltp||0));var bp=m.querySelector('.lms-mobile-buy');if(bp)bp.textContent='₹ '+fmt(Number(m.dataset.buy||0))}
-    });
-    refreshMobileSummary();
-    if(window.__lmsApplyMobileV2) window.__lmsApplyMobileV2();
-  }
-  window.__syncLmsMobile=syncMobileFromDesktop;
-  refreshMobileSummary();
-  if(window.lmsShowAllRows){ /* view controller will reapply after data sync */ }
-  setTimeout(syncMobileFromDesktop,100);
-  setInterval(syncMobileFromDesktop,5000);
-})();
 </script>
 </body></html>
+
 
 
 
