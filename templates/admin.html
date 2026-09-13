@@ -39,6 +39,15 @@
 }
 </style>
 
+<style id="mobile-only-summary-fit-fix">
+@media (max-width:700px){
+  /* Mobile only: fit Total MTM, Investment and Change in the summary row. */
+  .m-summary{grid-template-columns:minmax(0,1.08fr) minmax(0,1.22fr) minmax(0,.78fr)!important;gap:2px!important;padding-left:7px!important;padding-right:7px!important}
+  .m-summary div{min-width:0!important;padding-left:6px!important;padding-right:6px!important}
+  .m-summary span,.m-summary strong{white-space:nowrap!important;overflow:hidden!important;text-overflow:clip!important}
+  .m-summary strong{font-size:20px!important;letter-spacing:-.2px!important}
+}
+</style>
 <style id="mobile-only-brand-back-fix">
 @media (max-width: 700px) {
   .mobile-client-details-header, .client-details-mobile-header { padding-top:34px !important; }
@@ -657,6 +666,80 @@ async function setSelectedPasswords(){
 }
 </script>
 </body></html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
