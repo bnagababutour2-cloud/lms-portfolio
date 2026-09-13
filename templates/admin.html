@@ -60,7 +60,7 @@
   .lms-mobile-pagehead h2{margin:0;font-size:17px;flex:1}.lms-mobile-pagebody{padding:10px 9px 30px;max-width:650px;margin:auto}
   .lms-client-search{display:flex;gap:6px;margin-bottom:9px}.lms-client-search input{flex:1;border:1px solid #cbdced;border-radius:9px;padding:10px;font-size:13px;color:#12365f}.lms-client-search button{border:0;border-radius:9px;background:#0b55b5;color:#fff;font-weight:900;padding:0 12px}
   .lms-client-list{background:#fff;border:1px solid #dbe6f1;border-radius:12px;overflow:hidden}.lms-client-item{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;padding:11px;border-bottom:1px solid #e2eaf3}.lms-client-item:last-child{border-bottom:0}.lms-client-item strong{font-size:12px;color:#082e68}.lms-client-item small{display:block;font-size:9px;color:#7086a0;margin-top:2px}.lms-client-open{border:0;border-radius:8px;background:#edf5ff;color:#0754a8;padding:7px 9px;font-size:9px;font-weight:900}
-  .lms-security-card{background:#fff;border:1px solid #dbe6f1;border-radius:13px;padding:11px;margin-bottom:9px;box-shadow:0 2px 10px rgba(21,59,102,.06)}.lms-security-card h3{margin:0 0 8px;color:#082e68;font-size:13px}.lms-security-actions{display:grid;grid-template-columns:1fr 1fr;gap:6px}.lms-security-actions button{border:0;border-radius:8px;padding:9px;font-size:9px;font-weight:900;color:#fff;background:#0b55b5}.lms-security-actions .danger{background:#d62828}.lms-security-actions .ok{background:#128a43}.lms-security-actions .light{background:#edf5ff;color:#082e68;border:1px solid #cbdced}
+  .lms-remember{display:flex;align-items:center;gap:7px;color:#506b89;font-size:10px;font-weight:700;margin:0 0 9px}.lms-remember input{width:16px;height:16px;accent-color:#0b55b5}.lms-security-card{background:#fff;border:1px solid #dbe6f1;border-radius:13px;padding:11px;margin-bottom:9px;box-shadow:0 2px 10px rgba(21,59,102,.06)}.lms-security-card h3{margin:0 0 8px;color:#082e68;font-size:13px}.lms-security-actions{display:grid;grid-template-columns:1fr 1fr;gap:6px}.lms-security-actions button{border:0;border-radius:8px;padding:9px;font-size:9px;font-weight:900;color:#fff;background:#0b55b5}.lms-security-actions .danger{background:#d62828}.lms-security-actions .ok{background:#128a43}.lms-security-actions .light{background:#edf5ff;color:#082e68;border:1px solid #cbdced}
   .lms-mobile-bottom button.more-active{color:#0764d1}
 }
 @media(max-width:360px){
@@ -207,9 +207,8 @@
       <div class="lms-mobile-brand"><strong>LM Securities</strong><small>YOUR WEALTH YOUR PRIORITY</small></div>
       <div class="lms-mobile-live"><span class="lms-live-dot"></span>LIVE<br>MTM</div>
     </div>
-    <div class="lms-mobile-summary">
+    <div class="lms-mobile-summary lms-mobile-summary-two">
       <div class="lms-mobile-summary-item"><small>LTP</small><div id="lmsMobileLtp" class="lms-mobile-summary-value">₹ 0.00</div></div>
-      <div class="lms-mobile-summary-item"><small>Buy Price</small><div id="lmsMobileBuy" class="lms-mobile-summary-value">₹ 0.00</div></div>
       <div class="lms-mobile-summary-item"><small>Down</small><div id="lmsMobileDown" class="lms-mobile-summary-value green">+0.00%</div></div>
       <div class="lms-mobile-time"><span>Market <b>● Open</b></span><span id="lmsMobileUpdated">Updating…</span></div>
     </div>
@@ -217,25 +216,26 @@
   <main class="lms-mobile-content">
     <div class="lms-mobile-toolbar"><div class="lms-mobile-title">Top Movers (by MTM)</div><div class="lms-mobile-count" id="lmsMobileCount">0 entries</div></div>
     <div class="lms-mobile-tools">
-      <button class="lms-mobile-tool primary" type="button" onclick="lmsSelectVisible()">SELECT</button>
+      <button class="lms-mobile-tool primary" type="button" onclick="lmsSelectNext10()">SELECT 10</button>
+      <div class="lms-mobile-main-search"><input id="lmsMobileClientSearch" inputmode="text" autocomplete="off" placeholder="Client ID"><button type="button" onclick="lmsSearchClient()">SEARCH</button></div>
       <button class="lms-mobile-tool" type="button" onclick="lmsHideSelected()">HIDE SELECTED</button>
       <button class="lms-mobile-tool" type="button" onclick="lmsFocusSelected()">FOCUS SELECTED</button>
-      <button class="lms-mobile-tool" type="button" onclick="lmsShowHiddenRows()">HIDDEN</button><button class="lms-mobile-tool" type="button" onclick="lmsUnhideSelected()">UNHIDE</button><button class="lms-mobile-tool" type="button" onclick="lmsShowAllRows()">SHOW ALL</button>
+      <button class="lms-mobile-tool" type="button" onclick="lmsShowHiddenRows()">HIDDEN</button>
+      <button class="lms-mobile-tool" type="button" onclick="lmsUnhideSelected()">UNHIDE</button>
+      <button class="lms-mobile-tool" type="button" onclick="lmsShowAllRows()">SHOW ALL</button>
       <button class="lms-mobile-tool" type="button" onclick="lmsOpenClients()">ALL CLIENTS</button>
       <button class="lms-mobile-tool" type="button" onclick="lmsOpenSecurity()">PASSWORD</button>
     </div>
     <div class="lms-mobile-view-status" id="lmsMobileViewStatus">SHOWING TOP 10 · LIVE</div>
     <div class="lms-mobile-list" id="lmsMobileList">
-      <div class="lms-mobile-columns" aria-hidden="true"><span></span><span>Client ID</span><span>Symbol</span><span>MTM</span><span>Qty</span><span>LTP</span><span>Buy Price</span></div>
+      <div class="lms-mobile-columns" aria-hidden="true"><span></span><span>Client ID</span><span>Symbol</span><span>MTM</span><span>LTP</span></div>
       {% for h in holdings %}
       <button type="button" class="lms-mobile-row" data-client="{{ h.client_id|lower }}" data-client-display="{{ h.client_id }}" data-symbol="{{ h.symbol }}" data-qty="{{ h.qty }}" data-buy="{{ h.buy_price }}" data-ltp="{{ h.ltp }}" data-mtm="{{ h.mtm }}" data-product="{{ h.product }}" data-exchange="{{ h.exchange }}" data-trade-date="{{ h.get('trade_date') or '-' }}" data-portfolio-id="{{ h.get('portfolio_id','') }}" onclick="lmsOpenClient(this)">
         <div class="lms-mobile-select"><input type="checkbox" aria-label="Select row" onclick="event.stopPropagation();lmsSyncSelection(this)"></div>
         <div><div class="lms-mobile-client">{{ h.client_id }}</div></div>
         <div><div class="lms-mobile-symbol" onclick="event.stopPropagation();lmsOpenClient(this.closest('.lms-mobile-row'))">{{ h.symbol }}</div></div>
         <div class="lms-mobile-mtm {{ 'lms-profit' if h.mtm >= 0 else 'lms-loss' }}">{{ '+' if h.mtm >= 0 else '-' }} ₹{{ '%.2f'|format(h.mtm|abs) }}</div>
-        <div class="lms-mobile-qty">{{ '%.2f'|format(h.qty) }}</div>
         <div class="lms-mobile-ltp">₹ {{ '%.2f'|format(h.ltp) }}</div>
-        <div class="lms-mobile-buy">₹ {{ '%.2f'|format(h.buy_price) }}</div>
       </button>
       {% endfor %}
     </div>
@@ -276,7 +276,7 @@
 <div class="lms-mobile-security" id="lmsMobileSecurity" aria-hidden="true">
   <div class="lms-mobile-pagehead"><button class="lms-mobile-back" onclick="lmsCloseSecurity()">‹</button><h2>Password & Login Control</h2><div>🔒</div></div>
   <div class="lms-mobile-pagebody">
-    <div class="lms-security-card"><h3>Admin Password</h3><div class="lms-security-actions"><button class="light" onclick="window.location.href='/change-password'">CHANGE PASSWORD</button><button class="light" onclick="lmsCloseSecurity();lmsOpenDrawer()">SECURITY MENU</button></div></div>
+    <div class="lms-security-card"><h3>Admin Password</h3><label class="lms-remember"><input id="lmsRememberDevice" type="checkbox" onchange="lmsRememberDevice(this.checked)"> Remember this device</label><div class="lms-security-actions"><button class="light" onclick="lmsAdminPasswordInfo()">CHANGE PASSWORD</button><button class="light" onclick="lmsCloseSecurity();lmsOpenDrawer()">SECURITY MENU</button></div></div>
     <div class="lms-security-card"><h3>Client Login Control</h3><div class="lms-client-search"><input id="lmsSecuritySearch" placeholder="Search Client ID"><button onclick="lmsFilterSecurity()">SEARCH</button></div><div class="lms-security-actions"><button class="ok" onclick="lmsActivateSelectedUsers()">ACTIVATE</button><button class="danger" onclick="lmsBlockSelectedUsers()">BLOCK</button><button onclick="lmsResetSelectedPasswords()">RESET PW</button><button class="light" onclick="lmsSetSelectedPasswords()">SET PW</button></div></div>
     <div class="lms-client-list" id="lmsSecurityList">
       {% for c in clients %}<div class="lms-client-item" data-security-client="{{ c.client_id|lower }}"><div><strong>{{ c.client_id }}</strong><small>{{ c.client_name or '-' }} · {{ c.status or 'active' }}</small></div><input class="login-check check lms-security-login-check" type="checkbox" value="{{ c.client_id }}"></div>{% endfor %}
@@ -620,7 +620,7 @@ async function updateLoginStatus(ids, action){
   const word=action==='activate'?'ACTIVATE':'BLOCK';
   if(!confirm(word+' login for '+ids.length+' selected client(s)?')) return;
   try{
-    const res=await fetch('/api/clients/login-control',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({client_ids:ids,action})});
+    const res=await fetch('/api/clients/login-control',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({client_ids:ids,action})});
     const data=await res.json();
     if(!data.success){alert(data.message||data.error||('Could not '+word.toLowerCase()+' login'));return;}
     alert(data.message||('Login '+action+'d successfully.'));
@@ -635,7 +635,7 @@ function blockSelectedUsers(){updateLoginStatus(loginChecks(),'block')}
 async function resetOnePassword(id){
   if(!confirm('Reset password for '+id+' to the Client ID?')) return;
   try{
-    const res=await fetch('/api/clients/reset-password',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({client_ids:[id]})});
+    const res=await fetch('/api/clients/reset-password',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({client_ids:[id]})});
     const data=await res.json();
     if(!data.success){alert(data.message||data.error||'Password reset failed');return;}
     alert(data.message||('Password reset for '+id));
@@ -647,7 +647,7 @@ async function resetSelectedPasswords(){
   if(!ids.length){alert('Select at least one client.');return;}
   if(!confirm('Reset password to Client ID for '+ids.length+' selected client(s)?')) return;
   try{
-    const res=await fetch('/api/clients/reset-password',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({client_ids:ids})});
+    const res=await fetch('/api/clients/reset-password',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({client_ids:ids})});
     const data=await res.json();
     if(!data.success){alert(data.message||data.error||'Password reset failed');return;}
     alert(data.message||'Password reset completed.');
@@ -664,7 +664,7 @@ async function setSelectedPasswords(){
   if(confirmPassword===null)return;
   if(password!==confirmPassword){alert('Passwords do not match.');return;}
   try{
-    const res=await fetch('/api/clients/set-password',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({client_ids:ids,password:password})});
+    const res=await fetch('/api/clients/set-password',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({client_ids:ids,password:password})});
     const data=await res.json();
     if(!data.success){alert(data.message||data.error||'Password update failed');return;}
     alert(data.message||'Password updated successfully.');
@@ -672,6 +672,28 @@ async function setSelectedPasswords(){
 }
 
 
+
+
+<style>
+@media (max-width:600px){
+  .lms-mobile-summary-two{grid-template-columns:1fr 1fr!important}
+  .lms-mobile-summary-two .lms-mobile-summary-item{padding:2px 13px!important}
+  .lms-mobile-summary-value{font-size:20px!important}
+  .lms-mobile-tools{align-items:center!important;overflow-x:auto!important;flex-wrap:nowrap!important}
+  .lms-mobile-main-search{display:flex;flex:0 0 190px;height:34px;border-radius:9px;overflow:hidden;border:1px solid #bcd0e5;background:#fff}
+  .lms-mobile-main-search input{min-width:0;flex:1;border:0!important;outline:0;padding:0 9px!important;font-size:12px!important;color:#12365f!important}
+  .lms-mobile-main-search button{border:0;background:#0b55b5;color:#fff;font-weight:900;font-size:9px;padding:0 9px}
+  .lms-mobile-columns,.lms-mobile-row{grid-template-columns:.55fr 1.25fr 1.30fr 1.45fr 1.25fr!important}
+  .lms-mobile-columns{font-size:10px!important;padding:9px 5px!important}
+  .lms-mobile-row{min-height:62px!important;padding:8px 5px!important}
+  .lms-mobile-client,.lms-mobile-mtm{font-size:14px!important;line-height:16px!important}
+  .lms-mobile-symbol,.lms-mobile-ltp{font-size:12px!important;line-height:15px!important}
+  .lms-mobile-ltp,.lms-mobile-mtm{text-align:right}
+  .lms-mobile-select input{width:19px!important;height:19px!important}
+  .lms-mobile-count{font-size:11px!important}
+  .lms-mobile-view-status{font-size:9px!important}
+}
+</style>
 
 /* ===== Mobile v2 controls ===== */
 (function(){
@@ -701,7 +723,10 @@ async function setSelectedPasswords(){
   }
   window.__lmsApplyMobileV2=apply;
   window.lmsSyncSelection=function(cb){var r=cb.closest('.lms-mobile-row');if(r)r.classList.toggle('is-selected',cb.checked);};
-  window.lmsSelectVisible=function(){var rows=mobileRows().filter(function(r){return !r.classList.contains('is-hidden')});rows.forEach(function(r){var c=r.querySelector('.lms-mobile-select input');if(c)c.checked=true;r.classList.add('is-selected');});};
+  window.lmsSelectNext10=function(){var rows=mobileRows().filter(function(r){return !r.classList.contains('is-hidden') && !r.querySelector('.lms-mobile-select input')?.checked;});if(!rows.length){alert('No unselected visible rows available.');return;}rows.slice(0,10).forEach(function(r){var c=r.querySelector('.lms-mobile-select input');if(c)c.checked=true;r.classList.add('is-selected');});};
+  window.lmsSelectVisible=window.lmsSelectNext10;
+  window.lmsSearchClient=function(){var q=(document.getElementById('lmsMobileClientSearch').value||'').trim().toLowerCase();if(!q){mobileMode='top10';apply();return;}mobileMode='search';var rows=mobileRows();rows.forEach(function(r){r.classList.remove('is-hidden','hidden-unhide');var match=(r.dataset.client||'').includes(q);if(!match)r.classList.add('is-hidden');});var shown=rows.filter(function(r){return !r.classList.contains('is-hidden')}).length;var st=document.getElementById('lmsMobileViewStatus');if(st)st.textContent='CLIENT SEARCH · '+shown+' MATCHED';var c=document.getElementById('lmsMobileCount');if(c)c.textContent=shown+' visible';};
+  var ms=document.getElementById('lmsMobileClientSearch');if(ms)ms.addEventListener('keydown',function(e){if(e.key==='Enter')lmsSearchClient();});
   window.lmsHideSelected=function(){var rows=selectedRows();if(!rows.length){alert('Select the long-term rows you want to hide.');return;}rows.forEach(function(r){mobileHidden.add(rowId(r));var c=r.querySelector('input');if(c)c.checked=false;r.classList.remove('is-selected');});mobileMode='hide';apply();};
   window.lmsShowHiddenRows=function(){mobileMode='hidden';mobileRows().forEach(function(r){r.classList.remove('is-hidden','is-selected');if(!mobileHidden.has(rowId(r)))r.classList.add('is-hidden');var c=r.querySelector('.lms-mobile-select input');if(c)c.checked=false;});var st=document.getElementById('lmsMobileViewStatus');if(st)st.textContent='HIDDEN LONG-TERM · SELECT TO UNHIDE';save();};
   window.lmsUnhideSelected=function(){var rows=selectedRows();if(!rows.length){alert('Select hidden rows to unhide.');return;}rows.forEach(function(r){mobileHidden.delete(rowId(r));var c=r.querySelector('.lms-mobile-select input');if(c)c.checked=false;r.classList.remove('is-selected','hidden-unhide');});mobileMode='top10';apply();};
@@ -716,11 +741,16 @@ async function setSelectedPasswords(){
   window.lmsSecuritySelected=function(){return [].slice.call(document.querySelectorAll('.lms-security-login-check:checked')).map(function(x){return x.value;});};
   window.lmsActivateSelectedUsers=function(){var ids=lmsSecuritySelected();if(!ids.length){alert('Select client(s) first.');return;}updateLoginStatus(ids,'activate');};
   window.lmsBlockSelectedUsers=function(){var ids=lmsSecuritySelected();if(!ids.length){alert('Select client(s) first.');return;}updateLoginStatus(ids,'block');};
-  window.lmsResetSelectedPasswords=async function(){var ids=lmsSecuritySelected();if(!ids.length){alert('Select client(s) first.');return;}if(!confirm('Reset password to Client ID for '+ids.length+' selected client(s)?'))return;try{var res=await fetch('/api/clients/reset-password',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({client_ids:ids})});var data=await res.json();if(!data.success){alert(data.message||data.error||'Password reset failed');return;}alert(data.message||'Password reset completed.');}catch(e){alert('Password reset failed: '+e.message)}};
-  window.lmsSetSelectedPasswords=async function(){var ids=lmsSecuritySelected();if(!ids.length){alert('Select client(s) first.');return;}var password=prompt('Enter the new password for '+ids.length+' selected client(s):');if(password===null)return;if(password.trim().length<4){alert('Password must contain at least 4 characters.');return;}var confirmPassword=prompt('Confirm the new password:');if(confirmPassword===null)return;if(password!==confirmPassword){alert('Passwords do not match.');return;}try{var res=await fetch('/api/clients/set-password',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({client_ids:ids,password:password})});var data=await res.json();if(!data.success){alert(data.message||data.error||'Password update failed');return;}alert(data.message||'Password updated successfully.');}catch(e){alert('Password update failed: '+e.message)}};
+  window.lmsResetSelectedPasswords=async function(){var ids=lmsSecuritySelected();if(!ids.length){alert('Select client(s) first.');return;}if(!confirm('Reset password to Client ID for '+ids.length+' selected client(s)?'))return;try{var res=await fetch('/api/clients/reset-password',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({client_ids:ids})});var data=await res.json();if(!data.success){alert(data.message||data.error||'Password reset failed');return;}alert(data.message||'Password reset completed.');}catch(e){alert('Password reset failed: '+e.message)}};
+  window.lmsSetSelectedPasswords=async function(){var ids=lmsSecuritySelected();if(!ids.length){alert('Select client(s) first.');return;}var password=prompt('Enter the new password for '+ids.length+' selected client(s):');if(password===null)return;if(password.trim().length<4){alert('Password must contain at least 4 characters.');return;}var confirmPassword=prompt('Confirm the new password:');if(confirmPassword===null)return;if(password!==confirmPassword){alert('Passwords do not match.');return;}try{var res=await fetch('/api/clients/set-password',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({client_ids:ids,password:password})});var data=await res.json();if(!data.success){alert(data.message||data.error||'Password update failed');return;}alert(data.message||'Password updated successfully.');}catch(e){alert('Password update failed: '+e.message)}};
   window.lmsOpenClientById=function(cid){var r=mobileRows().find(function(x){return (x.dataset.clientDisplay||'').toLowerCase()===String(cid).toLowerCase()});lmsCloseClients();if(r)lmsOpenClient(r);else alert('No portfolio row found for '+cid);};
   load();setTimeout(apply,120);
 })();
+
+
+window.lmsRememberDevice=function(on){try{localStorage.setItem('lms_remember_device',on?'1':'0');}catch(e){} if(on) alert('Remember-device preference saved. The browser may also offer to save your login password.');};
+window.lmsAdminPasswordInfo=function(){alert('Your Admin password is validated by the server. This mobile page cannot safely change the main Admin password because the current server has no Admin-password update API. The existing client password controls below are active.');};
+try{var rd=document.getElementById('lmsRememberDevice');if(rd)rd.checked=localStorage.getItem('lms_remember_device')==='1';}catch(e){}
 
 /* ===== Mobile Admin behaviour ===== */
 (function(){
@@ -738,7 +768,7 @@ async function setSelectedPasswords(){
     var buy=first?Number(first.dataset.buy||0):0;
     var pct=buy?((ltp-buy)/buy)*100:0;
     var l=document.getElementById('lmsMobileLtp'); if(l)l.textContent='₹ '+fmt(ltp);
-    var b=document.getElementById('lmsMobileBuy'); if(b)b.textContent='₹ '+fmt(buy);
+    
     var d=document.getElementById('lmsMobileDown'); if(d){d.textContent=(pct>=0?'+':'-')+Math.abs(pct).toFixed(2)+'%';d.className='lms-mobile-summary-value '+(pct>=0?'green':'lms-loss')}
     var u=document.getElementById('lmsMobileUpdated'); if(u)u.textContent=new Date().toLocaleTimeString('en-IN');
   }
@@ -789,14 +819,6 @@ async function setSelectedPasswords(){
 })();
 </script>
 </body></html>
-
-
-
-
-
-
-
-
 
 
 
