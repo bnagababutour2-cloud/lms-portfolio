@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5, user-scalable=yes, viewport-fit=cover">
 <title>LMS Portfolio — Admin</title>
 <style>
 :root{--navy:#052d70;--blue:#0b55b5;--gold:#f4c400;--green:#128a43;--red:#d62828;--bg:#eef5fc;--line:#d4e0ee;--text:#14263d;--muted:#60748a}
@@ -24,6 +24,50 @@
    only on small screens and present the same server-rendered
    Admin data as a compact MTM monitoring application.
    ========================================================== */
+
+/* Mobile v2 enhancements: 10-row focus, selection/hide controls, all-clients,
+   login/password control, and symbol-to-details interaction. */
+.lms-mobile-tools{display:none}
+.lms-mobile-clients,.lms-mobile-security{display:none}
+@media (max-width:600px){
+  html,body{background:#fff!important;overflow-x:hidden;touch-action:pan-x pan-y pinch-zoom}
+  .lms-mobile{background:#fff!important}
+  .lms-mobile-head{background:linear-gradient(135deg,#063b82,#0754a8)}
+  .lms-mobile-content{background:#fff;max-width:none;padding:7px 7px 12px}
+  .lms-mobile-list{background:#fff;border-color:#dce7f2}
+  .lms-mobile-columns,.lms-mobile-row{grid-template-columns:1.02fr 1.12fr 1.16fr .70fr 1.08fr 1.22fr}
+  .lms-mobile-row{min-height:42px;padding:5px 4px}
+  .lms-mobile-row.is-hidden{display:none}.lms-mobile-row.hidden-unhide{display:grid!important;background:#fff7e6}
+  .lms-mobile-row.is-selected{background:#eaf4ff;box-shadow:inset 3px 0 #0b6dcc}
+  .lms-mobile-select{display:flex!important;align-items:center;justify-content:center}
+  .lms-mobile-select input{width:14px;height:14px;margin:0;accent-color:#0b55b5}
+  .lms-mobile-tools{display:flex!important;gap:5px;overflow-x:auto;padding:3px 2px 7px;scrollbar-width:none}
+  .lms-mobile-tools::-webkit-scrollbar{display:none}
+  .lms-mobile-tool{flex:0 0 auto;border:1px solid #cbdced;background:#edf5ff;color:#063b82;border-radius:9px;padding:6px 8px;font-size:8px;font-weight:900;white-space:nowrap}
+  .lms-mobile-tool.primary{background:#0b55b5;color:#fff;border-color:#0b55b5}
+  .lms-mobile-view-status{font-size:8px;color:#5f7692;font-weight:800;padding:0 3px 6px}
+  .lms-mobile-columns{grid-template-columns:.58fr .98fr 1.05fr 1.12fr .68fr 1.02fr 1.14fr}
+  .lms-mobile-row{grid-template-columns:.58fr .98fr 1.05fr 1.12fr .68fr 1.02fr 1.14fr}
+  .lms-mobile-symbol{cursor:pointer;color:#0b55b5;text-decoration:underline;text-decoration-color:#c4d9ee;text-underline-offset:2px}
+  .lms-mobile-row>div{padding:0 1px}
+  .lms-mobile-client{font-size:8.4px}.lms-mobile-symbol{font-size:7.4px}.lms-mobile-mtm{font-size:8.4px}.lms-mobile-qty,.lms-mobile-ltp,.lms-mobile-buy{font-size:7.3px}
+  .lms-mobile-drawer{z-index:200}
+  .lms-mobile-panel{width:min(86vw,340px);background:linear-gradient(180deg,#063b82,#032d68)}
+  .lms-menu-item{padding:11px 10px;font-size:12px}
+  .lms-mobile-clients,.lms-mobile-security{position:fixed;inset:0;z-index:150;background:#fff;overflow:auto}
+  .lms-mobile-clients.open,.lms-mobile-security.open{display:block}
+  .lms-mobile-pagehead{position:sticky;top:0;z-index:2;background:linear-gradient(135deg,#063b82,#0754a8);color:#fff;padding:calc(9px + env(safe-area-inset-top)) 11px 11px;display:flex;align-items:center;gap:9px}
+  .lms-mobile-pagehead h2{margin:0;font-size:17px;flex:1}.lms-mobile-pagebody{padding:10px 9px 30px;max-width:650px;margin:auto}
+  .lms-client-search{display:flex;gap:6px;margin-bottom:9px}.lms-client-search input{flex:1;border:1px solid #cbdced;border-radius:9px;padding:10px;font-size:13px;color:#12365f}.lms-client-search button{border:0;border-radius:9px;background:#0b55b5;color:#fff;font-weight:900;padding:0 12px}
+  .lms-client-list{background:#fff;border:1px solid #dbe6f1;border-radius:12px;overflow:hidden}.lms-client-item{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;padding:11px;border-bottom:1px solid #e2eaf3}.lms-client-item:last-child{border-bottom:0}.lms-client-item strong{font-size:12px;color:#082e68}.lms-client-item small{display:block;font-size:9px;color:#7086a0;margin-top:2px}.lms-client-open{border:0;border-radius:8px;background:#edf5ff;color:#0754a8;padding:7px 9px;font-size:9px;font-weight:900}
+  .lms-security-card{background:#fff;border:1px solid #dbe6f1;border-radius:13px;padding:11px;margin-bottom:9px;box-shadow:0 2px 10px rgba(21,59,102,.06)}.lms-security-card h3{margin:0 0 8px;color:#082e68;font-size:13px}.lms-security-actions{display:grid;grid-template-columns:1fr 1fr;gap:6px}.lms-security-actions button{border:0;border-radius:8px;padding:9px;font-size:9px;font-weight:900;color:#fff;background:#0b55b5}.lms-security-actions .danger{background:#d62828}.lms-security-actions .ok{background:#128a43}.lms-security-actions .light{background:#edf5ff;color:#082e68;border:1px solid #cbdced}
+  .lms-mobile-bottom button.more-active{color:#0764d1}
+}
+@media(max-width:360px){
+ .lms-mobile-columns,.lms-mobile-row{grid-template-columns:.55fr .92fr 1fr 1.05fr .64fr .96fr 1.08fr}
+ .lms-mobile-columns{font-size:6.4px}.lms-mobile-client,.lms-mobile-mtm{font-size:7.6px}.lms-mobile-symbol,.lms-mobile-qty,.lms-mobile-ltp,.lms-mobile-buy{font-size:6.6px}
+}
+
 @media (max-width: 600px){
   html,body{width:100%;overflow-x:hidden;background:#f4f8fd}
   body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;padding-bottom:70px}
@@ -172,12 +216,22 @@
   </header>
   <main class="lms-mobile-content">
     <div class="lms-mobile-toolbar"><div class="lms-mobile-title">Top Movers (by MTM)</div><div class="lms-mobile-count" id="lmsMobileCount">0 entries</div></div>
+    <div class="lms-mobile-tools">
+      <button class="lms-mobile-tool primary" type="button" onclick="lmsSelectVisible()">SELECT</button>
+      <button class="lms-mobile-tool" type="button" onclick="lmsHideSelected()">HIDE SELECTED</button>
+      <button class="lms-mobile-tool" type="button" onclick="lmsFocusSelected()">FOCUS SELECTED</button>
+      <button class="lms-mobile-tool" type="button" onclick="lmsShowHiddenRows()">HIDDEN</button><button class="lms-mobile-tool" type="button" onclick="lmsUnhideSelected()">UNHIDE</button><button class="lms-mobile-tool" type="button" onclick="lmsShowAllRows()">SHOW ALL</button>
+      <button class="lms-mobile-tool" type="button" onclick="lmsOpenClients()">ALL CLIENTS</button>
+      <button class="lms-mobile-tool" type="button" onclick="lmsOpenSecurity()">PASSWORD</button>
+    </div>
+    <div class="lms-mobile-view-status" id="lmsMobileViewStatus">SHOWING TOP 10 · LIVE</div>
     <div class="lms-mobile-list" id="lmsMobileList">
-      <div class="lms-mobile-columns" aria-hidden="true"><span>Client ID</span><span>Symbol</span><span>MTM</span><span>Qty</span><span>LTP</span><span>Buy Price</span></div>
+      <div class="lms-mobile-columns" aria-hidden="true"><span></span><span>Client ID</span><span>Symbol</span><span>MTM</span><span>Qty</span><span>LTP</span><span>Buy Price</span></div>
       {% for h in holdings %}
       <button type="button" class="lms-mobile-row" data-client="{{ h.client_id|lower }}" data-client-display="{{ h.client_id }}" data-symbol="{{ h.symbol }}" data-qty="{{ h.qty }}" data-buy="{{ h.buy_price }}" data-ltp="{{ h.ltp }}" data-mtm="{{ h.mtm }}" data-product="{{ h.product }}" data-exchange="{{ h.exchange }}" data-trade-date="{{ h.get('trade_date') or '-' }}" data-portfolio-id="{{ h.get('portfolio_id','') }}" onclick="lmsOpenClient(this)">
+        <div class="lms-mobile-select"><input type="checkbox" aria-label="Select row" onclick="event.stopPropagation();lmsSyncSelection(this)"></div>
         <div><div class="lms-mobile-client">{{ h.client_id }}</div></div>
-        <div><div class="lms-mobile-symbol">{{ h.symbol }}</div></div>
+        <div><div class="lms-mobile-symbol" onclick="event.stopPropagation();lmsOpenClient(this.closest('.lms-mobile-row'))">{{ h.symbol }}</div></div>
         <div class="lms-mobile-mtm {{ 'lms-profit' if h.mtm >= 0 else 'lms-loss' }}">{{ '+' if h.mtm >= 0 else '-' }} ₹{{ '%.2f'|format(h.mtm|abs) }}</div>
         <div class="lms-mobile-qty">{{ '%.2f'|format(h.qty) }}</div>
         <div class="lms-mobile-ltp">₹ {{ '%.2f'|format(h.ltp) }}</div>
@@ -188,8 +242,8 @@
   </main>
   <nav class="lms-mobile-bottom">
     <button class="active" type="button" onclick="lmsScrollTop()"><i>⌂</i>Portfolio</button>
-    <button type="button" onclick="lmsGoToDesktopSection('portfolioTable')"><i>▥</i>Watchlist</button>
-    <button type="button" onclick="lmsOpenDrawer()"><i>♧</i>Alerts</button>
+    <button type="button" onclick="lmsOpenClients()"><i>▥</i>All Clients</button>
+    <button type="button" onclick="lmsOpenSecurity()"><i>🔒</i>Password</button>
     <button type="button" onclick="lmsOpenDrawer()"><i>▦</i>More</button>
   </nav>
 </div>
@@ -207,6 +261,27 @@
     <button class="lms-menu-item" onclick="window.location.href='/logout'"><span class="lms-menu-icon">↪</span>Logout</button>
     <div class="lms-drawer-foot"><span class="lms-live-dot"></span> Live Data · Powered by Supabase</div>
   </aside>
+</div>
+
+
+<div class="lms-mobile-clients" id="lmsMobileClients" aria-hidden="true">
+  <div class="lms-mobile-pagehead"><button class="lms-mobile-back" onclick="lmsCloseClients()">‹</button><h2>All Clients (MTM)</h2><div>⌕</div></div>
+  <div class="lms-mobile-pagebody">
+    <div class="lms-client-search"><input id="lmsAllClientSearch" placeholder="Search Client ID"><button onclick="lmsFilterClients()">SEARCH</button></div>
+    <div class="lms-client-list" id="lmsAllClientList">
+      {% for c in clients %}<div class="lms-client-item" data-client-search="{{ c.client_id|lower }}"><div><strong>{{ c.client_id }}</strong><small>{{ c.client_name or '-' }} · {{ c.status or 'active' }}</small></div><button class="lms-client-open" onclick="lmsOpenClientById('{{ c.client_id }}')">VIEW</button></div>{% endfor %}
+    </div>
+  </div>
+</div>
+<div class="lms-mobile-security" id="lmsMobileSecurity" aria-hidden="true">
+  <div class="lms-mobile-pagehead"><button class="lms-mobile-back" onclick="lmsCloseSecurity()">‹</button><h2>Password & Login Control</h2><div>🔒</div></div>
+  <div class="lms-mobile-pagebody">
+    <div class="lms-security-card"><h3>Admin Password</h3><div class="lms-security-actions"><button class="light" onclick="window.location.href='/change-password'">CHANGE PASSWORD</button><button class="light" onclick="lmsCloseSecurity();lmsOpenDrawer()">SECURITY MENU</button></div></div>
+    <div class="lms-security-card"><h3>Client Login Control</h3><div class="lms-client-search"><input id="lmsSecuritySearch" placeholder="Search Client ID"><button onclick="lmsFilterSecurity()">SEARCH</button></div><div class="lms-security-actions"><button class="ok" onclick="lmsActivateSelectedUsers()">ACTIVATE</button><button class="danger" onclick="lmsBlockSelectedUsers()">BLOCK</button><button onclick="lmsResetSelectedPasswords()">RESET PW</button><button class="light" onclick="lmsSetSelectedPasswords()">SET PW</button></div></div>
+    <div class="lms-client-list" id="lmsSecurityList">
+      {% for c in clients %}<div class="lms-client-item" data-security-client="{{ c.client_id|lower }}"><div><strong>{{ c.client_id }}</strong><small>{{ c.client_name or '-' }} · {{ c.status or 'active' }}</small></div><input class="login-check check lms-security-login-check" type="checkbox" value="{{ c.client_id }}"></div>{% endfor %}
+    </div>
+  </div>
 </div>
 
 <div class="lms-detail" id="lmsDetail" aria-hidden="true">
@@ -597,6 +672,56 @@ async function setSelectedPasswords(){
 }
 
 
+
+/* ===== Mobile v2 controls ===== */
+(function(){
+  var MOBILE_VIEW_KEY='lms_mobile_view_v2';
+  var mobileMode='top10', mobileHidden=new Set(), mobileFocus=new Set();
+  function mobileRows(){return [].slice.call(document.querySelectorAll('.lms-mobile-row'));}
+  function rowId(r){return String(r.dataset.id||r.dataset.portfolioId||((r.dataset.client||'')+'|'+(r.dataset.symbol||'')))}
+  function selectedRows(){return mobileRows().filter(function(r){var c=r.querySelector('.lms-mobile-select input');return c&&c.checked;});}
+  function save(){try{localStorage.setItem(MOBILE_VIEW_KEY,JSON.stringify({mode:mobileMode,hidden:[...mobileHidden],focus:[...mobileFocus]}));}catch(e){}}
+  function load(){try{var x=JSON.parse(localStorage.getItem(MOBILE_VIEW_KEY)||'{}');mobileMode=x.mode||'top10';mobileHidden=new Set((x.hidden||[]).map(String));mobileFocus=new Set((x.focus||[]).map(String));}catch(e){}}
+  function apply(){
+    var rows=mobileRows().sort(function(a,b){return Number(b.dataset.mtm||0)-Number(a.dataset.mtm||0)});
+    var list=document.getElementById('lmsMobileList'); rows.forEach(function(r){list.appendChild(r);});
+    rows.forEach(function(r,i){var id=rowId(r), show=true;r.classList.remove('is-hidden');
+      if(mobileMode==='top10') show=i<10 && !mobileHidden.has(id);
+      else if(mobileMode==='hide') show=!mobileHidden.has(id);
+      else if(mobileMode==='focus') show=mobileFocus.has(id);
+      else if(mobileMode==='hidden') show=mobileHidden.has(id);
+      else show=!mobileHidden.has(id);
+      if(!show)r.classList.add('is-hidden');
+      if(mobileMode==='hidden' && show)r.classList.add('hidden-unhide');
+    });
+    var shown=rows.filter(function(r){return !r.classList.contains('is-hidden')}).length;
+    var st=document.getElementById('lmsMobileViewStatus'); if(st)st.textContent=(mobileMode==='top10'?'SHOWING TOP 10':mobileMode==='focus'?'FOCUS SELECTED':mobileMode==='hide'?'HIDDEN LONG-TERM REMOVED':mobileMode==='hidden'?'HIDDEN ROWS':'SHOWING ALL')+' · '+shown+' VISIBLE';
+    var c=document.getElementById('lmsMobileCount');if(c)c.textContent=shown+' visible';
+    save();
+  }
+  window.__lmsApplyMobileV2=apply;
+  window.lmsSyncSelection=function(cb){var r=cb.closest('.lms-mobile-row');if(r)r.classList.toggle('is-selected',cb.checked);};
+  window.lmsSelectVisible=function(){var rows=mobileRows().filter(function(r){return !r.classList.contains('is-hidden')});rows.forEach(function(r){var c=r.querySelector('.lms-mobile-select input');if(c)c.checked=true;r.classList.add('is-selected');});};
+  window.lmsHideSelected=function(){var rows=selectedRows();if(!rows.length){alert('Select the long-term rows you want to hide.');return;}rows.forEach(function(r){mobileHidden.add(rowId(r));var c=r.querySelector('input');if(c)c.checked=false;r.classList.remove('is-selected');});mobileMode='hide';apply();};
+  window.lmsShowHiddenRows=function(){mobileMode='hidden';mobileRows().forEach(function(r){r.classList.remove('is-hidden','is-selected');if(!mobileHidden.has(rowId(r)))r.classList.add('is-hidden');var c=r.querySelector('.lms-mobile-select input');if(c)c.checked=false;});var st=document.getElementById('lmsMobileViewStatus');if(st)st.textContent='HIDDEN LONG-TERM · SELECT TO UNHIDE';save();};
+  window.lmsUnhideSelected=function(){var rows=selectedRows();if(!rows.length){alert('Select hidden rows to unhide.');return;}rows.forEach(function(r){mobileHidden.delete(rowId(r));var c=r.querySelector('.lms-mobile-select input');if(c)c.checked=false;r.classList.remove('is-selected','hidden-unhide');});mobileMode='top10';apply();};
+  window.lmsFocusSelected=function(){var rows=selectedRows();if(!rows.length){alert('Select the rows/clients you want to focus.');return;}mobileFocus=new Set(rows.map(rowId));mobileMode='focus';rows.forEach(function(r){var c=r.querySelector('input');if(c)c.checked=false;r.classList.remove('is-selected')});apply();};
+  window.lmsShowAllRows=function(){mobileHidden.clear();mobileFocus.clear();mobileMode='all';apply();};
+  window.lmsOpenClients=function(){lmsCloseDrawer();document.getElementById('lmsMobileClients').classList.add('open');document.getElementById('lmsMobileClients').setAttribute('aria-hidden','false');};
+  window.lmsCloseClients=function(){document.getElementById('lmsMobileClients').classList.remove('open');};
+  window.lmsFilterClients=function(){var q=(document.getElementById('lmsAllClientSearch').value||'').trim().toLowerCase();document.querySelectorAll('#lmsAllClientList .lms-client-item').forEach(function(r){r.style.display=!q||(r.dataset.clientSearch||'').includes(q)?'':'none';});};
+  window.lmsOpenSecurity=function(){lmsCloseDrawer();document.getElementById('lmsMobileSecurity').classList.add('open');document.getElementById('lmsMobileSecurity').setAttribute('aria-hidden','false');};
+  window.lmsCloseSecurity=function(){document.getElementById('lmsMobileSecurity').classList.remove('open');};
+  window.lmsFilterSecurity=function(){var q=(document.getElementById('lmsSecuritySearch').value||'').trim().toLowerCase();document.querySelectorAll('#lmsSecurityList .lms-client-item').forEach(function(r){r.style.display=!q||(r.dataset.securityClient||'').includes(q)?'':'none';});};
+  window.lmsSecuritySelected=function(){return [].slice.call(document.querySelectorAll('.lms-security-login-check:checked')).map(function(x){return x.value;});};
+  window.lmsActivateSelectedUsers=function(){var ids=lmsSecuritySelected();if(!ids.length){alert('Select client(s) first.');return;}updateLoginStatus(ids,'activate');};
+  window.lmsBlockSelectedUsers=function(){var ids=lmsSecuritySelected();if(!ids.length){alert('Select client(s) first.');return;}updateLoginStatus(ids,'block');};
+  window.lmsResetSelectedPasswords=async function(){var ids=lmsSecuritySelected();if(!ids.length){alert('Select client(s) first.');return;}if(!confirm('Reset password to Client ID for '+ids.length+' selected client(s)?'))return;try{var res=await fetch('/api/clients/reset-password',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({client_ids:ids})});var data=await res.json();if(!data.success){alert(data.message||data.error||'Password reset failed');return;}alert(data.message||'Password reset completed.');}catch(e){alert('Password reset failed: '+e.message)}};
+  window.lmsSetSelectedPasswords=async function(){var ids=lmsSecuritySelected();if(!ids.length){alert('Select client(s) first.');return;}var password=prompt('Enter the new password for '+ids.length+' selected client(s):');if(password===null)return;if(password.trim().length<4){alert('Password must contain at least 4 characters.');return;}var confirmPassword=prompt('Confirm the new password:');if(confirmPassword===null)return;if(password!==confirmPassword){alert('Passwords do not match.');return;}try{var res=await fetch('/api/clients/set-password',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({client_ids:ids,password:password})});var data=await res.json();if(!data.success){alert(data.message||data.error||'Password update failed');return;}alert(data.message||'Password updated successfully.');}catch(e){alert('Password update failed: '+e.message)}};
+  window.lmsOpenClientById=function(cid){var r=mobileRows().find(function(x){return (x.dataset.clientDisplay||'').toLowerCase()===String(cid).toLowerCase()});lmsCloseClients();if(r)lmsOpenClient(r);else alert('No portfolio row found for '+cid);};
+  load();setTimeout(apply,120);
+})();
+
 /* ===== Mobile Admin behaviour ===== */
 (function(){
   function fmt(n){return Number(n||0).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2})}
@@ -654,79 +779,16 @@ async function setSelectedPasswords(){
       if(found){m.dataset.qty=found.cells[7]?.innerText.replace(/,/g,'')||m.dataset.qty;m.dataset.buy=found.cells[8]?.innerText.replace(/,/g,'')||m.dataset.buy;m.dataset.ltp=found.cells[6]?.innerText.replace(/,/g,'')||m.dataset.ltp;m.dataset.mtm=found.cells[5]?.dataset.mtm||found.cells[5]?.innerText.replace(/,/g,'')||m.dataset.mtm;m.dataset.product=found.dataset.product||m.dataset.product;m.dataset.exchange=found.dataset.exchange||m.dataset.exchange;var mt=m.querySelector('.lms-mobile-mtm');if(mt){var v=Number(m.dataset.mtm||0);mt.textContent=mtmText(v);mt.className='lms-mobile-mtm '+(v>=0?'lms-profit':'lms-loss')}var q=m.querySelector('.lms-mobile-qty');if(q)q.textContent=fmt(Number(m.dataset.qty||0));var lp=m.querySelector('.lms-mobile-ltp');if(lp)lp.textContent='₹ '+fmt(Number(m.dataset.ltp||0));var bp=m.querySelector('.lms-mobile-buy');if(bp)bp.textContent='₹ '+fmt(Number(m.dataset.buy||0))}
     });
     refreshMobileSummary();
+    if(window.__lmsApplyMobileV2) window.__lmsApplyMobileV2();
   }
   window.__syncLmsMobile=syncMobileFromDesktop;
   refreshMobileSummary();
+  if(window.lmsShowAllRows){ /* view controller will reapply after data sync */ }
   setTimeout(syncMobileFromDesktop,100);
   setInterval(syncMobileFromDesktop,5000);
 })();
 </script>
 </body></html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
