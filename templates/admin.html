@@ -32,7 +32,13 @@
   .m-summary{margin-top:10px;background:linear-gradient(135deg,#0b67d2,#0870d9);border:1px solid rgba(255,255,255,.15);border-radius:14px;padding:12px 10px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px}
   .m-summary div{padding:0 8px;border-right:1px solid rgba(255,255,255,.25)}.m-summary div:last-child{border-right:0}.m-summary span{display:block;font-size:14px;font-weight:800}.m-summary strong{display:block;font-size:22px;line-height:1.2;margin-top:4px;color:#fff}.m-summary .down strong{color:#00f57a}
   .m-body{padding:12px 10px}.m-title{font-size:21px;font-weight:900;margin:2px 4px 8px}.m-tools{display:flex;gap:7px;overflow-x:auto;padding:2px 4px 8px}.m-tools button{flex:0 0 auto;border:1px solid #cbd9e8;background:#edf4fd;color:#062e70;border-radius:10px;padding:9px 12px;font-weight:900;font-size:13px}.m-tools input{width:150px;flex:0 0 150px;font-size:15px}
-  .m-list{border:1px solid #d4e0ee;border-radius:10px;overflow:hidden;background:#fff}.m-row{display:grid;grid-template-columns:34px 1.05fr 1.1fr 1fr;align-items:center;min-height:58px;padding:7px 9px;border-bottom:1px solid #dfe7ef;cursor:pointer}.m-select-wrap{display:flex;align-items:center;justify-content:center}.m-select{appearance:none;-webkit-appearance:none;width:22px;height:22px;border:2px solid #6683a5;border-radius:50%;background:#fff;cursor:pointer;position:relative}.m-select:checked{border-color:#0b55b5;background:#0b55b5}.m-select:checked:after{content:'';position:absolute;width:8px;height:8px;border-radius:50%;background:#fff;left:5px;top:5px}.m-row.m-selected{background:#e8f2ff!important;box-shadow:inset 4px 0 0 #0b55b5}.m-back-menu{display:block;margin:10px 12px 18px;width:calc(100% - 24px);border:1px solid #cbd9e8;background:#edf4fd;color:#062e70;border-radius:10px;padding:11px 14px;font-weight:900;font-size:15px}.m-row:last-child{border-bottom:0}.m-row:nth-child(even){background:#f7faff}.m-cell{font-size:18px;font-weight:900;line-height:1.05;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.m-symbol{font-size:18px}.m-mtm{text-align:right;font-size:19px}.m-profit{color:#128a43}.m-loss{color:#d62828}.m-sub{display:block;font-size:12px;font-weight:700;color:#60748a;margin-top:3px}
+  .m-list-scroll{overflow-x:auto;overflow-y:hidden;border:1px solid #d4e0ee;border-radius:10px;background:#fff;-webkit-overflow-scrolling:touch;touch-action:pan-x pan-y}
+  .m-list-head,.m-row{display:grid;grid-template-columns:42px 160px 155px 155px 120px 135px 145px;min-width:912px;align-items:center}
+  .m-list-head{min-height:42px;background:#0b4d95;color:#fff;font-size:12px;font-weight:900;text-align:left;padding:0 9px;position:sticky;top:0;z-index:2}
+  .m-list-head>div:nth-child(4),.m-list-head>div:nth-child(5),.m-list-head>div:nth-child(6),.m-list-head>div:nth-child(7){text-align:right}
+  .m-list{background:#fff}.m-row{min-height:58px;padding:7px 9px;border-bottom:1px solid #dfe7ef;cursor:pointer;box-sizing:border-box}.m-row:last-child{border-bottom:0}.m-row:nth-child(even){background:#f7faff}
+  .m-cell{font-size:18px;font-weight:900;line-height:1.05;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.m-symbol{font-size:18px}.m-mtm{text-align:right;font-size:19px}.m-num{text-align:right;font-size:17px}.m-profit{color:#128a43}.m-loss{color:#d62828}.m-sub{display:block;font-size:12px;font-weight:700;color:#60748a;margin-top:3px}
+  .m-select-wrap{display:flex;align-items:center;justify-content:center}.m-select{appearance:none;-webkit-appearance:none;width:22px;height:22px;border:2px solid #6683a5;border-radius:50%;background:#fff;cursor:pointer;position:relative}.m-select:checked{border-color:#0b55b5;background:#0b55b5}.m-select:checked:after{content:'';position:absolute;width:8px;height:8px;border-radius:50%;background:#fff;left:5px;top:5px}.m-row.m-selected{background:#e8f2ff!important;box-shadow:inset 4px 0 0 #0b55b5}
   .m-bottom{position:fixed;bottom:0;left:0;right:0;height:68px;background:#fff;border-top:1px solid #cbd9e8;display:grid;grid-template-columns:repeat(4,1fr);z-index:20}.m-bottom button{border:0;background:#fff;color:#143b68;font-weight:900;font-size:12px}.m-bottom button span{display:block;font-size:21px;margin-bottom:1px}
   .m-drawer{display:none;position:fixed;inset:0;background:rgba(0,0,0,.42);z-index:50}.m-drawer.show{display:block}.m-panel{width:82%;max-width:340px;height:100%;background:#063b82;color:#fff;padding:28px 16px;box-shadow:8px 0 25px rgba(0,0,0,.25)}.m-panel h2{margin:0 0 20px;font-size:22px}.m-panel button{width:100%;text-align:left;border:0;background:transparent;color:#fff;padding:15px 10px;font-size:17px;font-weight:900;border-radius:9px}.m-panel button:hover{background:rgba(255,255,255,.12)}
   .m-detail{display:none;position:fixed;inset:0;background:#fff;z-index:40;overflow:auto}.m-detail.show{display:block}.m-detail-head{background:#063b82;color:#fff;padding:20px 14px;font-size:21px;font-weight:900}.m-detail-body{padding:12px}.m-detail-card{border:1px solid #d4e0ee;border-radius:12px;margin-bottom:10px;padding:13px}.m-detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.m-detail-grid b{display:block;font-size:12px;color:#60748a}.m-detail-grid strong{font-size:17px}.m-close{float:left;margin-right:12px;border:0;background:rgba(255,255,255,.12);color:#fff;border-radius:8px;padding:4px 10px;font-size:20px}
@@ -163,6 +169,7 @@
     <div class="m-title">Top Movers (by MTM)</div>
     <div class="m-tools">
       <input id="mClientSearch" placeholder="Client ID" oninput="mFilter()">
+      <input id="mSymbolSearch" placeholder="Symbol" oninput="mFilter()">
       <button onclick="mSelect10()">SELECT 10</button>
       <button onclick="mHideSelected()">HIDE SELECTED</button>
       <button onclick="mFocusSelected()">FOCUS SELECTED</button>
@@ -170,7 +177,12 @@
       <button onclick="mUnhideSelected()">UNHIDE</button>
       <button onclick="mShowAll()">SHOW ALL</button>
     </div>
-    <div class="m-list" id="mList"></div>
+    <div class="m-list-scroll" id="mListScroll">
+      <div class="m-list-head">
+        <div></div><div>CLIENT ID</div><div>SYMBOL</div><div>MTM</div><div>QTY</div><div>LTP</div><div>BUY PRICE</div>
+      </div>
+      <div class="m-list" id="mList"></div>
+    </div>
   </main>
   <nav class="m-bottom">
     <button onclick="mGoHome()"><span>⌂</span>Portfolio</button>
@@ -189,34 +201,49 @@
   <button onclick="mGoPassword()">🔒 &nbsp; Password</button>
   <button onclick="location.href='/logout'">↪ &nbsp; Logout</button>
 </aside></div>
-<div class="m-detail" id="mDetail"><div class="m-detail-head"><button class="m-close" onclick="mCloseDetail()">‹</button>Client Details</div><button class="m-back-menu" onclick="mCloseDetail();mCloseDrawer();mGoHome()">← Back to Main Menu</button><div class="m-detail-body" id="mDetailBody"></div></div>
+<div class="m-detail" id="mDetail"><div class="m-detail-head"><button class="m-close" onclick="mCloseDetail()">‹</button>Client Details</div><div class="m-detail-body" id="mDetailBody"></div></div>
 <script>
 (function(){
  const rows=[...document.querySelectorAll('#portfolioTable tbody tr')].map((r,i)=>({r,i,client:(r.dataset.client||'').toUpperCase(),symbol:(r.dataset.symbol||'').toUpperCase(),mtm:Number(r.querySelector('[data-mtm]')?.dataset.mtm||0),ltp:r.cells[6]?.innerText.trim()||'-',qty:r.cells[7]?.innerText.trim()||'-',buy:r.cells[8]?.innerText.trim()||'-',product:r.cells[3]?.innerText.trim()||'-',exchange:r.cells[4]?.innerText.trim()||'-',date:r.cells[10]?.innerText.trim()||'-'}));
  window._mRows=rows;
  window.mRender=function(){
-   const q=(document.getElementById('mClientSearch').value||'').trim().toUpperCase();
+   const cq=(document.getElementById('mClientSearch').value||'').trim().toUpperCase();
+   const sq=(document.getElementById('mSymbolSearch').value||'').trim().toUpperCase();
    const hidden=JSON.parse(localStorage.getItem('lm_mobile_hidden_rows')||'[]');
    const selected=JSON.parse(localStorage.getItem('lm_mobile_selected_rows')||'[]');
    const list=document.getElementById('mList'); list.innerHTML='';
-   rows.slice().sort((a,b)=>b.mtm-a.mtm).filter(x=>!hidden.includes(x.i)&&(!q||x.client.includes(q))).slice(0,100).forEach(x=>{
-     const d=document.createElement('div');d.className='m-row'+(selected.includes(x.i)?' m-selected':'');d.dataset.idx=x.i;
-     const mtm=(x.mtm>=0?'+ ₹ ':'- ₹ ')+Math.abs(x.mtm).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
-     d.innerHTML='<div class="m-select-wrap"><input class="m-select" type="checkbox" aria-label="Select '+esc(x.client)+' '+esc(x.symbol)+'" '+(selected.includes(x.i)?'checked':'')+'></div><div class="m-cell">'+esc(x.client)+'</div><div class="m-cell m-symbol">'+esc(x.symbol)+'</div><div class="m-cell m-mtm '+(x.mtm>=0?'m-profit':'m-loss')+'">'+mtm+'</div>';
-     const cb=d.querySelector('.m-select');
-     cb.onclick=(ev)=>{ev.stopPropagation();mToggleRow(x.i)};
-     d.onclick=()=>mOpenDetail(x);list.appendChild(d);
-   });
-   const first=rows.slice().sort((a,b)=>b.mtm-a.mtm)[0]; if(first){document.getElementById('mLtp').textContent='₹ '+first.ltp;document.getElementById('mBuy').textContent='₹ '+first.buy;const pct=first.buy&&first.ltp?((Number(first.ltp.replace(/,/g,''))-Number(first.buy.replace(/,/g,'')))/Number(first.buy.replace(/,/g,''))*100):0;document.getElementById('mDown').textContent=(pct>=0?'+':'')+pct.toFixed(2)+'%';}
+   rows.slice().sort((a,b)=>b.mtm-a.mtm)
+     .filter(x=>!hidden.includes(x.i)&&(!cq||x.client.includes(cq))&&(!sq||x.symbol.includes(sq)))
+     .slice(0,100).forEach(x=>{
+       const d=document.createElement('div');d.className='m-row'+(selected.includes(x.i)?' m-selected':'');d.dataset.idx=x.i;
+       const mtm=(x.mtm>=0?'+ ₹ ':'- ₹ ')+Math.abs(x.mtm).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
+       d.innerHTML='<div class="m-select-wrap"><input class="m-select" type="checkbox" aria-label="Select '+esc(x.client)+' '+esc(x.symbol)+'" '+(selected.includes(x.i)?'checked':'')+'></div>'+
+         '<div class="m-cell">'+esc(x.client)+'</div>'+
+         '<div class="m-cell m-symbol">'+esc(x.symbol)+'</div>'+
+         '<div class="m-cell m-mtm '+(x.mtm>=0?'m-profit':'m-loss')+'">'+mtm+'</div>'+
+         '<div class="m-cell m-num">'+esc(x.qty)+'</div>'+
+         '<div class="m-cell m-num">₹ '+esc(x.ltp)+'</div>'+
+         '<div class="m-cell m-num">₹ '+esc(x.buy)+'</div>';
+       const cb=d.querySelector('.m-select'); cb.onclick=(ev)=>{ev.stopPropagation();mToggleRow(x.i)};
+       d.onclick=()=>mOpenDetail(x); list.appendChild(d);
+     });
+   const first=rows.slice().sort((a,b)=>b.mtm-a.mtm)[0];
+   if(first){
+     document.getElementById('mLtp').textContent='₹ '+first.ltp;
+     document.getElementById('mBuy').textContent='₹ '+first.buy;
+     const pct=first.buy&&first.ltp?((Number(first.ltp.replace(/,/g,''))-Number(first.buy.replace(/,/g,'')))/Number(first.buy.replace(/,/g,''))*100):0;
+     document.getElementById('mDown').textContent=(pct>=0?'+':'')+pct.toFixed(2)+'%';
+   }
  };
- window.mToggleRow=function(idx){let selected=JSON.parse(localStorage.getItem('lm_mobile_selected_rows')||'[]');selected=selected.includes(idx)?selected.filter(i=>i!==idx):selected.concat(idx);localStorage.setItem('lm_mobile_selected_rows',JSON.stringify(selected));mRender();};
  window.mFilter=mRender;
+ window.mToggleRow=function(idx){let selected=JSON.parse(localStorage.getItem('lm_mobile_selected_rows')||'[]');selected=selected.includes(idx)?selected.filter(i=>i!==idx):selected.concat(idx);localStorage.setItem('lm_mobile_selected_rows',JSON.stringify(selected));mRender();};
  window.mSelect10=function(){let selected=JSON.parse(localStorage.getItem('lm_mobile_selected_rows')||'[]');const hidden=JSON.parse(localStorage.getItem('lm_mobile_hidden_rows')||'[]');rows.slice().sort((a,b)=>b.mtm-a.mtm).filter(x=>!hidden.includes(x.i)).slice(0,10).forEach(x=>{if(!selected.includes(x.i))selected.push(x.i)});localStorage.setItem('lm_mobile_selected_rows',JSON.stringify(selected));mRender();};
- window.mHideSelected=function(){const selected=JSON.parse(localStorage.getItem('lm_mobile_selected_rows')||'[]');const hidden=JSON.parse(localStorage.getItem('lm_mobile_hidden_rows')||'[]');const merged=[...new Set(hidden.concat(selected))];localStorage.setItem('lm_mobile_hidden_rows',JSON.stringify(merged));localStorage.setItem('lm_mobile_selected_rows','[]');mRender();};
- window.mFocusSelected=function(){const selected=JSON.parse(localStorage.getItem('lm_mobile_selected_rows')||'[]');if(!selected.length){alert('Select at least one row.');return}const hidden=JSON.parse(localStorage.getItem('lm_mobile_hidden_rows')||'[]');const list=document.getElementById('mList');list.innerHTML='';rows.slice().sort((a,b)=>b.mtm-a.mtm).filter(x=>selected.includes(x.i)&&!hidden.includes(x.i)).forEach(x=>{const d=document.createElement('div');d.className='m-row m-selected';d.dataset.idx=x.i;d.innerHTML='<div class="m-select-wrap"><input class="m-select" type="checkbox" checked></div><div class="m-cell">'+esc(x.client)+'</div><div class="m-cell m-symbol">'+esc(x.symbol)+'</div><div class="m-cell m-mtm '+(x.mtm>=0?'m-profit':'m-loss')+'">'+(x.mtm>=0?'+ ₹ ':'- ₹ ')+Math.abs(x.mtm).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2})+'</div>';d.querySelector('.m-select').onclick=e=>{e.stopPropagation();mToggleRow(x.i)};d.onclick=()=>mOpenDetail(x);list.appendChild(d)})};
- window.mShowHidden=function(){const hidden=JSON.parse(localStorage.getItem('lm_mobile_hidden_rows')||'[]');if(!hidden.length){alert('No hidden rows.');return}const selected=JSON.parse(localStorage.getItem('lm_mobile_selected_rows')||'[]');const list=document.getElementById('mList');list.innerHTML='';rows.filter(x=>hidden.includes(x.i)).sort((a,b)=>b.mtm-a.mtm).forEach(x=>{const d=document.createElement('div');d.className='m-row';d.dataset.idx=x.i;d.innerHTML='<div class="m-select-wrap"><input class="m-select" type="checkbox" '+(selected.includes(x.i)?'checked':'')+'></div><div class="m-cell">'+esc(x.client)+'</div><div class="m-cell m-symbol">'+esc(x.symbol)+'</div><div class="m-cell m-mtm '+(x.mtm>=0?'m-profit':'m-loss')+'">'+(x.mtm>=0?'+ ₹ ':'- ₹ ')+Math.abs(x.mtm).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2})+'</div>';d.querySelector('.m-select').onclick=e=>{e.stopPropagation();mToggleRow(x.i)};d.onclick=()=>mOpenDetail(x);list.appendChild(d)})};
+ window.mHideSelected=function(){const selected=JSON.parse(localStorage.getItem('lm_mobile_selected_rows')||'[]');const hidden=JSON.parse(localStorage.getItem('lm_mobile_hidden_rows')||'[]');localStorage.setItem('lm_mobile_hidden_rows',JSON.stringify([...new Set(hidden.concat(selected))]));localStorage.setItem('lm_mobile_selected_rows','[]');mRender();};
+ window.mFocusSelected=function(){const selected=JSON.parse(localStorage.getItem('lm_mobile_selected_rows')||'[]');const hidden=JSON.parse(localStorage.getItem('lm_mobile_hidden_rows')||'[]');if(!selected.length){alert('Select at least one row.');return}const list=document.getElementById('mList');list.innerHTML='';rows.slice().sort((a,b)=>b.mtm-a.mtm).filter(x=>selected.includes(x.i)&&!hidden.includes(x.i)).forEach(x=>mAppendRow(x,true));};
+ window.mShowHidden=function(){const hidden=JSON.parse(localStorage.getItem('lm_mobile_hidden_rows')||'[]');const list=document.getElementById('mList');list.innerHTML='';rows.filter(x=>hidden.includes(x.i)).sort((a,b)=>b.mtm-a.mtm).forEach(x=>mAppendRow(x,false));};
  window.mUnhideSelected=function(){const selected=JSON.parse(localStorage.getItem('lm_mobile_selected_rows')||'[]');if(!selected.length){alert('Select hidden rows first.');return}const hidden=JSON.parse(localStorage.getItem('lm_mobile_hidden_rows')||'[]').filter(i=>!selected.includes(i));localStorage.setItem('lm_mobile_hidden_rows',JSON.stringify(hidden));localStorage.setItem('lm_mobile_selected_rows','[]');mRender();};
  window.mShowAll=function(){localStorage.setItem('lm_mobile_hidden_rows','[]');localStorage.setItem('lm_mobile_selected_rows','[]');mRender();};
+ function mAppendRow(x,forceSelected){const d=document.createElement('div');const selected=JSON.parse(localStorage.getItem('lm_mobile_selected_rows')||'[]');d.className='m-row'+((forceSelected||selected.includes(x.i))?' m-selected':'');d.dataset.idx=x.i;const mtm=(x.mtm>=0?'+ ₹ ':'- ₹ ')+Math.abs(x.mtm).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});d.innerHTML='<div class="m-select-wrap"><input class="m-select" type="checkbox" '+(selected.includes(x.i)||forceSelected?'checked':'')+'></div><div class="m-cell">'+esc(x.client)+'</div><div class="m-cell m-symbol">'+esc(x.symbol)+'</div><div class="m-cell m-mtm '+(x.mtm>=0?'m-profit':'m-loss')+'">'+mtm+'</div><div class="m-cell m-num">'+esc(x.qty)+'</div><div class="m-cell m-num">₹ '+esc(x.ltp)+'</div><div class="m-cell m-num">₹ '+esc(x.buy)+'</div>';d.querySelector('.m-select').onclick=e=>{e.stopPropagation();mToggleRow(x.i)};d.onclick=()=>mOpenDetail(x);document.getElementById('mList').appendChild(d);}
  window.mOpenDetail=function(x){const body=document.getElementById('mDetailBody');body.innerHTML='<div class="m-detail-card"><div class="m-detail-grid"><div><b>Client ID</b><strong>'+esc(x.client)+'</strong></div><div><b>Symbol</b><strong>'+esc(x.symbol)+'</strong></div><div><b>Product</b><strong>'+esc(x.product)+'</strong></div><div><b>Exchange</b><strong>'+esc(x.exchange)+'</strong></div><div><b>Quantity</b><strong>'+esc(x.qty)+'</strong></div><div><b>Buy Price</b><strong>₹ '+esc(x.buy)+'</strong></div><div><b>LTP</b><strong>₹ '+esc(x.ltp)+'</strong></div><div><b>MTM</b><strong class="'+(x.mtm>=0?'m-profit':'m-loss')+'">'+(x.mtm>=0?'+':'-')+' ₹ '+Math.abs(x.mtm).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2})+'</strong></div></div></div>';document.getElementById('mDetail').classList.add('show')};
  window.mCloseDetail=()=>document.getElementById('mDetail').classList.remove('show');
  window.mOpenDrawer=()=>document.getElementById('mDrawer').classList.add('show');window.mCloseDrawer=()=>document.getElementById('mDrawer').classList.remove('show');
@@ -610,9 +637,6 @@ async function setSelectedPasswords(){
 }
 </script>
 </body></html>
-
-
-
 
 
 
