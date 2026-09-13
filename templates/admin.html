@@ -45,6 +45,50 @@
   .mobile-client-details-header .back, .mobile-client-details-header .back-btn, .client-details-mobile-header .back, .client-details-mobile-header .back-btn, [data-mobile-back].client-details-back { margin-top:12px !important; transform:translateY(8px) !important; }
 }
 </style>
+<style id="mobile-only-column-spacing-fix">
+@media (max-width:700px){
+  /* Mobile only: preserve the current desktop layout completely. */
+  .m-list{min-width:930px!important}
+  .m-head-row-table,.m-row{
+    grid-template-columns:34px 105px 120px 135px 100px 105px 130px 201px!important;
+  }
+  .m-head-row-table .m-head-cell,
+  .m-row .m-cell{
+    min-width:0!important;
+    box-sizing:border-box!important;
+    padding-left:7px!important;
+    padding-right:7px!important;
+  }
+  .m-head-row-table .m-head-cell:nth-child(4),
+  .m-row .m-mtm{
+    padding-left:10px!important;
+    padding-right:12px!important;
+  }
+  .m-head-row-table .m-head-cell:nth-child(5),
+  .m-row .m-cell:nth-child(5){
+    padding-left:12px!important;
+    padding-right:8px!important;
+  }
+  .m-head-row-table .m-head-cell:nth-child(6),
+  .m-row .m-ltp{
+    padding-left:10px!important;
+    padding-right:10px!important;
+  }
+  .m-head-row-table .m-head-cell:nth-child(7),
+  .m-row .m-buy{
+    padding-left:10px!important;
+    padding-right:12px!important;
+  }
+  .m-head-row-table .m-head-cell:nth-child(8),
+  .m-row .m-product{
+    padding-left:12px!important;
+    padding-right:12px!important;
+  }
+  .m-head-row-table .m-head-mtm{text-align:right!important}
+  .m-row .m-mtm{text-align:right!important}
+  .m-product .m-date-inline{margin-left:9px!important}
+}
+</style>
 </head>
 <body>
 <header class="top"><div class="header-overlay"><div class="header-subtitle">ADMIN / SUPERVISOR PORTFOLIO &amp; DAILY CONTROL PANEL</div><div class="header-login">Logged in: {{ supervisor_name }} ({{ supervisor_id }}){% if not can_manage %} · VIEW ONLY{% endif %}</div></div></header>
@@ -613,3 +657,151 @@ async function setSelectedPasswords(){
 }
 </script>
 </body></html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
