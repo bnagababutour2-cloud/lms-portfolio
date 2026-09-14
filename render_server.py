@@ -255,47 +255,21 @@ MAIN_ADMIN_ACCOUNT = {
 }
 
 SUPERVISOR_ACCOUNTS = {
-    "1304": {
-        "password": "lk123",
-        "name": "1304 Supervisor",
-        "prefixes": ["1304"],
-        "exact": ["130100002", "130100030"],
-        "can_manage": True,
-        "can_upload": True,
-    },
-    "1312": {
-        "password": "1312",
-        "name": "1312 Supervisor",
-        "prefixes": ["1312"],
-        "exact": [],
-        "can_manage": False,
-        "can_upload": False,
-    },
-    "1313": {
-        "password": "1313",
-        "name": "1313 Supervisor",
-        "prefixes": ["1313", "1314"],
-        "exact": [],
-        "can_manage": False,
-        "can_upload": False,
-    },
-    "13": {
-        "password": "lk123",
-        "name": "13 Supervisor",
-        # Supervisor 13 is scoped to Client IDs beginning with 13.
-        # This keeps the account restricted to its 13-series clients while
-        # allowing full portfolio management and daily uploads.
-        "prefixes": ["13"],
-        "exact": [],
-        "can_manage": True,
-        "can_upload": True,
-    },
-    "1309": {
-        "password": "sn123",
-        "name": "1309 Supervisor",
-        # Supervisor 1309 is restricted to these exact Client IDs only.
+    "1201": {
+        "password": "1201",
+        "name": "1201 Supervisor",
+        # Supervisor 1201 is restricted to these exact Client IDs only.
         "prefixes": [],
-        "exact": ["130900004", "12015335", "12011957"],
+        "exact": ["1201R555", "10S01"],
+        "can_manage": True,
+        "can_upload": True,
+    },
+    "12": {
+        "password": "trishika123aditya",
+        "name": "12 Supervisor",
+        # Supervisor 12 can access only Client IDs beginning with 12 or 10.
+        "prefixes": ["12", "10"],
+        "exact": [],
         "can_manage": True,
         "can_upload": True,
     },
@@ -620,6 +594,367 @@ def admin_portfolio():
                                can_upload=account.get("can_upload", False))
     except Exception as exc:
         return f"Admin data error: {exc}", 500
+
+
+
+# ============================================================
+# MOBILE ADMIN MTM MONITOR
+# ============================================================
+# This is an additional mobile presentation layer. It reuses the
+# existing authentication, Supabase data, LTP values and MTM
+# calculation. The desktop /admin page is not modified.
+# ============================================================
+
+MOBILE_REFRESH_MS = 5000
+
+
+@app.route("/mobile-admin")
+def mobile_admin():
+    """Dedicated portrait-first Admin MTM monitor."""
+    if supabase is None:
+        return render_template("index.html", error=supabase_config_error)
+
+    supervisor_id = session.get("supervisor_id")
+    account = _get_supervisor(supervisor_id)
+    if not account:
+        return redirect(url_for("login"))
+
+    # The mobile UI is deliberately self-contained so no existing
+    # desktop template/CSS/JS needs to be changed.
+    return Response(r"""<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#063b82">
+<title>LM Securities — Mobile MTM</title>
+<style>
+:root{
+  --blue:#063b82;
+  --blue2:#0754a8;
+  --blue3:#0b6dcc;
+  --deep:#032d68;
+  --green:#12d96b;
+  --red:#ff4d5e;
+  --white:#fff;
+  --ink:#092c5f;
+  --muted:#6d83a3;
+  --line:#dfe8f4;
+  --surface:#f5f8fc;
+}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;background:var(--surface);color:var(--ink)}
+body{padding-bottom:calc(72px + env(safe-area-inset-bottom))}
+button{font:inherit}
+.app{min-height:100vh;background:linear-gradient(180deg,var(--blue) 0 190px,var(--surface) 190px)}
+.header{position:sticky;top:0;z-index:30;color:#fff;background:linear-gradient(135deg,#063b82,#0754a8);padding:calc(10px + env(safe-area-inset-top)) 16px 14px;box-shadow:0 2px 12px rgba(0,35,80,.25)}
+.headrow{display:flex;align-items:center;gap:12px}
+.iconbtn{width:42px;height:42px;border:0;background:rgba(255,255,255,.10);border-radius:12px;color:#fff;font-size:24px;display:grid;place-items:center;cursor:pointer}
+.brand{font-weight:800;font-size:19px;letter-spacing:.1px;flex:1}
+.sub{font-size:10px;opacity:.75;letter-spacing:.7px;margin-top:1px}
+.market{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700;white-space:nowrap}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 0 3px rgba(18,217,107,.12)}
+.summary{margin:12px 0 0;padding:12px 14px;border-radius:15px;background:linear-gradient(135deg,#0b6dcc,#0754a8);box-shadow:inset 0 1px 0 rgba(255,255,255,.12)}
+.summaryline{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.summarylabel{font-size:12px;font-weight:700;opacity:.92}
+.total{font-size:23px;font-weight:850;color:var(--green);margin-top:3px}
+.updated{font-size:10px;opacity:.78;text-align:right}
+.content{max-width:760px;margin:0 auto;padding:10px 10px 14px}
+.toolbar{display:flex;align-items:center;justify-content:space-between;padding:4px 4px 8px}
+.title{font-size:13px;font-weight:800;color:var(--ink)}
+.count{font-size:11px;color:var(--muted)}
+.list{background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 2px 12px rgba(25,65,110,.08)}
+.row{width:100%;border:0;border-bottom:1px solid var(--line);background:#fff;display:grid;grid-template-columns:minmax(0,1fr) auto 20px;gap:8px;align-items:center;text-align:left;padding:9px 9px 9px 12px;min-height:55px;cursor:pointer}
+.row:last-child{border-bottom:0}
+.row:active{background:#edf5ff}
+.primary{min-width:0}
+.client{font-size:13px;font-weight:850;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.symbol{font-size:10px;color:var(--muted);font-weight:650;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.qty{font-size:10px;color:#466487;text-align:right;white-space:nowrap}
+.mtm{font-size:13px;font-weight:850;white-space:nowrap;text-align:right}
+.profit{color:#08ad55}.loss{color:var(--red)}.zero{color:#5d718d}
+.arrow{font-size:19px;color:#6b8caf;text-align:center}
+.empty{padding:32px 18px;text-align:center;color:var(--muted);font-size:13px}
+.drawer{position:fixed;inset:0;z-index:100;pointer-events:none}
+.scrim{position:absolute;inset:0;background:rgba(0,18,45,.48);opacity:0;transition:.2s}
+.panel{position:absolute;left:0;top:0;bottom:0;width:min(82vw,330px);background:linear-gradient(180deg,#063b82,#032d68);color:#fff;transform:translateX(-102%);transition:.22s;box-shadow:8px 0 30px rgba(0,0,0,.22);padding:calc(16px + env(safe-area-inset-top)) 14px 18px}
+.drawer.open{pointer-events:auto}.drawer.open .scrim{opacity:1}.drawer.open .panel{transform:translateX(0)}
+.drawerbrand{display:flex;align-items:center;gap:10px;padding:8px 8px 18px}
+.logo{width:42px;height:42px;border-radius:50%;background:#fff;color:#0754a8;display:grid;place-items:center;font-size:19px;font-weight:900}
+.drawerbrand strong{font-size:17px}.drawerbrand small{display:block;font-size:9px;opacity:.75;letter-spacing:.7px}
+.menu{display:flex;flex-direction:column;gap:4px}
+.menu button{border:0;background:transparent;color:#fff;text-align:left;border-radius:11px;padding:13px 12px;font-weight:700;display:flex;gap:12px;align-items:center;cursor:pointer}
+.menu button.active,.menu button:active{background:rgba(255,255,255,.13)}
+.menu .ico{width:22px;text-align:center;font-size:18px}
+.drawerfoot{position:absolute;left:20px;bottom:calc(20px + env(safe-area-inset-bottom));font-size:10px;opacity:.8}
+.detail{position:fixed;inset:0;z-index:80;background:var(--surface);overflow:auto;transform:translateX(100%);transition:.22s}
+.detail.open{transform:translateX(0)}
+.detailhead{position:sticky;top:0;z-index:2;background:linear-gradient(135deg,#063b82,#0754a8);color:#fff;padding:calc(10px + env(safe-area-inset-top)) 14px 14px;display:flex;align-items:center;gap:10px}
+.detailhead h2{font-size:18px;margin:0;flex:1}.more{font-size:22px}
+.detailbody{padding:12px 10px 30px;max-width:760px;margin:auto}
+.clientcard,.mtmcard,.holdcard{background:#fff;border-radius:15px;box-shadow:0 2px 12px rgba(25,65,110,.08);margin-bottom:10px}
+.clientcard{background:linear-gradient(135deg,#0b6dcc,#0754a8);color:#fff;padding:15px;display:flex;align-items:center;gap:12px}
+.avatar{width:50px;height:50px;border-radius:50%;background:#2c82ed;display:grid;place-items:center;font-weight:900}
+.cid{font-size:17px;font-weight:850}.caption{font-size:10px;opacity:.75;margin-top:2px}
+.badge{margin-left:auto;background:var(--green);color:#063b2a;border-radius:20px;padding:6px 9px;font-size:10px;font-weight:900}
+.mtmcard{padding:14px}.mtmcard label{font-size:11px;color:var(--muted);font-weight:700}.bigmtm{font-size:25px;font-weight:900;margin-top:3px}
+.holdcard{padding:12px}.holdtitle{font-size:14px;font-weight:850;margin:2px 2px 10px}
+table{width:100%;border-collapse:collapse;font-size:11px}th{text-align:left;color:#59728f;font-weight:700;padding:8px 4px;border-bottom:1px solid var(--line)}td{padding:9px 4px;border-bottom:1px solid var(--line);font-weight:650}td.num,th.num{text-align:right}.totals{margin-top:10px;background:#dceeff;border-radius:12px;padding:11px;display:flex;justify-content:space-between;gap:10px}.totals small{display:block;color:#35638e;font-size:10px}.totals strong{display:block;margin-top:4px;font-size:15px}.loading{padding:20px;text-align:center;color:var(--muted)}
+.bottom{position:fixed;z-index:40;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(4,1fr);padding:6px 5px calc(6px + env(safe-area-inset-bottom));box-shadow:0 -3px 15px rgba(0,40,90,.08)}
+.bottom button{border:0;background:transparent;color:#7890ad;font-size:10px;font-weight:700;padding:4px;display:flex;flex-direction:column;align-items:center;gap:3px}
+.bottom button.active{color:#0764d1}.bottom i{font-style:normal;font-size:18px}
+@media(min-width:700px){.header{padding-left:max(16px,calc((100vw - 760px)/2 + 16px));padding-right:max(16px,calc((100vw - 760px)/2 + 16px))}.content{padding-top:14px}.row{min-height:58px}}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="header">
+    <div class="headrow">
+      <button class="iconbtn" aria-label="Open menu" onclick="openDrawer()">☰</button>
+      <div class="brand">LM Securities<div class="sub">YOUR WEALTH YOUR PRIORITY</div></div>
+      <div class="market"><span class="dot"></span><span>LIVE<br>MTM</span></div>
+    </div>
+    <div class="summary">
+      <div class="summaryline">
+        <div><div class="summarylabel">Live Portfolio (MTM)</div><div id="total" class="total">+ ₹0</div></div>
+        <div class="updated">Market <b>● Open</b><br><span id="updated">Updating…</span></div>
+      </div>
+    </div>
+  </header>
+
+  <main class="content">
+    <div class="toolbar"><div class="title">Top Movers (by MTM)</div><div id="count" class="count">0 entries</div></div>
+    <div id="list" class="list"><div class="loading">Loading live MTM…</div></div>
+  </main>
+</div>
+
+<div id="drawer" class="drawer" aria-hidden="true">
+  <div class="scrim" onclick="closeDrawer()"></div>
+  <aside class="panel">
+    <div class="drawerbrand"><div class="logo">LM</div><div><strong>LM Securities</strong><small>YOUR WEALTH YOUR PRIORITY</small></div></div>
+    <nav class="menu">
+      <button class="active" onclick="closeDrawer()"><span class="ico">▥</span> Client Portfolio</button>
+      <button onclick="go('/admin')"><span class="ico">👥</span> All Clients (MTM)</button>
+      <button onclick="go('/admin')"><span class="ico">★</span> Watchlist</button>
+      <button onclick="go('/admin')"><span class="ico">▣</span> Reports</button>
+      <button onclick="go('/admin')"><span class="ico">⚙</span> Settings</button>
+      <button onclick="go('/change-password')"><span class="ico">🔒</span> Password</button>
+      <button onclick="go('/logout')"><span class="ico">↪</span> Logout</button>
+    </nav>
+    <div class="drawerfoot"><span class="dot" style="display:inline-block"></span> Live Data &nbsp;·&nbsp; Powered by Supabase</div>
+  </aside>
+</div>
+
+<div id="detail" class="detail" aria-hidden="true">
+  <div class="detailhead">
+    <button class="iconbtn" onclick="closeDetail()" aria-label="Back">‹</button>
+    <h2>Client Details</h2><div class="more">⋮</div>
+  </div>
+  <div id="detailbody" class="detailbody"><div class="loading">Loading portfolio…</div></div>
+</div>
+
+<nav class="bottom">
+  <button class="active" onclick="window.scrollTo({top:0,behavior:'smooth'})"><i>⌂</i>Portfolio</button>
+  <button onclick="go('/admin')"><i>▥</i>Watchlist</button>
+  <button onclick="go('/admin')"><i>♧</i>Alerts</button>
+  <button onclick="openDrawer()"><i>▦</i>More</button>
+</nav>
+
+<script>
+const REFRESH_MS = %d;
+let timer = null;
+
+function money(v){
+  const n = Number(v || 0);
+  const sign = n > 0 ? '+ ' : n < 0 ? '- ' : '';
+  return sign + '₹' + Math.abs(n).toLocaleString('en-IN',{maximumFractionDigits:2});
+}
+function cls(v){ return Number(v)>0 ? 'profit' : Number(v)<0 ? 'loss' : 'zero'; }
+function esc(s){
+  return String(s ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function openDrawer(){document.getElementById('drawer').classList.add('open');}
+function closeDrawer(){document.getElementById('drawer').classList.remove('open');}
+function go(url){window.location.href=url;}
+function openDetail(cid){loadDetail(cid);}
+function closeDetail(){document.getElementById('detail').classList.remove('open');}
+
+async function loadMTM(){
+  try{
+    const r = await fetch('/api/mobile/mtm',{cache:'no-store',credentials:'same-origin'});
+    if(r.status===401){window.location.href='/';return;}
+    const d = await r.json();
+    if(!r.ok || !d.success) throw new Error(d.message || 'Could not load MTM');
+    const rows = Array.isArray(d.rows) ? d.rows : [];
+    rows.sort((a,b)=>Number(b.mtm||0)-Number(a.mtm||0));
+    document.getElementById('total').textContent = money(d.total_mtm);
+    document.getElementById('count').textContent = rows.length + (rows.length===1?' entry':' entries');
+    document.getElementById('updated').textContent = new Date(d.updated_at || Date.now()).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+    const list = document.getElementById('list');
+    if(!rows.length){list.innerHTML='<div class="empty">No active portfolio entries found.</div>';return;}
+    list.innerHTML = rows.map(x => `
+      <button class="row" onclick="openDetail('${esc(x.client_id)}')">
+        <div class="primary"><div class="client">${esc(x.client_id)}</div><div class="symbol">${esc(x.symbol || '-')}</div></div>
+        <div><div class="qty">Qty: ${Number(x.qty||0).toLocaleString('en-IN',{maximumFractionDigits:2})}</div><div class="mtm ${cls(x.mtm)}">${money(x.mtm)}</div></div>
+        <div class="arrow">›</div>
+      </button>`).join('');
+  }catch(e){
+    document.getElementById('list').innerHTML = '<div class="empty">Unable to refresh live MTM. Please retry.</div>';
+    console.error(e);
+  }
+}
+
+async function loadDetail(cid){
+  const panel=document.getElementById('detail');
+  const body=document.getElementById('detailbody');
+  panel.classList.add('open'); body.innerHTML='<div class="loading">Loading portfolio…</div>';
+  try{
+    const r=await fetch('/api/mobile/client/'+encodeURIComponent(cid),{cache:'no-store',credentials:'same-origin'});
+    const d=await r.json();
+    if(!r.ok || !d.success) throw new Error(d.message||'Could not load client');
+    const rows=d.holdings||[];
+    const bodyRows=rows.map(h=>`<tr>
+      <td><b>${esc(h.symbol)}</b><br><small>${esc(h.product)}</small></td>
+      <td class="num">${Number(h.qty||0).toLocaleString('en-IN',{maximumFractionDigits:2})}</td>
+      <td class="num">${Number(h.buy_price||0).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2})}</td>
+      <td class="num ${cls(h.mtm)}">${money(h.mtm)}</td>
+    </tr>`).join('');
+    body.innerHTML=`
+      <section class="clientcard"><div class="avatar">LM</div><div><div class="cid">${esc(d.client_id)}</div><div class="caption">Client ID</div></div><div class="badge">${esc(d.status||'NORMAL')}</div></section>
+      <section class="mtmcard"><label>Total MTM</label><div class="bigmtm ${cls(d.total_mtm)}">${money(d.total_mtm)}</div></section>
+      <section class="holdcard"><div class="holdtitle">Holdings</div>
+        <table><thead><tr><th>Symbol</th><th class="num">Qty</th><th class="num">Buy Price</th><th class="num">MTM</th></tr></thead>
+        <tbody>${bodyRows || '<tr><td colspan="4" style="text-align:center">No holdings</td></tr>'}</tbody></table>
+        <div class="totals"><div><small>Total Holdings Value</small><strong>₹ ${Number(d.total_value||0).toLocaleString('en-IN',{maximumFractionDigits:2})}</strong></div><div style="text-align:right"><small>Total MTM</small><strong class="${cls(d.total_mtm)}">${money(d.total_mtm)}</strong></div></div>
+      </section>`;
+  }catch(e){body.innerHTML='<div class="empty">Unable to load client details.</div>';console.error(e);}
+}
+
+loadMTM();
+timer=setInterval(loadMTM, REFRESH_MS);
+document.addEventListener('visibilitychange',()=>{ if(document.hidden){clearInterval(timer);} else {loadMTM();timer=setInterval(loadMTM,REFRESH_MS);} });
+</script>
+</body>
+</html>""" % MOBILE_REFRESH_MS, mimetype="text/html")
+
+
+@app.route("/api/mobile/mtm", methods=["GET"])
+def mobile_mtm():
+    """Return the same existing holdings/LTP/MTM data for the mobile monitor."""
+    account, auth_error = _require_supervisor()
+    if auth_error:
+        return auth_error
+    db_error = _require_db()
+    if db_error:
+        return db_error
+
+    try:
+        holdings = _filter_supervisor_holdings(
+            session.get("supervisor_id"),
+            _load_all_holdings()
+        )
+        rows = []
+        for h in holdings:
+            rows.append({
+                "id": h.get("id"),
+                "portfolio_id": h.get("portfolio_id"),
+                "client_id": h.get("client_id"),
+                "symbol": h.get("symbol"),
+                "product": h.get("product"),
+                "exchange": h.get("exchange"),
+                "qty": _clean_number(h.get("qty")),
+                "buy_price": _clean_number(h.get("buy_price")),
+                "ltp": _clean_number(h.get("ltp"), h.get("buy_price")),
+                "mtm": _clean_number(h.get("mtm")),
+            })
+
+        rows.sort(key=lambda x: x["mtm"], reverse=True)
+        total_mtm = sum(x["mtm"] for x in rows)
+
+        response = jsonify({
+            "success": True,
+            "rows": rows,
+            "total_mtm": total_mtm,
+            "updated_at": datetime.now().isoformat(),
+        })
+        response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
+        return response
+    except Exception as exc:
+        traceback.print_exc()
+        return jsonify({
+            "success": False,
+            "message": "Could not load mobile MTM.",
+            "error": str(exc),
+        }), 500
+
+
+@app.route("/api/mobile/client/<client_id>", methods=["GET"])
+def mobile_client_details(client_id):
+    """Return complete portfolio details for one authorized client."""
+    account, auth_error = _require_supervisor()
+    if auth_error:
+        return auth_error
+    db_error = _require_db()
+    if db_error:
+        return db_error
+
+    client_id = str(client_id or "").strip()
+    if not client_id or not _supervisor_can_view(session.get("supervisor_id"), client_id):
+        return jsonify({"success": False, "message": "Client is outside your access scope."}), 403
+
+    try:
+        result = (
+            supabase.table("holdings")
+            .select("*")
+            .ilike("client_id", client_id)
+            .execute()
+        )
+        rows = []
+        for h in result.data or []:
+            qty = _clean_number(h.get("quantity"))
+            buy = _clean_number(h.get("buy_price"))
+            ltp = _clean_number(h.get("ltp"), buy)
+            mtm = (ltp - buy) * qty
+            rows.append({
+                "id": h.get("id"),
+                "portfolio_id": h.get("portfolio_id"),
+                "symbol": h.get("symbol") or "-",
+                "product": _product_for_holding(h),
+                "exchange": h.get("exchange") or "-",
+                "trade_date": h.get("trade_date"),
+                "qty": qty,
+                "buy_price": buy,
+                "ltp": ltp,
+                "sell_qty": _clean_number(h.get("sell_quantity") or h.get("sell_qty")),
+                "sell_price": _clean_number(h.get("sell_price")),
+                "net_qty": qty,
+                "net_buy_price": buy,
+                "market_value": qty * ltp,
+                "mtm": mtm,
+            })
+        rows.sort(key=lambda x: x["mtm"], reverse=True)
+
+        total_mtm = sum(x["mtm"] for x in rows)
+        total_value = sum(x["market_value"] for x in rows)
+
+        return jsonify({
+            "success": True,
+            "client_id": client_id,
+            "status": "NORMAL" if not any(str(x["product"]).upper() == "MTF" for x in rows) else "MTF",
+            "holdings": rows,
+            "total_mtm": total_mtm,
+            "total_value": total_value,
+            "updated_at": datetime.now().isoformat(),
+        })
+    except Exception as exc:
+        traceback.print_exc()
+        return jsonify({
+            "success": False,
+            "message": "Could not load client details.",
+            "error": str(exc),
+        }), 500
 
 
 @app.route("/api/ltp/latest", methods=["GET"])
@@ -2852,4 +3187,4 @@ def get_portfolio(client_id):
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", "5000")), debug=True)
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", "5000")), debug=os.environ.get("FLASK_DEBUG", "").lower() == "true")
