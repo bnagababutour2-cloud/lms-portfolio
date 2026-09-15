@@ -261,7 +261,9 @@
   <button onclick="mGoHome()">▥ &nbsp; Client Portfolio</button>
   <button onclick="mGoAllClients()">👥 &nbsp; All Clients (MTM)</button>
   <button onclick="mGoHome()">★ &nbsp; Watchlist</button>
-  <button onclick="mGoHome()">▣ &nbsp; Reports / Portfolio</button>
+  <button onclick="location.href='/trade-report'">▣ &nbsp; Daily Report</button>
+  <button onclick="location.href='/download/holdings.csv'">▣ &nbsp; Download Portfolio</button>
+  <button onclick="location.href='/download/clients.csv'">▣ &nbsp; Download Clients</button>
   <button onclick="mGoPassword()">⚙ &nbsp; Settings / Login Control</button>
   <button onclick="mGoPassword()">🔒 &nbsp; Password</button>
   <button onclick="location.href='/logout'">↪ &nbsp; Logout</button>
@@ -693,7 +695,6 @@ async function setSelectedPasswords(){
 }
 </script>
 </body></html>
-
 
 
 
