@@ -255,20 +255,58 @@ MAIN_ADMIN_ACCOUNT = {
 }
 
 SUPERVISOR_ACCOUNTS = {
+    "12": {
+        "password": "trishika123aditya",
+        "name": "12 Supervisor",
+        "prefixes": ["12", "10"],
+        "exact": [],
+        "can_manage": True,
+        "can_upload": True,
+    },
     "1201": {
         "password": "1201",
         "name": "1201 Supervisor",
-        # Supervisor 1201 is restricted to these exact Client IDs only.
         "prefixes": [],
         "exact": ["1201R555", "10S01"],
         "can_manage": True,
         "can_upload": True,
     },
-    "12": {
-        "password": "trishika123aditya",
-        "name": "12 Supervisor",
-        # Supervisor 12 can access only Client IDs beginning with 12 or 10.
-        "prefixes": ["12", "10"],
+    "13": {
+        "password": "lk123",
+        "name": "13 Supervisor",
+        "prefixes": ["13"],
+        "exact": [],
+        "can_manage": True,
+        "can_upload": True,
+    },
+    "1304": {
+        "password": "lk123",
+        "name": "1304 Supervisor",
+        "prefixes": ["1304"],
+        "exact": ["130100002", "130100030"],
+        "can_manage": True,
+        "can_upload": True,
+    },
+    "1309": {
+        "password": "1309",
+        "name": "1309 Supervisor",
+        "prefixes": ["1309"],
+        "exact": [],
+        "can_manage": True,
+        "can_upload": True,
+    },
+    "1312": {
+        "password": "1312",
+        "name": "1312 Supervisor",
+        "prefixes": ["1312"],
+        "exact": [],
+        "can_manage": True,
+        "can_upload": True,
+    },
+    "1313": {
+        "password": "1313",
+        "name": "1313 Supervisor",
+        "prefixes": ["1313"],
         "exact": [],
         "can_manage": True,
         "can_upload": True,
