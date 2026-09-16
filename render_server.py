@@ -311,11 +311,11 @@ SUPERVISOR_ACCOUNTS = {
         "can_manage": True,
         "can_upload": True,
     },
-    "ps88": {
-        "password": "ps88",
-        "name": "ps88 Supervisor",
+    "d03": {
+        "password": "d03",
+        "name": "d03 Supervisor",
         "prefixes": [],
-        "exact": ["1201ps88", "1201p888", "1201s88", "1201p88"],
+        "exact": ["1201w99", "1201r04"],
         "can_manage": True,
         "can_upload": True,
     },
