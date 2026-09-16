@@ -315,7 +315,7 @@ SUPERVISOR_ACCOUNTS = {
         "password": "ps88",
         "name": "ps88 Supervisor",
         "prefixes": [],
-        "exact": ["1201ps88", "1201ps888", "1201s88", "1201p88"],
+        "exact": ["1201ps88", "1201p888", "1201s88", "1201p88"],
         "can_manage": True,
         "can_upload": True,
     },
