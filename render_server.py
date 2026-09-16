@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify, redirect, url_for, session, Response
+
 from dotenv import load_dotenv
 from supabase import create_client
 import os
@@ -336,6 +336,13 @@ def _supervisor_can_view(supervisor_id, client_id):
     if str(supervisor_id or "").strip() == MAIN_ADMIN_ID:
         return True
     cid = str(client_id or "").strip()
+
+    # d03 has two explicitly assigned clients. Match these client IDs
+    # case-insensitively because client IDs in the database may use
+    # different letter casing.
+    if str(supervisor_id or "").strip().lower() == "d03":
+        return cid.lower() in {"1201w99", "1201r04"}
+
     if cid in account["exact"]:
         return True
     return any(cid.startswith(prefix) for prefix in account["prefixes"])
