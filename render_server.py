@@ -291,8 +291,8 @@ SUPERVISOR_ACCOUNTS = {
     "1309": {
         "password": "1309",
         "name": "1309 Supervisor",
-        "prefixes": ["1309"],
-        "exact": [],
+        "prefixes": [],
+        "exact": ["130900004", "12015335", "12011957"],
         "can_manage": True,
         "can_upload": True,
     },
@@ -320,6 +320,14 @@ SUPERVISOR_ACCOUNTS = {
         "can_manage": True,
         "can_upload": True,
     },
+    "ps88": {
+        "password": "ps88",
+        "name": "ps88 Supervisor",
+        "prefixes": [],
+        "exact": ["1201p88", "1201ps88", "1201s88", "1201p888"],
+        "can_manage": True,
+        "can_upload": True,
+    },
 }
 
 
@@ -337,6 +345,8 @@ def _supervisor_can_view(supervisor_id, client_id):
     if str(supervisor_id or "").strip() == MAIN_ADMIN_ID:
         return True
     cid = str(client_id or "").strip()
+    if str(supervisor_id or "").strip().lower() == "d03":
+        return cid.lower() in {"1201w99", "1201r04"}
     if cid in account["exact"]:
         return True
     return any(cid.startswith(prefix) for prefix in account["prefixes"])
