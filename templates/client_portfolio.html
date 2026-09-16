@@ -120,8 +120,7 @@
   </header>
   <main class="m-body">
     <div class="m-multi-top">
-      <button type="button" class="m-multi-main-btn" onclick="mOpenDrawer()">MULTI CLIENTS</button>
-      <button type="button" class="m-download-btn" onclick="mDownloadSelectedPortfolio()">SELECTED DOWNLOAD</button>
+      <button type="button" class="m-download-btn" onclick="downloadSelected()">SELECTED DOWNLOAD</button>
       <button type="button" class="m-download-btn" onclick="location.href='/download/client-portfolio.csv'">PORTFOLIO DOWNLOAD</button>
     </div>
     <div class="m-title-row">
@@ -133,7 +132,6 @@
       <button class="m-hidden-btn" id="mHiddenCount" onclick="mShowHidden()">HIDDEN ROWS: 0</button>
     </div>
     <div class="m-tools">
-      <input id="mClientSearch" placeholder="Client ID" value="{{ client.client_id }}" readonly>
       <input id="mSymbolSearch" class="m-symbol-search" placeholder="Symbol" oninput="mFilter()">
       <button onclick="mHideSelected()">HIDE SELECTED</button>
       <button onclick="mShowAll()">SHOW ALL</button>
@@ -165,7 +163,7 @@
   <h2>LM Securities <button onclick="mCloseDrawer()" style="float:right;width:auto;padding:0 8px;font-size:24px">×</button></h2>
   <button onclick="mGoHome()">▥ &nbsp; Client Portfolio</button>
   <a href="/download/client-portfolio.csv"><button type="button">▣ &nbsp; Download Portfolio</button></a>
-  <button onclick="mDownloadSelectedPortfolio()">▣ &nbsp; Selected Download</button>
+  <button onclick="downloadSelected()">▣ &nbsp; Selected Download</button>
   <button onclick="location.href='/logout'">↪ &nbsp; Logout</button>
 </aside></div>
 
@@ -465,6 +463,10 @@ document.addEventListener('DOMContentLoaded',wireClientSearch);
 })();
 </script>
 </body></html>
+
+
+
+
 
 
 
