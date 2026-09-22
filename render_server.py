@@ -356,6 +356,8 @@ def _supervisor_can_view(supervisor_id, client_id):
         return cid.lower() in {"1201w99", "1201r04"}
     if str(supervisor_id or "").strip().lower() == "ps88":
         return cid.lower() in {str(x).lower() for x in account["exact"]}
+    if str(supervisor_id or "").strip().lower() == "1206":
+        return cid.lower() in {str(x).lower() for x in account["exact"]}
     if cid in account["exact"]:
         return True
     return any(cid.startswith(prefix) for prefix in account["prefixes"])
