@@ -1,4 +1,3 @@
-
 from flask import Flask, render_template, request, jsonify, redirect, url_for, session, Response
 from dotenv import load_dotenv
 from supabase import create_client
@@ -328,6 +327,14 @@ SUPERVISOR_ACCOUNTS = {
         "can_manage": True,
         "can_upload": True,
     },
+    "1206": {
+        "password": "1206",
+        "name": "1206 Supervisor",
+        "prefixes": [],
+        "exact": ["1206d01", "1206d09"],
+        "can_manage": True,
+        "can_upload": True,
+    },
 }
 
 
@@ -347,6 +354,8 @@ def _supervisor_can_view(supervisor_id, client_id):
     cid = str(client_id or "").strip()
     if str(supervisor_id or "").strip().lower() == "d03":
         return cid.lower() in {"1201w99", "1201r04"}
+    if str(supervisor_id or "").strip().lower() == "ps88":
+        return cid.lower() in {str(x).lower() for x in account["exact"]}
     if cid in account["exact"]:
         return True
     return any(cid.startswith(prefix) for prefix in account["prefixes"])
@@ -3245,4 +3254,5 @@ def get_portfolio(client_id):
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", "5000")), debug=os.environ.get("FLASK_DEBUG", "").lower() == "true")
+
 
