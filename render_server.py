@@ -25,7 +25,7 @@ load_dotenv()
 # use SUPABASE_URL + SUPABASE_KEY when DATABASE_URL is not configured.
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "https://jrooyhmbnkukvwsgsrqr.supabase.co").strip()
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "sb_secret_yFcS-NCpzblWs2TCgt9Idg_PWKY3n4b").strip()
-DATABASE_URL = os.environ.get("DATABASE_URL", "postgresql://postgres.gonhpxkvlqcirkmpazvb:Adityashrivardhan123@aws-0-ap-northeast-1.pooler.supabase.com:6543/postgres").strip()
+DATABASE_URL = os.environ.get("DATABASE_URL", "postgresql://postgres.jrooyhmbnkukvwsgsrqr:Adityashrivardhan123@aws-0-ap-southeast-1.pooler.supabase.com:5432/postgres").strip()
 
 
 class _DBResponse:
