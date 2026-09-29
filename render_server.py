@@ -1,8 +1,8 @@
 from flask import Flask, render_template, request, jsonify, redirect, url_for, session, Response
+from urllib.parse import quote
 from dotenv import load_dotenv
 from supabase import create_client
 import os
-from urllib.parse import quote
 import json
 import io
 import csv
@@ -1087,42 +1087,23 @@ def latest_ltp():
 # BSE / NSE LIVE LTP UPDATER
 # ============================================================
 
-# ============================================================
-# LIVE LTP MARKET-DATA SOURCE
-# ============================================================
-#
-# The old implementation called BSE/NSE public web endpoints
-# directly. Render was receiving HTTP 403 responses from those
-# exchange endpoints, so the LTP layer now uses Yahoo Finance's
-# chart endpoint instead.
-#
-# IMPORTANT:
-# - All portfolio/holding/database logic below this section is
-#   intentionally left unchanged.
-# - Exchange selection is preserved:
-#       BSE holding -> BSE quote first, NSE fallback
-#       NSE holding -> NSE quote first, BSE fallback
-# - Yahoo ticker suffixes:
-#       NSE -> SYMBOL.NS
-#       BSE -> SYMBOL.BO
-# - The background worker still runs continuously using the
-#   existing BSE_LTP_UPDATE_INTERVAL value.
-#
-# Yahoo's chart endpoint does not require the NSE/BSE browser
-# session/cookie flow that was producing the 403 errors.
-# ============================================================
+BSE_API_URL = "https://api.bseindia.com/BseIndiaAPI/api/getScripHeaderData/w"
+NSE_HOME_URL = "https://www.nseindia.com/"
+NSE_QUOTE_URL = "https://www.nseindia.com/api/quote-equity"
 
-YAHOO_CHART_URLS = (
-    "https://query2.finance.yahoo.com/v8/finance/chart/",
-    "https://query1.finance.yahoo.com/v8/finance/chart/",
+BSE_MASTER_FILE = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)),
+    "BSEsecurity list.xlsx"
 )
 
-# Kept at the existing value so the rest of the updater logic
-# and timing remain unchanged.
+# Target refresh interval between cycles.
 BSE_LTP_UPDATE_INTERVAL = 5
 
-# Existing concurrency values retained.
+# Number of simultaneous market-data requests.
+# 8 is deliberately kept moderate to avoid excessive exchange requests.
 LTP_FETCH_WORKERS = 8
+
+# Number of simultaneous database updates.
 LTP_DB_WORKERS = 8
 
 _BSE_CODE_MAP = None
@@ -1154,246 +1135,6 @@ def _get_ltp_session():
 
     return session
 
-
-def _get_yahoo_ltp(symbol, exchange):
-    """
-    Get the latest available market price from Yahoo Finance.
-
-    Yahoo uses:
-        NSE -> SYMBOL.NS
-        BSE -> SYMBOL.BO
-
-    The v8 chart endpoint exposes regularMarketPrice in the
-    response metadata and does not require the crumb flow used
-    by Yahoo's quote endpoint.
-    """
-    symbol = str(symbol or "").strip().upper()
-    exchange = str(exchange or "").strip().upper()
-
-    if not symbol:
-        return None
-
-    if exchange == "BSE":
-        suffix = ".BO"
-    else:
-        suffix = ".NS"
-
-    yahoo_symbol = symbol
-    if not yahoo_symbol.endswith(".NS") and not yahoo_symbol.endswith(".BO"):
-        yahoo_symbol = f"{symbol}{suffix}"
-
-    session = _get_ltp_session()
-
-    last_error = None
-
-    for base_url in YAHOO_CHART_URLS:
-        try:
-            url = base_url + quote(yahoo_symbol, safe="")
-
-            response = session.get(
-                url,
-                params={
-                    "range": "1d",
-                    "interval": "1m",
-                    "includePrePost": "false",
-                },
-                timeout=8,
-            )
-
-            response.raise_for_status()
-
-            data = response.json()
-            chart = data.get("chart") or {}
-            results = chart.get("result") or []
-
-            if not results:
-                error = chart.get("error")
-                if error:
-                    last_error = error
-                continue
-
-            result = results[0] or {}
-            meta = result.get("meta") or {}
-
-            ltp_value = meta.get("regularMarketPrice")
-
-            if ltp_value in (None, "", "-"):
-                # Fallback to the newest non-null close in the
-                # intraday series if metadata does not contain
-                # regularMarketPrice.
-                indicators = result.get("indicators") or {}
-                quotes = indicators.get("quote") or []
-
-                if quotes:
-                    closes = quotes[0].get("close") or []
-
-                    for value in reversed(closes):
-                        if value not in (None, "", "-"):
-                            ltp_value = value
-                            break
-
-            if ltp_value not in (None, "", "-"):
-                ltp = float(
-                    str(ltp_value)
-                    .replace(",", "")
-                    .strip()
-                )
-
-                if ltp > 0:
-                    return ltp
-
-            last_error = "Yahoo returned no usable price"
-
-        except Exception as exc:
-            last_error = exc
-
-    print(
-        f"[MARKET LTP] {symbol} ({exchange or 'AUTO'}) "
-        f"failed via Yahoo Finance: {last_error}"
-    )
-
-    return None
-
-
-def _get_bse_ltp_only(symbol):
-    """
-    Compatibility wrapper retained so the rest of the LTP
-    architecture stays unchanged.
-
-    BSE holdings are now resolved through Yahoo's BSE ticker
-    (.BO), rather than calling api.bseindia.com.
-    """
-    return _get_yahoo_ltp(symbol, "BSE")
-
-
-def _get_nse_ltp_only(symbol):
-    """
-    Compatibility wrapper retained so the rest of the LTP
-    architecture stays unchanged.
-
-    NSE holdings are now resolved through Yahoo's NSE ticker
-    (.NS), rather than calling www.nseindia.com.
-    """
-    return _get_yahoo_ltp(symbol, "NSE")
-
-
-def _get_exchange_ltp(symbol, exchange):
-    """
-    Get live/latest LTP using the holding's exchange.
-
-    BSE holding:
-        BSE (.BO) first -> NSE (.NS) fallback
-
-    NSE holding:
-        NSE (.NS) first -> BSE (.BO) fallback
-
-    Blank/unknown exchange:
-        BSE (.BO) first -> NSE (.NS) fallback
-    """
-    symbol = str(symbol or "").strip().upper()
-    exchange = str(exchange or "").strip().upper()
-
-    if not symbol:
-        return None
-
-    # --------------------------------------------------------
-    # BSE HOLDING
-    # --------------------------------------------------------
-    if exchange == "BSE" or not exchange:
-        ltp = _get_bse_ltp_only(symbol)
-
-        if ltp is not None:
-            return ltp
-
-        ltp = _get_nse_ltp_only(symbol)
-
-        if ltp is not None:
-            print(
-                f"[LTP] {symbol}: NSE fallback = {ltp:.2f}"
-            )
-
-        return ltp
-
-    # --------------------------------------------------------
-    # NSE HOLDING
-    # --------------------------------------------------------
-    if exchange == "NSE":
-        ltp = _get_nse_ltp_only(symbol)
-
-        if ltp is not None:
-            return ltp
-
-        ltp = _get_bse_ltp_only(symbol)
-
-        if ltp is not None:
-            print(
-                f"[LTP] {symbol}: BSE fallback = {ltp:.2f}"
-            )
-
-        return ltp
-
-    # --------------------------------------------------------
-    # UNKNOWN EXCHANGE
-    # --------------------------------------------------------
-    ltp = _get_bse_ltp_only(symbol)
-
-    if ltp is not None:
-        return ltp
-
-    return _get_nse_ltp_only(symbol)
-
-
-def _fetch_one_ltp(item):
-    """Worker function for parallel market-data fetching."""
-    key, symbol, exchange = item
-
-    try:
-        ltp = _get_exchange_ltp(symbol, exchange)
-        return key, ltp
-    except Exception as exc:
-        print(
-            f"[LTP] Fetch error for {symbol} "
-            f"({exchange}): {exc}"
-        )
-        return key, None
-
-
-def _update_one_holding_ltp(item):
-    """Worker function for one Supabase/PostgreSQL holding update."""
-    row, ltp = item
-
-    try:
-        quantity = float(row.get("quantity") or 0)
-        buy_price = float(row.get("buy_price") or 0)
-
-        market_value = quantity * ltp
-        pnl = (ltp - buy_price) * quantity
-
-        (
-            supabase.table("holdings")
-            .update({
-                # IMPORTANT:
-                # Only market values are changed here.
-                # Product / MTF / NORMAL is NOT touched.
-                "ltp": ltp,
-                "market_value": market_value,
-                "pnl": pnl,
-            })
-            .eq("id", row.get("id"))
-            .execute()
-        )
-
-        return True
-
-    except Exception as exc:
-        symbol = str(row.get("symbol") or "").strip().upper()
-
-        print(
-            f"[LTP] Database update failed "
-            f"for {symbol}: {exc}"
-        )
-
-        return False
 
 def _load_bse_code_map():
     """Load SYMBOL -> BSE CODE mapping from BSEsecurity list.xlsx."""
@@ -1459,123 +1200,96 @@ def _load_bse_code_map():
             return _BSE_CODE_MAP
 
 
-def _get_bse_ltp_only(symbol):
-    """Get LTP directly from BSE. No NSE fallback here."""
+
+def _get_yahoo_ltp(symbol, exchange):
+    """Get latest available price from Yahoo Finance."""
     symbol = str(symbol or "").strip().upper()
+    exchange = str(exchange or "").strip().upper()
 
     if not symbol:
         return None
 
-    try:
-        code_map = _load_bse_code_map()
-        bse_code = code_map.get(symbol)
+    suffix = ".BO" if exchange == "BSE" else ".NS"
+    yahoo_symbol = (
+        symbol
+        if symbol.endswith(".NS") or symbol.endswith(".BO")
+        else symbol + suffix
+    )
 
-        if not bse_code:
-            return None
+    session = _get_ltp_session()
+    last_error = None
 
-        session = _get_ltp_session()
-
-        headers = {
-            "Referer": "https://www.bseindia.com/",
-            "Origin": "https://www.bseindia.com",
-        }
-
-        response = session.get(
-            BSE_API_URL,
-            params={"scripcode": str(bse_code)},
-            headers=headers,
-            timeout=7,
-        )
-
-        response.raise_for_status()
-
-        data = response.json()
-        header_data = data.get("Header") or {}
-
-        ltp_value = header_data.get("LTP")
-
-        if ltp_value not in (None, "", "-"):
-            ltp = float(
-                str(ltp_value)
-                .replace(",", "")
-                .strip()
+    for base_url in (
+        "https://query2.finance.yahoo.com/v8/finance/chart/",
+        "https://query1.finance.yahoo.com/v8/finance/chart/",
+    ):
+        try:
+            response = session.get(
+                base_url + quote(yahoo_symbol, safe=""),
+                params={
+                    "range": "1d",
+                    "interval": "1m",
+                    "includePrePost": "false",
+                },
+                timeout=8,
             )
+            response.raise_for_status()
 
-            if ltp > 0:
-                return ltp
+            payload = response.json()
+            chart = payload.get("chart") or {}
+            results = chart.get("result") or []
 
-    except Exception as exc:
-        print(f"[BSE LTP] {symbol} failed: {exc}")
+            if not results:
+                last_error = chart.get("error") or "No Yahoo chart result"
+                continue
 
+            result = results[0] or {}
+            meta = result.get("meta") or {}
+            value = meta.get("regularMarketPrice")
+
+            # Fallback: newest intraday close.
+            if value in (None, "", "-"):
+                indicators = result.get("indicators") or {}
+                quotes = indicators.get("quote") or []
+                if quotes:
+                    for close_value in reversed(quotes[0].get("close") or []):
+                        if close_value not in (None, "", "-"):
+                            value = close_value
+                            break
+
+            if value not in (None, "", "-"):
+                ltp = float(str(value).replace(",", "").strip())
+                if ltp > 0:
+                    return ltp
+
+            last_error = "Yahoo returned no usable LTP"
+
+        except Exception as exc:
+            last_error = exc
+
+    print(
+        f"[MARKET LTP] {symbol} ({exchange or 'AUTO'}) "
+        f"Yahoo failed: {last_error}"
+    )
     return None
+
+
+def _get_bse_ltp_only(symbol):
+    """BSE price through Yahoo .BO."""
+    return _get_yahoo_ltp(symbol, "BSE")
 
 
 def _get_nse_ltp_only(symbol):
-    """Get LTP directly from NSE. No BSE fallback here."""
-    symbol = str(symbol or "").strip().upper()
-
-    if not symbol:
-        return None
-
-    try:
-        session = _get_ltp_session()
-
-        headers = {
-            "Referer": "https://www.nseindia.com/",
-        }
-
-        # Establish / refresh NSE cookies for this reusable session.
-        try:
-            session.get(
-                NSE_HOME_URL,
-                headers=headers,
-                timeout=5,
-            )
-        except Exception:
-            pass
-
-        response = session.get(
-            NSE_QUOTE_URL,
-            params={"symbol": symbol},
-            headers=headers,
-            timeout=7,
-        )
-
-        response.raise_for_status()
-
-        data = response.json()
-        price_info = data.get("priceInfo") or {}
-
-        ltp_value = price_info.get("lastPrice")
-
-        if ltp_value not in (None, "", "-"):
-            ltp = float(
-                str(ltp_value)
-                .replace(",", "")
-                .strip()
-            )
-
-            if ltp > 0:
-                return ltp
-
-    except Exception as exc:
-        print(f"[NSE LTP] {symbol} failed: {exc}")
-
-    return None
+    """NSE price through Yahoo .NS."""
+    return _get_yahoo_ltp(symbol, "NSE")
 
 
 def _get_exchange_ltp(symbol, exchange):
     """
-    Get live LTP using the holding's exchange.
-
-    BSE holding:
-        BSE first -> NSE fallback
-
-    NSE holding:
-        NSE first -> BSE fallback
-
-    Blank/unknown exchange:
-        BSE first -> NSE fallback
+    Preserve original exchange preference/fallback:
+    BSE -> BSE first, NSE fallback
+    NSE -> NSE first, BSE fallback
+    Unknown -> BSE first, NSE fallback
     """
     symbol = str(symbol or "").strip().upper()
     exchange = str(exchange or "").strip().upper()
@@ -1583,62 +1297,35 @@ def _get_exchange_ltp(symbol, exchange):
     if not symbol:
         return None
 
-    # --------------------------------------------------------
-    # BSE HOLDING
-    # --------------------------------------------------------
     if exchange == "BSE" or not exchange:
         ltp = _get_bse_ltp_only(symbol)
-
         if ltp is not None:
             return ltp
-
-        # BSE failed -> NSE fallback
         ltp = _get_nse_ltp_only(symbol)
-
         if ltp is not None:
-            print(
-                f"[LTP] {symbol}: NSE fallback = {ltp:.2f}"
-            )
-
+            print(f"[LTP] {symbol}: NSE fallback = {ltp:.2f}")
         return ltp
 
-    # --------------------------------------------------------
-    # NSE HOLDING
-    # --------------------------------------------------------
     if exchange == "NSE":
         ltp = _get_nse_ltp_only(symbol)
-
         if ltp is not None:
             return ltp
-
-        # NSE failed -> BSE fallback
         ltp = _get_bse_ltp_only(symbol)
-
         if ltp is not None:
-            print(
-                f"[LTP] {symbol}: BSE fallback = {ltp:.2f}"
-            )
-
+            print(f"[LTP] {symbol}: BSE fallback = {ltp:.2f}")
         return ltp
 
-    # --------------------------------------------------------
-    # UNKNOWN EXCHANGE
-    # --------------------------------------------------------
     ltp = _get_bse_ltp_only(symbol)
-
     if ltp is not None:
         return ltp
-
     return _get_nse_ltp_only(symbol)
 
 
 def _fetch_one_ltp(item):
     """Worker function for parallel market-data fetching."""
     key, symbol, exchange = item
-
     try:
-        ltp = _get_exchange_ltp(symbol, exchange)
-        return key, ltp
+        return key, _get_exchange_ltp(symbol, exchange)
     except Exception as exc:
         print(
             f"[LTP] Fetch error for {symbol} "
@@ -1661,9 +1348,6 @@ def _update_one_holding_ltp(item):
         (
             supabase.table("holdings")
             .update({
-                # IMPORTANT:
-                # Only market values are changed here.
-                # Product / MTF / NORMAL is NOT touched.
                 "ltp": ltp,
                 "market_value": market_value,
                 "pnl": pnl,
@@ -1676,12 +1360,7 @@ def _update_one_holding_ltp(item):
 
     except Exception as exc:
         symbol = str(row.get("symbol") or "").strip().upper()
-
-        print(
-            f"[LTP] Database update failed "
-            f"for {symbol}: {exc}"
-        )
-
+        print(f"[LTP] Database update failed for {symbol}: {exc}")
         return False
 
 
@@ -1890,7 +1569,7 @@ def _refresh_bse_ltp_once():
 
 def _bse_ltp_worker():
     """
-    Background worker for continuous LTP updates using the new market-data source.
+    Background worker for continuous BSE/NSE LTP updates.
 
     The next cycle starts after the configured interval,
     but a slow cycle is NOT followed by another unnecessary
@@ -3516,6 +3195,9 @@ def get_portfolio(client_id):
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", "5000")), debug=os.environ.get("FLASK_DEBUG", "").lower() == "true")
+
+
+
 
 
 
