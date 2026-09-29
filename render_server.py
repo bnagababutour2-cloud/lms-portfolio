@@ -14,6 +14,7 @@ import pandas as pd
 import requests
 import threading
 import time
+import fcntl
 
 load_dotenv()
 
@@ -1101,7 +1102,7 @@ BSE_LTP_UPDATE_INTERVAL = 5
 
 # Number of simultaneous market-data requests.
 # 8 is deliberately kept moderate to avoid excessive exchange requests.
-LTP_FETCH_WORKERS = 8
+LTP_FETCH_WORKERS = 32
 
 # Number of simultaneous database updates.
 LTP_DB_WORKERS = 8
@@ -1231,7 +1232,7 @@ def _get_yahoo_ltp(symbol, exchange):
                     "interval": "1m",
                     "includePrePost": "false",
                 },
-                timeout=8,
+                timeout=4,
             )
             response.raise_for_status()
 
@@ -1602,19 +1603,60 @@ def _bse_ltp_worker():
             time.sleep(sleep_for)
 
 
+_LTP_PROCESS_LOCK_PATH = "/tmp/lms_portfolio_ltp_updater.lock"
+_LTP_PROCESS_LOCK_HANDLE = None
+
+
 def _start_bse_ltp_updater():
-    """Start the BSE/NSE LTP updater as a daemon thread."""
+    """
+    Start exactly one LTP updater process on a Render instance.
+
+    This changes only the LTP updater startup behavior. All portfolio,
+    database, calculation, and UI logic remains unchanged.
+
+    Render/Gunicorn can run multiple Python worker processes. The old
+    startup code created one 5-second LTP thread in every process.
+    A small OS file lock makes one process the LTP leader.
+    """
+    global _LTP_PROCESS_LOCK_HANDLE
+
     try:
+        lock_handle = open(
+            _LTP_PROCESS_LOCK_PATH,
+            "a+",
+            encoding="utf-8",
+        )
+
+        try:
+            fcntl.flock(
+                lock_handle.fileno(),
+                fcntl.LOCK_EX | fcntl.LOCK_NB,
+            )
+        except BlockingIOError:
+            # Another Render worker already owns the LTP updater.
+            lock_handle.close()
+
+            print(
+                "[LTP] Updater already running in another "
+                "Render worker; this process will not start "
+                "a duplicate updater."
+            )
+            return
+
+        # Keep the handle alive for the lifetime of this process.
+        _LTP_PROCESS_LOCK_HANDLE = lock_handle
+
         worker = threading.Thread(
             target=_bse_ltp_worker,
             name="BSE-LTP-Updater",
-            daemon=True
+            daemon=True,
         )
 
         worker.start()
 
         print(
-            "[LTP] BSE/NSE updater thread started."
+            "[LTP] BSE/NSE updater thread started "
+            "(single Render worker)."
         )
 
     except Exception as exc:
@@ -3195,6 +3237,9 @@ def get_portfolio(client_id):
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", "5000")), debug=os.environ.get("FLASK_DEBUG", "").lower() == "true")
+
+
+
 
 
 
