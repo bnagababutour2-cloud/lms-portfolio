@@ -658,84 +658,10 @@ def admin_portfolio():
     try:
         clients = _filter_supervisor_clients(supervisor_id, _load_all_clients())
         holdings = _filter_supervisor_holdings(supervisor_id, _load_all_holdings())
-        # Render the existing desktop Admin page without changing its template,
-        # portfolio data, API calls, or any mobile routes. The small script below
-        # only limits desktop row selection to 11 rows.
-        admin_html = render_template(
-            "admin.html",
-            clients=clients,
-            holdings=holdings,
-            supervisor_id=supervisor_id,
-            supervisor_name=account.get("name"),
-            can_manage=account.get("can_manage", False),
-            can_upload=account.get("can_upload", False),
-        )
-
-        selection_limit_script = r"""
-<script id="admin-header-select-first-11">
-(function () {
-    "use strict";
-
-    const MAX_HEADER_SELECTED_ROWS = 11;
-
-    function getAdminTable() {
-        return Array.from(document.querySelectorAll("table")).find(function (table) {
-            return table.querySelector("thead input[type='checkbox']") &&
-                   table.querySelector("tbody input[type='checkbox']");
-        }) || null;
-    }
-
-    // This is intentionally limited to the header checkbox only.
-    // Individual row checkboxes and the separate SELECT ALL ROWS button
-    // retain their original behaviour.
-    document.addEventListener("change", function (event) {
-        const table = getAdminTable();
-        const master = event.target;
-
-        if (!table || !master ||
-            !master.matches("thead input[type='checkbox']") ||
-            !table.contains(master) ||
-            !master.checked) {
-            return;
-        }
-
-        // Wait until the existing Admin header-checkbox handler completes
-        // its normal select-all operation, then leave only the first 11
-        // visible portfolio rows selected.
-        window.setTimeout(function () {
-            const rowCheckboxes = Array.from(
-                table.querySelectorAll("tbody input[type='checkbox']")
-            ).filter(function (checkbox) {
-                return !checkbox.disabled &&
-                       checkbox.closest("tr") &&
-                       checkbox.closest("tr").getClientRects().length > 0;
-            });
-
-            rowCheckboxes.forEach(function (checkbox, index) {
-                const shouldBeChecked = index < MAX_HEADER_SELECTED_ROWS;
-
-                if (checkbox.checked !== shouldBeChecked) {
-                    checkbox.checked = shouldBeChecked;
-                    checkbox.dispatchEvent(new Event("change", { bubbles: true }));
-                }
-            });
-
-            // Keep the master checkbox checked to reflect the header
-            // bulk-selection action; do not modify any other controls.
-            master.checked = true;
-            master.indeterminate = false;
-        }, 0);
-    }, false);
-})();
-</script>
-"""
-        if "</body>" in admin_html.lower():
-            body_close = admin_html.lower().rfind("</body>")
-            admin_html = admin_html[:body_close] + selection_limit_script + admin_html[body_close:]
-        else:
-            admin_html += selection_limit_script
-
-        return Response(admin_html, mimetype="text/html")
+        return render_template("admin.html", clients=clients, holdings=holdings,
+                               supervisor_id=supervisor_id, supervisor_name=account.get("name"),
+                               can_manage=account.get("can_manage", False),
+                               can_upload=account.get("can_upload", False))
     except Exception as exc:
         return f"Admin data error: {exc}", 500
 
