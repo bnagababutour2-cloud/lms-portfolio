@@ -51,6 +51,45 @@
   .m-summary span,.m-summary strong{white-space:nowrap!important;overflow:hidden!important;text-overflow:clip!important}
   .m-summary strong{font-size:20px!important;letter-spacing:-.2px!important}
 }
+
+/* ===== DESKTOP LOGBOOK + CLIENT ANALYTICS (additive; existing mobile view untouched) ===== */
+.logbook-title-row{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:12px}
+.logbook-title-row .title{margin:0}
+.logbook-filter-row{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.logbook-filter-row .btn{padding:9px 12px;font-size:11px}
+.logbook-filter-row .btn.active{background:#052d70;box-shadow:0 0 0 2px rgba(11,85,181,.18) inset}
+.logbook-layout{display:grid;grid-template-columns:minmax(210px,270px) minmax(0,1fr);gap:14px;align-items:start}
+.logbook-client-panel,.logbook-chart-panel{border:1px solid #d8e4f0;border-radius:10px;background:#fbfdff;padding:12px;min-width:0}
+.logbook-client-list{display:flex;flex-direction:column;gap:6px;max-height:430px;overflow:auto;margin-top:10px}
+.logbook-client-btn{width:100%;display:flex;justify-content:space-between;align-items:center;gap:8px;text-align:left;background:#fff;color:#12345d;border:1px solid #d8e4f0;border-radius:8px;padding:9px 10px;font-size:12px;font-weight:800;cursor:pointer}
+.logbook-client-btn:hover,.logbook-client-btn.active{border-color:#0b55b5;background:#edf5ff}
+.logbook-client-btn small{color:#647990;font-weight:700;white-space:nowrap}
+.logbook-empty{padding:18px 10px;text-align:center;color:#667b91;font-size:12px;background:#fff;border:1px dashed #cbd9e8;border-radius:8px}
+.logbook-summary{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.logbook-summary strong{color:#052d70;font-size:16px}
+.logbook-kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:12px}
+.logbook-kpi{background:#fff;border:1px solid #d8e4f0;border-radius:8px;padding:9px;min-width:0}
+.logbook-kpi small{display:block;color:#60748a;font-size:10px;font-weight:800}
+.logbook-kpi strong{display:block;margin-top:4px;color:#052d70;font-size:15px;overflow-wrap:anywhere}
+.logbook-charts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.logbook-chart{border:1px solid #d8e4f0;border-radius:10px;background:#fff;padding:11px;min-width:0}
+.logbook-chart h4{margin:0 0 8px;color:#052d70;font-size:12px;min-height:30px}
+.logbook-donut-wrap{display:flex;justify-content:center;align-items:center;padding:5px 0 10px}
+.logbook-donut{width:142px;height:142px;border-radius:50%;position:relative;display:flex;align-items:center;justify-content:center;background:#e8eef5;flex:0 0 auto}
+.logbook-donut:after{content:"";position:absolute;inset:27px;border-radius:50%;background:#fff}
+.logbook-donut-center{position:relative;z-index:1;text-align:center;max-width:95px;overflow-wrap:anywhere}
+.logbook-donut-center b{display:block;color:#052d70;font-size:13px}
+.logbook-donut-center small{display:block;color:#60748a;font-size:9px;margin-top:2px}
+.logbook-legend{display:flex;flex-direction:column;gap:5px;max-height:165px;overflow:auto}
+.logbook-legend-row{display:grid;grid-template-columns:9px minmax(0,1fr) auto;gap:6px;align-items:center;font-size:10px;color:#344b64}
+.logbook-legend-dot{width:8px;height:8px;border-radius:50%}
+.logbook-legend-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.logbook-legend-value{font-weight:800;color:#1c3551;white-space:nowrap}
+.logbook-note{font-size:10px;color:#6a7f94;margin-top:9px;line-height:1.4}
+@media(max-width:1100px){.logbook-charts{grid-template-columns:1fr}.logbook-chart{display:grid;grid-template-columns:minmax(120px,170px) minmax(0,1fr);align-items:center;gap:8px}.logbook-chart h4{grid-column:1/-1;min-height:0}.logbook-donut{width:125px;height:125px}.logbook-donut:after{inset:24px}}
+@media(max-width:900px){.logbook-layout{grid-template-columns:1fr}.logbook-client-list{max-height:220px}.logbook-kpis{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:700px){.logbook-desktop-card{display:none!important}}
+
 </style>
 <style id="mobile-only-brand-back-fix">
 @media (max-width: 700px) {
@@ -144,7 +183,7 @@
 </div>
 
 <div class="card">
-<div class="title">Portfolio — Click ▲ / ▼ in any header to sort</div>
+<div class="logbook-title-row"><div class="title">Portfolio — Click ▲ / ▼ in any header to sort</div><div class="logbook-filter-row" aria-label="Trade recency logbook filters"><button type="button" class="btn light" data-logbook-filter="0-9" onclick="setLogbookFilter('0-9',this)">TRADED IN LAST 10 DAYS</button><button type="button" class="btn light" data-logbook-filter="10-29" onclick="setLogbookFilter('10-29',this)">10–30 DAYS</button><button type="button" class="btn light" data-logbook-filter="30-59" onclick="setLogbookFilter('30-59',this)">30–60 DAYS</button><button type="button" class="btn light" data-logbook-filter="60+" onclick="setLogbookFilter('60+',this)">ABOVE 60 DAYS</button></div></div>
 <div class="selectbar portfolio-bar"><span class="metric"><b>Visible MTM:</b> <strong id="totalMtm">0.00</strong></span><span class="metric"><b>Investment:</b> <strong id="totalInvestment">0.00</strong></span><span class="metric"><b>Total Clients:</b> <strong>{{ clients|length }}</strong></span><span class="metric"><b>Portfolio Rows:</b> <strong>{{ holdings|length }}</strong></span><span class="metric"><b>Live LTP:</b> <strong id="liveLtpStatus">STARTING...</strong></span><button class="btn light" onclick="selectAllRows()">SELECT ALL ROWS</button><button class="btn light" onclick="clearRowSelection()">CLEAR</button><button class="btn light" onclick="setLiveViewAll()">SHOW HIDDEN</button><span class="live-control"><span class="live-label">LIVE VIEW:</span><button class="btn light" id="liveAllBtn" onclick="setLiveViewAll()">ALL</button><button class="btn light" id="liveHideBtn" onclick="hideSelectedFromLive()">HIDE SELECTED</button><button class="btn light" id="liveFocusBtn" onclick="focusSelectedLive()">FOCUS SELECTED</button><button class="btn light" onclick="clearLiveView()">SHOW ALL</button></span><button class="btn green" onclick="downloadSelectedRows()">DOWNLOAD SELECTED</button>{% if can_manage %}<button class="btn red" onclick="deleteSelectedRows()">DELETE SELECTED</button>{% endif %}<span class="pill" id="rowCount">0 selected</span><span class="pill" id="liveViewStatus">LIVE VIEW: ALL</span></div>
 <div class="table-wrap"><table id="portfolioTable"><thead><tr>
 <th><input class="check" type="checkbox" onchange="toggleAllRows(this)"></th>
@@ -163,7 +202,7 @@
 {% for h in holdings %}
 <tr data-id="{{ h.get('id','') }}" data-portfolio-id="{{ h.get('portfolio_id','') }}"
     data-client="{{ h.client_id|lower }}" data-symbol="{{ h.symbol|lower }}"
-    data-product="{{ h.product|lower }}" data-exchange="{{ h.exchange|lower }}">
+    data-product="{{ h.product|lower }}" data-exchange="{{ h.exchange|lower }}" data-industry="{{ (h.get('industry') or h.get('sector') or h.get('industry_name') or 'Unclassified')|e|lower }}">
 <td><input class="row-check check" type="checkbox" onchange="updateRowCount()"></td>
 <td>{{ h.client_id }}</td><td>{{ h.symbol }}</td><td><b>{{ h.product }}</b></td><td>{{ h.exchange }}</td>
 <td class="{{ 'profit' if h.mtm >= 0 else 'loss' }}" data-mtm="{{ h.mtm }}">{{ '%.2f'|format(h.mtm) }}</td>
@@ -172,6 +211,24 @@
 <td>{% if can_manage %}<div class="action"><button class="modify" onclick="openEdit(this)">MODIFY</button><button class="delete" onclick="deleteHolding(this)">DELETE</button></div>{% else %}<span class="pill">VIEW ONLY</span>{% endif %}</td>
 </tr>{% endfor %}
 </tbody></table></div></div>
+
+
+<div class="card logbook-desktop-card" id="tradeLogbookCard">
+  <div class="logbook-summary"><div><div class="title" style="margin:0 0 3px">Trade Logbook &amp; Client Analytics</div><div class="sub" id="logbookFilterDescription">Choose one of the four recency filters above to list matching clients.</div></div><span class="pill" id="logbookClientCount">0 clients</span></div>
+  <div class="logbook-layout">
+    <div class="logbook-client-panel"><b style="color:#052d70;font-size:13px">Matching Clients</b><div class="sub" style="margin-top:4px">Select a client code to view the three charts.</div><div class="logbook-client-list" id="logbookClientList"><div class="logbook-empty">Select a trade-recency filter above.</div></div></div>
+    <div class="logbook-chart-panel">
+      <div class="logbook-summary"><strong id="logbookSelectedClient">No client selected</strong><span class="pill" id="logbookLastTrade">Last trade: —</span></div>
+      <div class="logbook-kpis"><div class="logbook-kpi"><small>TOTAL INVESTMENT</small><strong id="logbookInvestment">—</strong></div><div class="logbook-kpi"><small>UNREALIZED PROFIT / LOSS</small><strong id="logbookPnl">—</strong></div><div class="logbook-kpi"><small>COMPANIES HELD</small><strong id="logbookCompanyCount">—</strong></div></div>
+      <div class="logbook-charts">
+        <section class="logbook-chart"><h4>1. Investment by Company</h4><div class="logbook-donut-wrap"><div class="logbook-donut" id="logbookInvestmentDonut"><div class="logbook-donut-center"><b>—</b><small>Investment</small></div></div></div><div class="logbook-legend" id="logbookInvestmentLegend"><div class="logbook-empty">Select a client.</div></div></section>
+        <section class="logbook-chart"><h4>2. Profit / Loss by Company</h4><div class="logbook-donut-wrap"><div class="logbook-donut" id="logbookPnlDonut"><div class="logbook-donut-center"><b>—</b><small>Profit / Loss</small></div></div></div><div class="logbook-legend" id="logbookPnlLegend"><div class="logbook-empty">Select a client.</div></div></section>
+        <section class="logbook-chart"><h4>3. Investment by Industry</h4><div class="logbook-donut-wrap"><div class="logbook-donut" id="logbookIndustryDonut"><div class="logbook-donut-center"><b>—</b><small>By industry</small></div></div></div><div class="logbook-legend" id="logbookIndustryLegend"><div class="logbook-empty">Select a client.</div></div></section>
+      </div>
+      <div class="logbook-note">Investment = quantity × buy price. Profit/Loss = current MTM from the portfolio. Industry uses the holding's industry/sector field; missing classifications appear as Unclassified. Trade-recency is based on the Trade Date currently stored on portfolio rows.</div>
+    </div>
+  </div>
+</div>
 
 <div class="card"><div class="title">Client Information</div><div class="sub">Select clients to view their portfolio.</div>
 <div class="selectbar"><button class="btn light" onclick="selectAllClients()">SELECT ALL CLIENTS</button><button class="btn light" onclick="clearClientSelection()">CLEAR</button><button class="btn" onclick="viewSelectedClients()">VIEW SELECTED</button><span class="pill" id="clientCount">0 selected</span></div>
@@ -370,6 +427,7 @@ function filterPortfolio(){
    r.style.display=ok?'':'none';
  });
  updateTotal();
+ if(typeof window.refreshTradeLogbook==='function') window.refreshTradeLogbook();
 }
 function clearSearch(){['clientSearch','symbolSearch','productSearch'].forEach(id=>$(id).value='');$('exchangeSearch').value='';filterPortfolio()}
 ['clientSearch','symbolSearch','productSearch'].forEach(id=>$(id).addEventListener('input',filterPortfolio));$('exchangeSearch').addEventListener('change',filterPortfolio);
@@ -435,6 +493,7 @@ async function refreshLivePrices(){
 
     updateTotal();
     updateRowCount();
+    if(typeof window.refreshTradeLogbook==='function') window.refreshTradeLogbook();
     if(typeof window.__applyAdminLiveView==='function') window.__applyAdminLiveView();
 
     if($('liveLtpStatus')) $('liveLtpStatus').textContent='LIVE '+new Date().toLocaleTimeString('en-IN');
@@ -729,6 +788,114 @@ async function setSelectedPasswords(){
     alert(data.message||'Password updated successfully.');
   }catch(e){alert('Password update failed: '+e.message)}
 }
+
+
+// ===== ADDITIVE DESKTOP TRADE LOGBOOK + CLIENT CHARTS =====
+(function(){
+ const logbookColors=['#0b55b5','#16a05a','#e0a400','#8b5cf6','#e05d44','#0891b2','#64748b','#db2777','#65a30d','#7c3aed','#b45309','#0f766e'];
+ let currentLogbookFilter=null;
+ let selectedLogbookClient=null;
+ const logbookRows=()=>[...document.querySelectorAll('#portfolioTable tbody tr')];
+ const parseLogbookDate=value=>{
+   if(!value||value==='-') return null;
+   const raw=String(value).trim();
+   let d=new Date(raw);
+   if(!Number.isNaN(d.getTime())) return d;
+   const m=raw.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})$/);
+   if(m) return new Date(Number(m[3]),Number(m[2])-1,Number(m[1]));
+   return null;
+ };
+ const daysSinceTrade=row=>{
+   const d=parseLogbookDate(row.cells[10]?.textContent);
+   if(!d) return null;
+   const today=new Date(); today.setHours(0,0,0,0); d.setHours(0,0,0,0);
+   return Math.max(0,Math.floor((today-d)/86400000));
+ };
+ const num=value=>{const n=Number(String(value??'').replace(/[,₹\s]/g,''));return Number.isFinite(n)?n:0};
+ const money=value=>'₹ '+Math.abs(value).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
+ const safeText=value=>String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+ function visiblePortfolioRows(){return logbookRows().filter(r=>r.style.display!=='none');}
+ function clientMap(){
+   const map=new Map();
+   visiblePortfolioRows().forEach(r=>{
+     const id=(r.dataset.client||r.cells[1]?.textContent||'').trim(); if(!id)return;
+     if(!map.has(id)) map.set(id,{id,rows:[],lastDays:null,lastDate:null});
+     const item=map.get(id); item.rows.push(r);
+     const days=daysSinceTrade(r);
+     if(days!==null&&(item.lastDays===null||days<item.lastDays)){item.lastDays=days;item.lastDate=r.cells[10]?.textContent.trim()||'-';}
+   });
+   return map;
+ }
+ window.setLogbookFilter=function(filter,button){
+   currentLogbookFilter=filter;
+   document.querySelectorAll('[data-logbook-filter]').forEach(b=>b.classList.toggle('active',b.dataset.logbookFilter===filter));
+   const descriptions={'0-9':'Clients with a portfolio trade date within the last 0–9 days.','10-29':'Clients whose most recent portfolio trade date is 10–29 days old.','30-59':'Clients whose most recent portfolio trade date is 30–59 days old.','60+':'Clients whose most recent portfolio trade date is 60 days old or more.'};
+   const desc=document.getElementById('logbookFilterDescription');if(desc)desc.textContent=descriptions[filter]||'';
+   renderLogbookClients();
+ };
+ function renderLogbookClients(){
+   const list=document.getElementById('logbookClientList'); if(!list)return;
+   const all=clientMap();
+   const matches=[...all.values()].filter(c=>{
+     if(c.lastDays===null)return false;
+     if(currentLogbookFilter==='0-9')return c.lastDays<10;
+     if(currentLogbookFilter==='10-29')return c.lastDays>=10&&c.lastDays<30;
+     if(currentLogbookFilter==='30-59')return c.lastDays>=30&&c.lastDays<60;
+     if(currentLogbookFilter==='60+')return c.lastDays>=60;
+     return false;
+   }).sort((a,b)=>a.lastDays-b.lastDays||a.id.localeCompare(b.id,undefined,{numeric:true}));
+   document.getElementById('logbookClientCount').textContent=matches.length+' clients';
+   if(!matches.length){list.innerHTML='<div class="logbook-empty">No clients found in this date range. Check that Trade Date is populated on the portfolio rows.</div>';selectedLogbookClient=null;clearLogbookCharts();return;}
+   list.innerHTML=matches.map(c=>'<button type="button" class="logbook-client-btn '+(selectedLogbookClient===c.id?'active':'')+'" data-logbook-client="'+safeText(c.id)+'"><span>'+safeText(c.id)+'</span><small>'+c.lastDays+' days ago</small></button>').join('');
+   list.querySelectorAll('[data-logbook-client]').forEach(b=>b.addEventListener('click',()=>selectLogbookClient(b.dataset.logbookClient)));
+   if(selectedLogbookClient&&matches.some(c=>c.id===selectedLogbookClient))selectLogbookClient(selectedLogbookClient);
+   else selectLogbookClient(matches[0].id);
+ }
+ function clearLogbookCharts(){
+   ['logbookSelectedClient','logbookLastTrade','logbookInvestment','logbookPnl','logbookCompanyCount'].forEach((id,i)=>{const e=document.getElementById(id);if(e)e.textContent=['No client selected','Last trade: —','—','—','—'][i]});
+   ['logbookInvestmentLegend','logbookPnlLegend','logbookIndustryLegend'].forEach(id=>{const e=document.getElementById(id);if(e)e.innerHTML='<div class="logbook-empty">Select a client.</div>'});
+   ['logbookInvestmentDonut','logbookPnlDonut','logbookIndustryDonut'].forEach(id=>{const e=document.getElementById(id);if(e){e.style.background='#e8eef5';e.querySelector('.logbook-donut-center b').textContent='—'}});
+ }
+ function renderDonut(donutId,legendId,items,total,kind){
+   const donut=document.getElementById(donutId),legend=document.getElementById(legendId);if(!donut||!legend)return;
+   const center=donut.querySelector('.logbook-donut-center b');
+   if(!items.length||!total){donut.style.background='#e8eef5';center.textContent='₹0';legend.innerHTML='<div class="logbook-empty">No data available.</div>';return;}
+   let cursor=0;const stops=[];
+   items.forEach((item,i)=>{const share=Math.abs(item.value)/total*100;const color=kind==='pnl'?(item.value>=0?'#16a05a':'#d62828'):logbookColors[i%logbookColors.length];stops.push(color+' '+cursor.toFixed(2)+'% '+(cursor+share).toFixed(2)+'%');cursor+=share;});
+   donut.style.background='conic-gradient('+stops.join(',')+')';
+   center.textContent=kind==='pnl'?(items.reduce((a,x)=>a+x.value,0)>=0?'+':'−')+money(Math.abs(items.reduce((a,x)=>a+x.value,0))):money(total);
+   legend.innerHTML=items.map((item,i)=>{const color=kind==='pnl'?(item.value>=0?'#16a05a':'#d62828'):logbookColors[i%logbookColors.length];const sign=kind==='pnl'?(item.value>=0?'+':'−'):'';return '<div class="logbook-legend-row"><span class="logbook-legend-dot" style="background:'+color+'"></span><span class="logbook-legend-name" title="'+safeText(item.name)+'">'+safeText(item.name)+'</span><span class="logbook-legend-value">'+sign+money(item.value)+'</span></div>';}).join('');
+ }
+ function selectLogbookClient(clientId){
+   selectedLogbookClient=clientId;
+   document.querySelectorAll('[data-logbook-client]').forEach(b=>b.classList.toggle('active',b.dataset.logbookClient===clientId));
+   const rows=visiblePortfolioRows().filter(r=>(r.dataset.client||r.cells[1]?.textContent.trim())===clientId);
+   if(!rows.length){clearLogbookCharts();return;}
+   const companies=new Map(),industries=new Map();let investment=0,pnl=0,lastDays=null,lastDate='—';
+   rows.forEach(r=>{
+     const symbol=(r.cells[2]?.textContent||'Unknown').trim();
+     const qty=num(r.cells[7]?.textContent),buy=num(r.cells[8]?.textContent),mtm=num(r.cells[5]?.textContent);
+     const invested=qty*buy;investment+=invested;pnl+=mtm;
+     const c=companies.get(symbol)||{name:symbol,investment:0,pnl:0};c.investment+=invested;c.pnl+=mtm;companies.set(symbol,c);
+     const industry=(r.dataset.industry||'unclassified').trim().replace(/\b\w/g,x=>x.toUpperCase())||'Unclassified';industries.set(industry,(industries.get(industry)||0)+invested);
+     const days=daysSinceTrade(r);if(days!==null&&(lastDays===null||days<lastDays)){lastDays=days;lastDate=r.cells[10]?.textContent.trim()||'—';}
+   });
+   document.getElementById('logbookSelectedClient').textContent='Client: '+clientId;
+   document.getElementById('logbookLastTrade').textContent='Last trade: '+lastDate+(lastDays===null?'':' ('+lastDays+' days ago)');
+   document.getElementById('logbookInvestment').textContent=money(investment);
+   const pnlEl=document.getElementById('logbookPnl');pnlEl.textContent=(pnl>=0?'+':'−')+money(pnl);pnlEl.style.color=pnl>=0?'#128a43':'#d62828';
+   document.getElementById('logbookCompanyCount').textContent=companies.size;
+   const byInvestment=[...companies.values()].sort((a,b)=>b.investment-a.investment).map(x=>({name:x.name,value:x.investment}));
+   const byPnl=[...companies.values()].filter(x=>x.pnl!==0).sort((a,b)=>Math.abs(b.pnl)-Math.abs(a.pnl)).map(x=>({name:x.name,value:x.pnl}));
+   const byIndustry=[...industries.entries()].sort((a,b)=>b[1]-a[1]).map(([name,value])=>({name,value}));
+   renderDonut('logbookInvestmentDonut','logbookInvestmentLegend',byInvestment,byInvestment.reduce((a,x)=>a+Math.abs(x.value),0),'investment');
+   renderDonut('logbookPnlDonut','logbookPnlLegend',byPnl,byPnl.reduce((a,x)=>a+Math.abs(x.value),0),'pnl');
+   renderDonut('logbookIndustryDonut','logbookIndustryLegend',byIndustry,byIndustry.reduce((a,x)=>a+Math.abs(x.value),0),'industry');
+ }
+ // Expose a refresh hook for callers that alter visible portfolio rows.
+ window.refreshTradeLogbook=renderLogbookClients;
+})();
+
 </script>
 </body></html>
 
