@@ -9,7 +9,7 @@ import csv
 import re
 import uuid
 import traceback
-from datetime import datetime
+from datetime import datetime, timedelta
 import pandas as pd
 import requests
 import threading
@@ -729,16 +729,183 @@ def admin_portfolio():
 })();
 </script>
 """
+        desktop_analytics_script = r"""
+<script id="desktop-trade-recency-analytics">
+(function(){
+  'use strict';
+  if (window.__lmsDesktopAnalyticsInstalled) return;
+  window.__lmsDesktopAnalyticsInstalled = true;
+  const css = `
+  #lms-recency-bar{display:flex;gap:7px;flex-wrap:wrap;align-items:center;margin:8px 0 12px;padding:7px 9px;background:#f7faff;border:1px solid #d8e5f5;border-radius:9px}
+  #lms-recency-bar button{border:1px solid #c9d9ef;background:#eaf2fc;color:#07377b;border-radius:6px;padding:7px 12px;font-size:12px;font-weight:800;cursor:pointer}
+  #lms-recency-bar button.active{background:#0754b5;color:#fff;border-color:#0754b5}
+  #lms-recency-note{font-size:11px;color:#637895;margin-left:4px}
+  #lms-overlay{position:fixed;inset:0;background:rgba(5,24,54,.42);z-index:99998;display:none}
+  #lms-drawer{position:fixed;right:0;top:0;height:100vh;width:min(900px,94vw);background:#f5f8fd;z-index:99999;box-shadow:-8px 0 30px #001b4433;display:none;overflow:auto;padding:18px}
+  #lms-drawer h2{margin:0;color:#07377b;font-size:19px}#lms-drawer .lms-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+  #lms-drawer .lms-close{border:0;background:#dce8f7;border-radius:7px;padding:8px 12px;font-weight:800;cursor:pointer}
+  #lms-client-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:8px;margin-top:12px}
+  .lms-client{background:white;border:1px solid #dbe6f3;border-radius:9px;padding:11px;text-align:left;cursor:pointer;color:#0a3268}
+  .lms-client strong{display:block;font-size:13px}.lms-client small{display:block;color:#617894;margin-top:4px}
+  #lms-charts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:12px}
+  .lms-chart{background:#fff;border:1px solid #dbe6f3;border-radius:11px;padding:12px;min-width:0}
+  .lms-chart h3{font-size:13px;margin:0 0 8px;color:#0a397d}.lms-chart canvas{width:100%;height:210px;display:block}
+  #lms-metrics{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0} .lms-metric{background:#fff;border:1px solid #dbe6f3;border-radius:8px;padding:9px 12px;font-size:12px;color:#48617e}.lms-metric b{display:block;color:#092e65;font-size:16px;margin-top:3px}
+  #lms-disclaimer{font-size:11px;color:#6a7d96;margin-top:10px;line-height:1.5}
+  @media(max-width:700px){#lms-charts{grid-template-columns:1fr}#lms-drawer{width:100vw;padding:12px}}
+  `;
+  const style=document.createElement('style');style.textContent=css;document.head.appendChild(style);
+  const overlay=document.createElement('div');overlay.id='lms-overlay';document.body.appendChild(overlay);
+  const drawer=document.createElement('aside');drawer.id='lms-drawer';drawer.innerHTML=`<div class="lms-head"><h2 id="lms-title">Client activity</h2><button class="lms-close" id="lms-close">CLOSE ✕</button></div><div id="lms-content">Loading…</div>`;document.body.appendChild(drawer);
+  const close=()=>{drawer.style.display='none';overlay.style.display='none'};
+  document.getElementById('lms-close').onclick=close;overlay.onclick=close;
+  const money=v=>'₹'+Math.abs(Number(v||0)).toLocaleString('en-IN',{maximumFractionDigits:2});
+  const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  function open(html,title){document.getElementById('lms-title').textContent=title;document.getElementById('lms-content').innerHTML=html;overlay.style.display='block';drawer.style.display='block'}
+  function drawDonut(canvas,items,valueKey,label){
+    const ctx=canvas.getContext('2d'),dpr=window.devicePixelRatio||1,w=canvas.clientWidth||250,h=210;
+    canvas.width=w*dpr;canvas.height=h*dpr;ctx.scale(dpr,dpr);
+    const total=items.reduce((a,x)=>a+Math.max(0,Number(x[valueKey]||0)),0);
+    const colors=['#1769c2','#19a56b','#e59b22','#8656bd','#d95757','#16a6a6','#778ba5','#d16c9a'];
+    let angle=-Math.PI/2;items.forEach((x,i)=>{const val=Math.max(0,Number(x[valueKey]||0));if(!total||!val)return;const next=angle+val/total*Math.PI*2;ctx.beginPath();ctx.arc(w/2,86,65,angle,next);ctx.arc(w/2,86,39,next,angle,true);ctx.closePath();ctx.fillStyle=colors[i%colors.length];ctx.fill();angle=next;});
+    ctx.textAlign='center';ctx.fillStyle='#173b69';ctx.font='bold 12px Arial';ctx.fillText(label,w/2,83);ctx.font='bold 13px Arial';ctx.fillText(total?money(total):'No data',w/2,101);
+    const shown=items.slice(0,5);ctx.textAlign='left';ctx.font='9px Arial';shown.forEach((x,i)=>{const y=171+i*9;if(y<209){ctx.fillStyle=(valueKey==='pnlAbs'?(Number(x.pnl||0)>=0?'#159b63':'#d94a50'):colors[i%colors.length]);ctx.fillRect(6,y-7,7,7);ctx.fillStyle='#526985';const val=valueKey==='pnlAbs'?((Number(x.pnl||0)>=0?'+':'-')+money(x.pnl)):money(x[valueKey]);ctx.fillText((String(x.name||'').slice(0,17)+'  '+val).slice(0,43),17,y);}});
+  }
+  async function showClient(cid){
+    open('<p>Loading client portfolio analytics…</p>','Client '+cid+' — Portfolio analytics');
+    try{const r=await fetch('/api/admin/client-analytics/'+encodeURIComponent(cid),{credentials:'same-origin',cache:'no-store'});const d=await r.json();if(!r.ok||!d.success)throw new Error(d.message||'Analytics unavailable');
+      const companies=d.companies||[],industries=d.industries||[];
+      document.getElementById('lms-content').innerHTML=`<div id="lms-metrics"><div class="lms-metric">Total invested<b>${money(d.total_invested)}</b></div><div class="lms-metric">Profit / Loss<b style="color:${Number(d.total_pnl)>=0?'#079653':'#d43e45'}">${Number(d.total_pnl)>=0?'+':'-'}${money(d.total_pnl)}</b></div><div class="lms-metric">Active holdings<b>${Number(d.holdings_count||0)}</b></div><div class="lms-metric">Last trade date<b>${esc(d.last_trade_date||'Not available')}</b></div></div>
+      <div id="lms-charts"><section class="lms-chart"><h3>Investment by Company</h3><canvas id="lms-company-chart"></canvas></section><section class="lms-chart"><h3>Profit / Loss by Company</h3><canvas id="lms-pnl-chart"></canvas></section><section class="lms-chart"><h3>Investment by Industry</h3><canvas id="lms-industry-chart"></canvas></section></div><p id="lms-disclaimer">${esc(d.industry_note||'')} Company and P/L charts use the current holdings and stored LTP values.</p>`;
+      drawDonut(document.getElementById('lms-company-chart'),companies,'invested','Invested');
+      const pnlItems=companies.map(x=>({...x,pnlAbs:Math.abs(Number(x.pnl||0))}));drawDonut(document.getElementById('lms-pnl-chart'),pnlItems,'pnlAbs','P/L magnitude');
+      drawDonut(document.getElementById('lms-industry-chart'),industries,'invested','Invested');
+    }catch(e){document.getElementById('lms-content').innerHTML='<p>'+esc(e.message)+'</p>';}
+  }
+  async function showBucket(bucket,label){
+    open('<p>Loading client list…</p>',label+' — Clients');
+    try{const r=await fetch('/api/admin/trade-recency',{credentials:'same-origin',cache:'no-store'});const d=await r.json();if(!r.ok||!d.success)throw new Error(d.message||'Unable to load clients');
+      const filtered=(d.clients||[]).filter(c=>{const n=c.days_since_trade;if(n===null)return false;if(bucket==='recent')return n>=0&&n<=9;if(bucket==='10-30')return n>=10&&n<=30;if(bucket==='30-60')return n>=30&&n<=60;return n>60;});
+      const cards=filtered.sort((a,b)=>(a.days_since_trade??999999)-(b.days_since_trade??999999)).map(c=>`<button class="lms-client" data-cid="${esc(c.client_id)}"><strong>${esc(c.client_id)} ${esc(c.client_name)}</strong><small>Last trade: ${esc(c.last_trade_date||'—')} · ${c.days_since_trade} days ago</small></button>`).join('');
+      document.getElementById('lms-content').innerHTML=`<div>${filtered.length} clients <span style="color:#687e99;font-size:11px"> · As of ${esc(d.as_of)}</span></div><div id="lms-client-list">${cards||'<p>No clients found in this range.</p>'}</div><p id="lms-disclaimer">${esc(d.note||'')}</p>`;
+      document.querySelectorAll('.lms-client').forEach(b=>b.addEventListener('click',()=>showClient(b.dataset.cid)));
+    }catch(e){document.getElementById('lms-content').innerHTML='<p>'+esc(e.message)+'</p>';}
+  }
+  function installBar(){
+    if(document.getElementById('lms-recency-bar'))return true;
+    const candidates=Array.from(document.querySelectorAll('h1,h2,h3,h4,div,span,p')).filter(el=>el.children.length<4&&/Portfolio\s*[—-]\s*Click\s*▲\s*\/\s*▼\s*in any header to sort/i.test(el.textContent||''));
+    const heading=candidates[0];if(!heading)return false;
+    const bar=document.createElement('div');bar.id='lms-recency-bar';bar.innerHTML=`<b style="font-size:12px;color:#0a3475;margin-right:3px">Logbook:</b><button data-bucket="recent">Traded in last 10 days</button><button data-bucket="10-30">10–30 days</button><button data-bucket="30-60">30–60 days</button><button data-bucket="60+">Above 60 days</button><span id="lms-recency-note">Select a period to view clients</span>`;
+    heading.insertAdjacentElement('afterend',bar);
+    bar.querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{bar.querySelectorAll('button').forEach(x=>x.classList.remove('active'));b.classList.add('active');const names={recent:'Traded in last 10 days','10-30':'10–30 days','30-60':'30–60 days','60+':'Above 60 days'};showBucket(b.dataset.bucket,names[b.dataset.bucket]);}));
+    return true;
+  }
+  const observer=new MutationObserver(()=>installBar());observer.observe(document.body,{childList:true,subtree:true});installBar();
+  // Clicking a Client ID cell in the desktop portfolio table opens its three charts.
+  document.addEventListener('click',function(ev){
+    if(ev.target.closest('button,a,input,select,textarea'))return;
+    const cell=ev.target.closest('td');if(!cell)return;
+    const row=cell.closest('tbody tr');if(!row)return;
+    const table=row.closest('table');if(!table||!table.querySelector('thead input[type="checkbox"]'))return;
+    const cells=Array.from(row.cells);const firstData=cells.find(td=>!td.querySelector('input[type="checkbox"]'));
+    if(cell!==firstData)return;
+    const cid=(cell.textContent||'').trim();if(cid)showClient(cid);
+  });
+})();
+</script>
+"""
         if "</body>" in admin_html.lower():
             body_close = admin_html.lower().rfind("</body>")
-            admin_html = admin_html[:body_close] + selection_limit_script + admin_html[body_close:]
+            admin_html = admin_html[:body_close] + selection_limit_script + desktop_analytics_script + admin_html[body_close:]
         else:
-            admin_html += selection_limit_script
+            admin_html += selection_limit_script + desktop_analytics_script
 
         return Response(admin_html, mimetype="text/html")
     except Exception as exc:
         return f"Admin data error: {exc}", 500
 
+
+
+# ============================================================
+# DESKTOP ADMIN: TRADE-RECENCY FILTERS + CLIENT PORTFOLIO ANALYTICS
+# Additive endpoints only; existing portfolio and trade processing remain intact.
+# ============================================================
+@app.route("/api/admin/trade-recency", methods=["GET"])
+def admin_trade_recency():
+    account, auth_error = _require_supervisor()
+    if auth_error:
+        return auth_error
+    db_error = _require_db()
+    if db_error:
+        return db_error
+    try:
+        supervisor_id = session.get("supervisor_id")
+        clients = _filter_supervisor_clients(supervisor_id, _load_all_clients())
+        holdings = _filter_supervisor_holdings(supervisor_id, _load_all_holdings())
+        latest = {}
+        for h in holdings:
+            cid = str(h.get("client_id") or "").strip()
+            dt = _clean_trade_date(h.get("trade_date"))
+            if cid and dt and (cid not in latest or dt > latest[cid]):
+                latest[cid] = dt
+        today = (datetime.utcnow() + timedelta(hours=5, minutes=30)).date()
+        rows = []
+        for c in clients:
+            cid = str(c.get("client_id") or "").strip()
+            last = latest.get(cid)
+            age = (today - datetime.strptime(last, "%Y-%m-%d").date()).days if last else None
+            rows.append({"client_id": cid, "client_name": c.get("client_name") or "", "last_trade_date": last, "days_since_trade": age})
+        return jsonify({"success": True, "clients": rows, "as_of": today.isoformat(),
+                        "note": "Last trade date is inferred from active holdings trade_date values. Closed positions without a retained holding date may not be represented."})
+    except Exception as exc:
+        traceback.print_exc()
+        return jsonify({"success": False, "message": "Could not calculate trade recency.", "error": str(exc)}), 500
+
+
+@app.route("/api/admin/client-analytics/<client_id>", methods=["GET"])
+def admin_client_analytics(client_id):
+    account, auth_error = _require_supervisor()
+    if auth_error:
+        return auth_error
+    db_error = _require_db()
+    if db_error:
+        return db_error
+    cid = str(client_id or "").strip()
+    if not cid or not _supervisor_can_view(session.get("supervisor_id"), cid):
+        return jsonify({"success": False, "message": "Client is outside your access scope."}), 403
+    try:
+        result = supabase.table("holdings").select("*").ilike("client_id", cid).execute()
+        company = {}
+        industry = {}
+        total_invested = total_pnl = 0.0
+        last_dates = []
+        for h in result.data or []:
+            symbol = str(h.get("symbol") or "-" ).strip().upper()
+            qty = _clean_number(h.get("quantity"))
+            buy = _clean_number(h.get("buy_price"))
+            ltp = _clean_number(h.get("ltp"), buy)
+            invested = qty * buy
+            pnl = (ltp - buy) * qty
+            total_invested += invested
+            total_pnl += pnl
+            item = company.setdefault(symbol, {"name": symbol, "invested": 0.0, "pnl": 0.0})
+            item["invested"] += invested
+            item["pnl"] += pnl
+            sector = str(h.get("industry") or h.get("sector") or h.get("industry_name") or "Unclassified").strip() or "Unclassified"
+            industry[sector] = industry.get(sector, 0.0) + invested
+            dt = _clean_trade_date(h.get("trade_date"))
+            if dt:
+                last_dates.append(dt)
+        return jsonify({"success": True, "client_id": cid,
+                        "holdings_count": len(result.data or []),
+                        "total_invested": total_invested, "total_pnl": total_pnl,
+                        "companies": sorted(company.values(), key=lambda x: x["invested"], reverse=True),
+                        "industries": [{"name": k, "invested": v} for k, v in sorted(industry.items(), key=lambda x: x[1], reverse=True)],
+                        "last_trade_date": max(last_dates) if last_dates else None,
+                        "industry_note": "Industry uses an industry/sector field if one exists on the holding record; otherwise it is grouped as Unclassified."})
+    except Exception as exc:
+        traceback.print_exc()
+        return jsonify({"success": False, "message": "Could not load client analytics.", "error": str(exc)}), 500
 
 
 # ============================================================
