@@ -738,7 +738,7 @@ def admin_portfolio():
   const css = `
   #lms-recency-bar{display:flex;gap:7px;flex-wrap:wrap;align-items:center;margin:8px 0 12px;padding:7px 9px;background:#f7faff;border:1px solid #d8e5f5;border-radius:9px}
   #lms-recency-bar button{border:1px solid #c9d9ef;background:#eaf2fc;color:#07377b;border-radius:6px;padding:7px 12px;font-size:12px;font-weight:800;cursor:pointer;white-space:nowrap;min-width:88px}
-  #lms-recency-bar button.active{background:#0754b5;color:#fff;border-color:#0754b5}
+  #lms-recency-bar button.active{background:#eaf2fc;color:#07377b;border-color:#8fb4e6;box-shadow:inset 0 0 0 1px #8fb4e6}
   #lms-recency-note{font-size:11px;color:#637895;margin-left:4px}
   #lms-overlay{position:fixed;inset:0;background:rgba(5,24,54,.42);z-index:99998;display:none}
   #lms-drawer{position:fixed;right:0;top:0;height:100vh;width:min(900px,94vw);background:#f5f8fd;z-index:99999;box-shadow:-8px 0 30px #001b4433;display:none;overflow:auto;padding:18px}
@@ -782,10 +782,13 @@ def admin_portfolio():
       drawDonut(document.getElementById('lms-industry-chart'),industries,'invested','Invested');
     }catch(e){document.getElementById('lms-content').innerHTML='<p>'+esc(e.message)+'</p>';}
   }
-  // Logbook buttons filter the EXISTING desktop portfolio rows in place.
-  // No portfolio data, API, calculations, or other Python logic is changed.
+  // Logbook buttons filter the EXISTING holdings table by eligible CLIENT IDs.
+  // The API's latest trade date per client drives eligibility; every existing
+  // holding row for a matching client remains visible in the portfolio table.
   let activePortfolioBucket = null;
+  let activeClientIds = null;
   const originalRowDisplay = new WeakMap();
+  let bucketRequestSerial = 0;
 
   function portfolioTable(){
     return Array.from(document.querySelectorAll('table')).find(t =>
@@ -794,46 +797,34 @@ def admin_portfolio():
     ) || null;
   }
 
-  function parsePortfolioTradeDate(value){
-    const raw=String(value||'').trim();
-    if(!raw || raw==='-' || raw.toLowerCase()==='none') return null;
-    let m=raw.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
-    if(m) return new Date(Number(m[1]),Number(m[2])-1,Number(m[3]));
-    m=raw.match(/^(\d{1,2})[/.\-](\d{1,2})[/.\-](\d{4})$/);
-    if(m) return new Date(Number(m[3]),Number(m[2])-1,Number(m[1]));
-    const parsed=new Date(raw);
-    if(Number.isNaN(parsed.getTime())) return null;
-    return new Date(parsed.getFullYear(),parsed.getMonth(),parsed.getDate());
+  function clientIdForRow(row, clientIndex){
+    const fromData = String(row.dataset.client || '').trim();
+    if(fromData) return fromData.toLowerCase();
+    return String(row.cells[clientIndex]?.textContent || '').trim().toLowerCase();
   }
 
-  function rowMatchesBucket(row,bucket,tradeDateIndex){
-    const date=parsePortfolioTradeDate(row.cells[tradeDateIndex]?.textContent);
-    if(!date) return false;
-    const today=new Date();today.setHours(0,0,0,0);
-    date.setHours(0,0,0,0);
-    const days=Math.max(0,Math.floor((today-date)/86400000));
-    if(bucket==='recent') return days>=0 && days<=9;
-    if(bucket==='10-30') return days>=10 && days<=30;
-    if(bucket==='30-60') return days>=30 && days<=60;
-    return days>60;
+  function bucketMatches(days, bucket){
+    if(days === null || days === undefined || !Number.isFinite(Number(days))) return false;
+    const n = Number(days);
+    if(bucket === 'recent') return n >= 0 && n <= 9;
+    if(bucket === '10-30') return n >= 10 && n <= 30;
+    if(bucket === '30-60') return n >= 30 && n <= 60;
+    return n > 60;
   }
 
-  function applyPortfolioBucket(bucket){
+  function applyPortfolioBucket(){
     const table=portfolioTable();
-    if(!table) return 0;
+    if(!table || !activeClientIds) return 0;
     const headers=Array.from(table.querySelectorAll('thead th'));
-    let tradeDateIndex=headers.findIndex(th=>/trade\s*date/i.test(th.textContent||''));
-    if(tradeDateIndex<0) tradeDateIndex=10; // Existing portfolio table layout fallback.
+    let clientIndex=headers.findIndex(th=>/^\s*client\s*$/i.test(th.textContent||''));
+    if(clientIndex<0) clientIndex=1;
     let shown=0;
     table.querySelectorAll('tbody tr').forEach(row=>{
       if(!originalRowDisplay.has(row)){
-        originalRowDisplay.set(row,{
-          display:row.style.display,
-          hidden:row.hidden
-        });
+        originalRowDisplay.set(row,{display:row.style.display,hidden:row.hidden});
       }
       const base=originalRowDisplay.get(row);
-      const matches=rowMatchesBucket(row,bucket,tradeDateIndex);
+      const matches=activeClientIds.has(clientIdForRow(row,clientIndex));
       const baseWasHidden=base.hidden || base.display==='none';
       const visible=matches && !baseWasHidden;
       row.hidden=!visible;
@@ -841,7 +832,7 @@ def admin_portfolio():
       if(visible) shown++;
     });
     const note=document.getElementById('lms-recency-note');
-    if(note) note.textContent=shown+' matching position rows shown';
+    if(note) note.textContent=activeClientIds.size+' matching clients · '+shown+' existing holding rows shown';
     return shown;
   }
 
@@ -858,16 +849,17 @@ def admin_portfolio():
       });
     }
     activePortfolioBucket=null;
+    activeClientIds=null;
     const note=document.getElementById('lms-recency-note');
-    if(note) note.textContent='Showing all portfolio positions';
+    if(note) note.textContent='Showing all clients and existing holdings';
     const bar=document.getElementById('lms-recency-bar');
-    if(bar) bar.querySelectorAll('button').forEach(b=>b.classList.remove('active'));
+    if(bar) bar.querySelectorAll('button[data-bucket]').forEach(b=>b.classList.remove('active'));
   }
 
-  function showBucket(bucket,label){
+  async function showBucket(bucket,label){
     const table=portfolioTable();
+    const note=document.getElementById('lms-recency-note');
     if(!table){
-      const note=document.getElementById('lms-recency-note');
       if(note) note.textContent='Portfolio table not found. Refresh the page.';
       return;
     }
@@ -875,28 +867,55 @@ def admin_portfolio():
       clearPortfolioBucket();
       return;
     }
+    const requestId=++bucketRequestSerial;
     activePortfolioBucket=bucket;
+    activeClientIds=null;
+    if(note) note.textContent='Loading matching clients…';
     const bar=document.getElementById('lms-recency-bar');
-    if(bar) bar.querySelectorAll('button').forEach(b=>b.classList.toggle('active',b.dataset.bucket===bucket));
-    const count=applyPortfolioBucket(bucket);
-    const note=document.getElementById('lms-recency-note');
-    if(note) note.textContent=count+' matching existing position rows · '+label;
+    if(bar) bar.querySelectorAll('button[data-bucket]').forEach(b=>b.classList.toggle('active',b.dataset.bucket===bucket));
+
+    try{
+      const response=await fetch('/api/admin/trade-recency',{credentials:'same-origin',cache:'no-store'});
+      const data=await response.json();
+      if(!response.ok || !data.success) throw new Error(data.message||'Unable to load trade dates');
+      if(requestId!==bucketRequestSerial) return;
+      const eligible=(data.clients||[]).filter(c=>bucketMatches(c.days_since_trade,bucket));
+      activeClientIds=new Set(eligible.map(c=>String(c.client_id||'').trim().toLowerCase()).filter(Boolean));
+      const count=applyPortfolioBucket();
+      if(note) note.textContent=eligible.length+' matching clients · '+count+' existing holding rows · '+label;
+    }catch(error){
+      if(requestId!==bucketRequestSerial) return;
+      activePortfolioBucket=null;
+      activeClientIds=null;
+      if(bar) bar.querySelectorAll('button[data-bucket]').forEach(b=>b.classList.remove('active'));
+      if(note) note.textContent='Could not filter holdings: '+(error.message||'request failed');
+    }
   }
+
   function installBar(){
     if(document.getElementById('lms-recency-bar'))return true;
     const candidates=Array.from(document.querySelectorAll('h1,h2,h3,h4,div,span,p')).filter(el=>el.children.length<4&&/Portfolio\s*[—-]\s*Click\s*▲\s*\/\s*▼\s*in any header to sort/i.test(el.textContent||''));
     const heading=candidates[0];if(!heading)return false;
     const bar=document.createElement('div');bar.id='lms-recency-bar';bar.innerHTML=`<b style="font-size:12px;color:#0a3475;margin-right:3px">Logbook:</b><button data-bucket="recent">Traded in last 10 days</button><button data-bucket="10-30">10–30 days</button><button data-bucket="30-60">30–60 days</button><button data-bucket="60+">Above 60 days</button><span id="lms-recency-note">Select a period to view clients</span>`;
     heading.insertAdjacentElement('afterend',bar);
-    bar.querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{bar.querySelectorAll('button').forEach(x=>x.classList.remove('active'));b.classList.add('active');const names={recent:'Traded in last 10 days','10-30':'10–30 days','30-60':'30–60 days','60+':'Above 60 days'};showBucket(b.dataset.bucket,names[b.dataset.bucket]);}));
+    bar.querySelectorAll('button[data-bucket]').forEach(b=>b.addEventListener('click',()=>{const names={recent:'Traded in last 10 days','10-30':'10–30 days','30-60':'30–60 days','60+':'Above 60 days'};showBucket(b.dataset.bucket,names[b.dataset.bucket]);}));
+    const clearButton=document.createElement('button');
+    clearButton.type='button';clearButton.id='lms-recency-clear';clearButton.textContent='Clear';
+    clearButton.addEventListener('click',clearPortfolioBucket);
+    bar.appendChild(clearButton);
     return true;
   }
   const observer=new MutationObserver(()=>{
     installBar();
-    if(activePortfolioBucket) applyPortfolioBucket(activePortfolioBucket);
+    if(activePortfolioBucket && activeClientIds) applyPortfolioBucket();
   });
   observer.observe(document.body,{childList:true,subtree:true});
   installBar();
+  document.addEventListener('click',function(ev){
+    const button=ev.target.closest('button');
+    if(!button || button.id==='lms-recency-clear') return;
+    if((button.textContent||'').trim().toLowerCase()==='clear') clearPortfolioBucket();
+  },true);
   // Clicking a Client ID cell in the desktop portfolio table opens its three charts.
   document.addEventListener('click',function(ev){
     if(ev.target.closest('button,a,input,select,textarea'))return;
