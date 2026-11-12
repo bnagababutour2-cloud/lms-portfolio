@@ -1043,9 +1043,16 @@ def admin_client_analytics(client_id):
             item["pnl"] += pnl
 
             meta = COMPANY_CLASSIFICATIONS.get(symbol, {})
-            sector = str(h.get("industry") or h.get("sector") or h.get("industry_name") or meta.get("industry") or "Unclassified").strip() or "Unclassified"
+            sector = str(h.get("industry") or h.get("sector") or h.get("industry_name") or h.get("sector_name") or meta.get("industry") or meta.get("sector") or meta.get("industry_name") or "Unclassified").strip() or "Unclassified"
             industry[sector] = industry.get(sector, 0.0) + invested
-            cap = str(meta.get("market_cap") or "Unclassified").strip().title()
+            # Prefer explicit holding metadata, then the symbol classification file.
+            cap_raw = (h.get("market_cap_category") or h.get("market_cap_class") or
+                       h.get("cap_category") or h.get("market_cap") or
+                       meta.get("market_cap") or meta.get("market_cap_category") or
+                       meta.get("market_cap_class") or meta.get("cap_category") or "Unclassified")
+            cap = str(cap_raw).strip().replace("_", " ").title()
+            cap = {"Large": "Large Cap", "Mid": "Mid Cap", "Small": "Small Cap",
+                   "Largecap": "Large Cap", "Midcap": "Mid Cap", "Smallcap": "Small Cap"}.get(cap, cap)
             if cap not in ("Large Cap", "Mid Cap", "Small Cap"):
                 cap = "Unclassified"
             market_cap[cap] = market_cap.get(cap, 0.0) + invested
@@ -1074,8 +1081,8 @@ def admin_client_analytics(client_id):
             "market_caps": [{"name": k, "invested": v} for k, v in sorted(market_cap.items(), key=lambda x: x[1], reverse=True)],
             "last_trade_date": latest_date.isoformat() if latest_date else None,
             "trading_days": {"week": len(week_days), "month": len(month_days), "quarter": len(quarter_days), "financial_year": len(fy_days)},
-            "industry_note": "Industry uses holding industry/sector first, then company_classifications.json; unknown symbols are Unclassified.",
-            "market_cap_note": "Market-cap categories are read from company_classifications.json. Symbols without a supplied category are Unclassified."
+            "industry_note": "Industry uses holding industry/sector fields first, then company_classifications.json; unknown symbols are Unclassified.",
+            "market_cap_note": "Market-cap uses holding category fields first, then company_classifications.json. Symbols without a category mapping are Unclassified."
         })
     except Exception as exc:
         traceback.print_exc()
