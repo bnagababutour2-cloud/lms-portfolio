@@ -19,44 +19,7 @@ from pathlib import Path
 
 # Optional symbol metadata. Keep company_classifications.json beside this file.
 # The bundled JSON contains symbol-level industry and AMFI market-cap metadata.
-def _normalize_equity_symbol(symbol):
-    """Strip common broker/exchange suffixes (-EQ, -BE, .NS, .BO, etc.) for metadata lookup."""
-    s = str(symbol or "").strip().upper()
-    if not s or s in ("-", "UNKNOWN", "N/A"):
-        return ""
-    s = re.sub(r"\.(NS|BO)$", "", s)
-    s = re.sub(r"-(EQ|BE|BL|BZ|SM|ST|IL|IQ|RL|GC|GS)$", "", s)
-    return s.strip()
-
-
-def _normalize_cap_label(raw_cap):
-    val = str(raw_cap or "").strip().lower()
-    if not val:
-        return ""
-    if "large" in val:
-        return "Large Cap"
-    if "mid" in val:
-        return "Mid Cap"
-    if "small" in val or "micro" in val:
-        return "Small Cap"
-    return ""
-
-
-def _cap_from_crore(crore):
-    try:
-        c = float(crore)
-        if c <= 0:
-            return ""
-        # Approximate AMFI thresholds (₹20,000 Cr+ Large Cap, ₹5,000–20,000 Cr Mid Cap)
-        if c >= 20000:
-            return "Large Cap"
-        if c >= 5000:
-            return "Mid Cap"
-        return "Small Cap"
-    except Exception:
-        return ""
-
-
+# Symbols absent from the file remain explicitly Unclassified.
 def _load_company_classifications():
     candidates = [
         Path(__file__).with_name("company_classifications.json"),
@@ -68,191 +31,64 @@ def _load_company_classifications():
         try:
             payload = json.loads(candidate.read_text(encoding="utf-8"))
             if isinstance(payload, dict):
-                out = {}
-                for k, v in payload.items():
-                    if not isinstance(v, dict) or str(k).startswith("_"):
-                        continue
-                    raw_key = str(k).strip().upper()
-                    norm_key = _normalize_equity_symbol(raw_key)
-                    cleaned = {
-                        "industry": str(v.get("industry") or v.get("sector") or "").strip(),
-                        "market_cap": _normalize_cap_label(v.get("market_cap") or v.get("cap") or v.get("category")),
-                    }
-                    out[raw_key] = cleaned
-                    if norm_key and norm_key not in out:
-                        out[norm_key] = cleaned
-                return out
+                return {str(k).strip().upper(): v for k, v in payload.items()
+                        if isinstance(v, dict) and not str(k).startswith("_")}
         except Exception:
             pass
     return {}
 
-
 COMPANY_CLASSIFICATIONS = _load_company_classifications()
 
-# Multi-source fallback metadata (NSE Quote API + Yahoo Finance with Crumb/Cookie)
-_META_CACHE = {}
-_META_CACHE_TTL = 3600 * 12  # 12 hours for resolved symbols
-_META_FAIL_TTL = 300         # 5 minutes retry window if network failed
-_META_LOCK = threading.Lock()
-
-_YF_CRUMB_STATE = {"session": None, "crumb": None, "ts": 0.0}
-_NSE_META_STATE = {"session": None, "ts": 0.0}
-
-
-def _get_nse_meta_session():
-    now = time.time()
-    if _NSE_META_STATE["session"] and (now - _NSE_META_STATE["ts"]) < 600:
-        return _NSE_META_STATE["session"]
-    s = requests.Session()
-    s.headers.update({
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
-        "Accept": "application/json, text/plain, */*",
-        "Accept-Language": "en-US,en;q=0.9",
-        "Referer": "https://www.nseindia.com/",
-    })
-    try:
-        s.get("https://www.nseindia.com/", timeout=6)
-    except Exception:
-        pass
-    _NSE_META_STATE["session"] = s
-    _NSE_META_STATE["ts"] = now
-    return s
-
-
-def _fetch_nse_metadata(clean_symbol):
-    """Fetch official Industry & Market Cap from NSE quote-equity endpoint."""
-    result = {}
-    try:
-        s = _get_nse_meta_session()
-        resp = s.get(
-            "https://www.nseindia.com/api/quote-equity",
-            params={"symbol": clean_symbol},
-            timeout=6,
-        )
-        if not resp.ok:
-            return result
-        data = resp.json() or {}
-        info = data.get("industryInfo") or {}
-        metadata = data.get("metadata") or {}
-        industry = (
-            info.get("basicIndustry")
-            or info.get("industry")
-            or info.get("sector")
-            or metadata.get("industry")
-        )
-        if industry and str(industry).strip().upper() not in ("", "NA", "N/A", "-"):
-            result["industry"] = str(industry).strip()
-
-        sec_info = data.get("securityInfo") or {}
-        price_info = data.get("priceInfo") or {}
-        issued_size = sec_info.get("issuedSize")
-        last_price = price_info.get("lastPrice") or price_info.get("close")
-        if issued_size and last_price:
-            crore = (float(issued_size) * float(last_price)) / 10000000.0
-            cap = _cap_from_crore(crore)
-            if cap:
-                result["market_cap"] = cap
-    except Exception:
-        pass
-    return result
-
-
-def _get_yahoo_crumb_session():
-    now = time.time()
-    if _YF_CRUMB_STATE["session"] and _YF_CRUMB_STATE["crumb"] and (now - _YF_CRUMB_STATE["ts"]) < 1800:
-        return _YF_CRUMB_STATE["session"], _YF_CRUMB_STATE["crumb"]
-
-    s = requests.Session()
-    s.headers.update({
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-        "Accept-Language": "en-US,en;q=0.9",
-    })
-    crumb = None
-    try:
-        s.get("https://fc.yahoo.com", timeout=6, allow_redirects=True)
-        r = s.get("https://query1.finance.yahoo.com/v1/test/getcrumb", timeout=6)
-        if r.ok and r.text and "Too Many Requests" not in r.text and "<" not in r.text:
-            crumb = r.text.strip()
-    except Exception:
-        pass
-
-    _YF_CRUMB_STATE["session"] = s
-    _YF_CRUMB_STATE["crumb"] = crumb
-    _YF_CRUMB_STATE["ts"] = now
-    return s, crumb
-
-
+# Yahoo Finance fallback metadata for symbols not present in local classification JSON.
+# Market-cap thresholds are approximate (AMFI rank-based categories are authoritative).
+_YF_META_CACHE = {}
+_YF_META_LOCK = threading.Lock()
 def _yahoo_symbol_metadata(symbol):
-    """Resolve Industry and Market Cap using NSE + authenticated Yahoo Finance."""
-    raw_sym = str(symbol or "").strip().upper()
-    clean_sym = _normalize_equity_symbol(raw_sym)
-    if not clean_sym:
+    """Resolve NSE/BSE metadata with Yahoo quoteSummary + quote endpoint fallback."""
+    symbol = str(symbol or '').strip().upper()
+    if not symbol or symbol in ('-', 'UNKNOWN', 'N/A'):
         return {}
-
-    now = time.time()
-    with _META_LOCK:
-        cached = _META_CACHE.get(clean_sym)
-        if cached and (now - cached["ts"]) < cached["ttl"]:
-            return dict(cached["data"])
-
+    with _YF_META_LOCK:
+        if symbol in _YF_META_CACHE:
+            return _YF_META_CACHE[symbol]
+    tickers = [symbol] if symbol.endswith(('.NS', '.BO')) else [symbol + '.NS', symbol + '.BO']
     result = {}
-
-    # 1. Try NSE India official quote API first (best for Indian equities)
-    nse_data = _fetch_nse_metadata(clean_sym)
-    result.update({k: v for k, v in nse_data.items() if v})
-
-    # 2. If Industry or Market Cap is still missing, query Yahoo Finance with Crumb + Cookie
-    if not result.get("industry") or not result.get("market_cap"):
-        tickers = [raw_sym] if raw_sym.endswith((".NS", ".BO")) else [clean_sym + ".NS", clean_sym + ".BO"]
-        s, crumb = _get_yahoo_crumb_session()
-        for ticker in tickers:
-            if result.get("industry") and result.get("market_cap"):
-                break
-            try:
-                params = {"modules": "assetProfile,price,summaryDetail"}
-                if crumb:
-                    params["crumb"] = crumb
-                url = "https://query2.finance.yahoo.com/v10/finance/quoteSummary/" + quote(ticker, safe="")
-                resp = s.get(url, params=params, timeout=7)
-                if resp.ok:
-                    res_list = (resp.json().get("quoteSummary") or {}).get("result") or []
-                    if res_list:
-                        profile = res_list[0].get("assetProfile") or {}
-                        price = res_list[0].get("price") or {}
-                        summary = res_list[0].get("summaryDetail") or {}
-                        sector = profile.get("industry") or profile.get("sector")
-                        if sector and not result.get("industry"):
-                            result["industry"] = str(sector).strip()
-                        mc = (price.get("marketCap") or {}).get("raw") or (summary.get("marketCap") or {}).get("raw")
-                        if isinstance(mc, (int, float)) and mc > 0 and not result.get("market_cap"):
-                            cap = _cap_from_crore(float(mc) / 10000000.0)
-                            if cap:
-                                result["market_cap"] = cap
-            except Exception:
-                pass
-
-            # Yahoo Search endpoint fallback (works without crumb and returns sector/industry)
-            if not result.get("industry"):
-                try:
-                    sr = s.get(
-                        "https://query1.finance.yahoo.com/v1/finance/search",
-                        params={"q": ticker, "quotesCount": 3, "newsCount": 0},
-                        timeout=6,
-                    )
-                    if sr.ok:
-                        for q_item in (sr.json().get("quotes") or []):
-                            sec = q_item.get("industry") or q_item.get("sector")
-                            if sec:
-                                result["industry"] = str(sec).strip()
-                                break
-                except Exception:
-                    pass
-
-    ttl = _META_CACHE_TTL if (result.get("industry") and result.get("market_cap")) else _META_FAIL_TTL
-    with _META_LOCK:
-        _META_CACHE[clean_sym] = {"data": dict(result), "ts": now, "ttl": ttl}
-
+    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36'}
+    for ticker in tickers:
+        try:
+            url = 'https://query1.finance.yahoo.com/v10/finance/quoteSummary/' + quote(ticker, safe='')
+            response = requests.get(url, params={'modules':'assetProfile,price'}, headers=headers, timeout=7)
+            if response.ok:
+                data = response.json().get('quoteSummary',{}).get('result') or []
+                if data:
+                    profile=data[0].get('assetProfile') or {}
+                    price=data[0].get('price') or {}
+                    sector=profile.get('sector') or profile.get('industry')
+                    if sector: result['industry']=sector
+                    mc=(price.get('marketCap') or {}).get('raw')
+                    if mc is None:
+                        mc=(price.get('marketCap') or {}).get('fmt')
+                    if isinstance(mc,(int,float)):
+                        crore=float(mc)/10000000
+                        result['market_cap']='Large Cap' if crore>=20000 else ('Mid Cap' if crore>=5000 else 'Small Cap')
+                    if result: break
+        except Exception:
+            pass
+        # Fallback quote API can still return market cap when quoteSummary is unavailable.
+        try:
+            response=requests.get('https://query1.finance.yahoo.com/v7/finance/quote',
+                params={'symbols':ticker},headers=headers,timeout=7)
+            if response.ok:
+                q=(response.json().get('quoteResponse',{}).get('result') or [])
+                if q:
+                    mc=q[0].get('marketCap')
+                    if isinstance(mc,(int,float)):
+                        crore=float(mc)/10000000
+                        result.setdefault('market_cap','Large Cap' if crore>=20000 else ('Mid Cap' if crore>=5000 else 'Small Cap'))
+        except Exception:
+            pass
+    with _YF_META_LOCK:
+        _YF_META_CACHE[symbol]=result
     return result
 
 
@@ -1245,8 +1081,7 @@ def admin_client_analytics(client_id):
         week_days, month_days, quarter_days, fy_days = set(), set(), set(), set()
 
         for h in result.data or []:
-            raw_symbol = str(h.get("symbol") or "-").strip().upper()
-            clean_symbol = _normalize_equity_symbol(raw_symbol) or raw_symbol
+            symbol = str(h.get("symbol") or "-").strip().upper()
             qty = _clean_number(h.get("quantity"))
             buy = _clean_number(h.get("buy_price"))
             ltp = _clean_number(h.get("ltp"), buy)
@@ -1256,33 +1091,16 @@ def admin_client_analytics(client_id):
             total_invested += invested
             current_value += value
             total_pnl += pnl
-            item = company.setdefault(raw_symbol, {"name": raw_symbol, "invested": 0.0, "pnl": 0.0})
+            item = company.setdefault(symbol, {"name": symbol, "invested": 0.0, "pnl": 0.0})
             item["invested"] += invested
             item["pnl"] += pnl
 
-            meta = COMPANY_CLASSIFICATIONS.get(raw_symbol) or COMPANY_CLASSIFICATIONS.get(clean_symbol) or {}
-            db_industry = str(h.get("industry") or h.get("sector") or h.get("industry_name") or "").strip()
-            if db_industry.lower() in ("", "-", "unclassified", "unknown", "none", "null"):
-                db_industry = ""
-            db_cap = _normalize_cap_label(h.get("market_cap") or h.get("cap_category") or "")
-
-            need_lookup = (not db_industry and not meta.get("industry")) or (not db_cap and not meta.get("market_cap"))
-            yf_meta = _yahoo_symbol_metadata(clean_symbol) if need_lookup else {}
-
-            sector = (
-                db_industry
-                or meta.get("industry")
-                or yf_meta.get("industry")
-                or "Unclassified"
-            ).strip() or "Unclassified"
+            meta = COMPANY_CLASSIFICATIONS.get(symbol, {})
+            # Enrich missing symbol metadata from Yahoo Finance (cached per worker).
+            yf_meta = _yahoo_symbol_metadata(symbol) if (not meta.get("industry") or not meta.get("market_cap")) else {}
+            sector = str(h.get("industry") or h.get("sector") or h.get("industry_name") or meta.get("industry") or yf_meta.get("industry") or "Unclassified").strip() or "Unclassified"
             industry[sector] = industry.get(sector, 0.0) + invested
-
-            cap = (
-                db_cap
-                or _normalize_cap_label(meta.get("market_cap"))
-                or _normalize_cap_label(yf_meta.get("market_cap"))
-                or "Unclassified"
-            )
+            cap = str(meta.get("market_cap") or yf_meta.get("market_cap") or "Unclassified").strip().title()
             if cap not in ("Large Cap", "Mid Cap", "Small Cap"):
                 cap = "Unclassified"
             market_cap[cap] = market_cap.get(cap, 0.0) + invested
