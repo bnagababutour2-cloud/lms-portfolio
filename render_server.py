@@ -44,31 +44,51 @@ COMPANY_CLASSIFICATIONS = _load_company_classifications()
 _YF_META_CACHE = {}
 _YF_META_LOCK = threading.Lock()
 def _yahoo_symbol_metadata(symbol):
+    """Resolve NSE/BSE metadata with Yahoo quoteSummary + quote endpoint fallback."""
     symbol = str(symbol or '').strip().upper()
+    if not symbol or symbol in ('-', 'UNKNOWN', 'N/A'):
+        return {}
     with _YF_META_LOCK:
-        if symbol in _YF_META_CACHE: return _YF_META_CACHE[symbol]
+        if symbol in _YF_META_CACHE:
+            return _YF_META_CACHE[symbol]
+    tickers = [symbol] if symbol.endswith(('.NS', '.BO')) else [symbol + '.NS', symbol + '.BO']
     result = {}
-    ticker = symbol if symbol.endswith(('.NS', '.BO')) else symbol + '.NS'
-    try:
-        url = 'https://query1.finance.yahoo.com/v10/finance/quoteSummary/' + quote(ticker, safe='')
-        response = requests.get(url, params={'modules':'assetProfile,price'}, headers={'User-Agent':'Mozilla/5.0'}, timeout=3.5)
-        if response.ok:
-            data = response.json().get('quoteSummary',{}).get('result') or []
-            if data:
-                profile=data[0].get('assetProfile') or {}; price=data[0].get('price') or {}
-                sector=profile.get('sector'); industry=profile.get('industry')
-                if sector: result['industry']=sector
-                elif industry: result['industry']=industry
-                mc=((price.get('marketCap') or {}).get('raw'))
-                if mc is None: mc=((price.get('marketCap') or {}).get('fmt'))
-                try:
-                    # Yahoo market cap is INR for .NS tickers. Thresholds are a practical approximation.
-                    crore=float(mc)/10000000 if isinstance(mc,(int,float)) else None
-                    if crore is not None:
+    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36'}
+    for ticker in tickers:
+        try:
+            url = 'https://query1.finance.yahoo.com/v10/finance/quoteSummary/' + quote(ticker, safe='')
+            response = requests.get(url, params={'modules':'assetProfile,price'}, headers=headers, timeout=7)
+            if response.ok:
+                data = response.json().get('quoteSummary',{}).get('result') or []
+                if data:
+                    profile=data[0].get('assetProfile') or {}
+                    price=data[0].get('price') or {}
+                    sector=profile.get('sector') or profile.get('industry')
+                    if sector: result['industry']=sector
+                    mc=(price.get('marketCap') or {}).get('raw')
+                    if mc is None:
+                        mc=(price.get('marketCap') or {}).get('fmt')
+                    if isinstance(mc,(int,float)):
+                        crore=float(mc)/10000000
                         result['market_cap']='Large Cap' if crore>=20000 else ('Mid Cap' if crore>=5000 else 'Small Cap')
-                except Exception: pass
-    except Exception: pass
-    with _YF_META_LOCK: _YF_META_CACHE[symbol]=result
+                    if result: break
+        except Exception:
+            pass
+        # Fallback quote API can still return market cap when quoteSummary is unavailable.
+        try:
+            response=requests.get('https://query1.finance.yahoo.com/v7/finance/quote',
+                params={'symbols':ticker},headers=headers,timeout=7)
+            if response.ok:
+                q=(response.json().get('quoteResponse',{}).get('result') or [])
+                if q:
+                    mc=q[0].get('marketCap')
+                    if isinstance(mc,(int,float)):
+                        crore=float(mc)/10000000
+                        result.setdefault('market_cap','Large Cap' if crore>=20000 else ('Mid Cap' if crore>=5000 else 'Small Cap'))
+        except Exception:
+            pass
+    with _YF_META_LOCK:
+        _YF_META_CACHE[symbol]=result
     return result
 
 
@@ -1109,8 +1129,8 @@ def admin_client_analytics(client_id):
             "market_caps": [{"name": k, "invested": v} for k, v in sorted(market_cap.items(), key=lambda x: x[1], reverse=True)],
             "last_trade_date": latest_date.isoformat() if latest_date else None,
             "trading_days": {"week": len(week_days), "month": len(month_days), "quarter": len(quarter_days), "financial_year": len(fy_days)},
-            "industry_note": "Industry uses holding industry/sector first, then company_classifications.json; unknown symbols are Unclassified.",
-            "market_cap_note": "Market cap uses local AMFI classifications first, then Yahoo Finance market-cap thresholds (approximate); unavailable symbols remain Unclassified."
+            "industry_note": "Industry uses holding industry/sector, local company_classifications.json, then Yahoo Finance assetProfile metadata; symbols unavailable from sources remain Unclassified.",
+            "market_cap_note": "Market cap uses local AMFI classifications first, then Yahoo Finance market-cap data with approximate ₹5,000 crore/₹20,000 crore thresholds; unavailable symbols remain Unclassified."
         })
     except Exception as exc:
         traceback.print_exc()
