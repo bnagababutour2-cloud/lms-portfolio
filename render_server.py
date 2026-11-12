@@ -18,8 +18,8 @@ import fcntl
 from pathlib import Path
 
 # Optional symbol metadata. Keep company_classifications.json beside this file.
-# The supplied file currently contains source instructions but no symbol records;
-# missing symbols therefore remain explicitly Unclassified.
+# The bundled JSON contains symbol-level industry and AMFI market-cap metadata.
+# Symbols absent from the file remain explicitly Unclassified.
 def _load_company_classifications():
     candidates = [
         Path(__file__).with_name("company_classifications.json"),
