@@ -117,7 +117,7 @@ class _PostgresQuery:
         except ImportError as exc:
             raise RuntimeError("psycopg2-binary is required for DATABASE_URL mode") from exc
 
-        allowed_tables = {"clients", "holdings", "trade_logs"}
+        allowed_tables = {"clients", "holdings"}
         if self.table not in allowed_tables:
             raise RuntimeError(f"Unsupported table: {self.table}")
 
@@ -978,45 +978,6 @@ def _classification_for(symbol, holding=None, mapping=None):
     else: cap = "Unclassified"
     return str(industry).strip() or "Unclassified", cap
 
-def _trade_log_records(trades, source_file, upload_id):
-    records = []
-    for t in trades:
-        payload = {
-            "date": t.get("date"), "client": t.get("client"), "symbol": t.get("symbol"),
-            "product": t.get("product"), "buy_qty": t.get("buy_qty", 0),
-            "buy_price": t.get("buy_price"), "sell_qty": t.get("sell_qty", 0),
-            "sell_price": t.get("sell_price"), "source_row": t.get("source_row"),
-        }
-        raw = json.dumps(payload, sort_keys=True, separators=(",", ":"), default=str)
-        key = hashlib.sha256(raw.encode("utf-8")).hexdigest()
-        records.append({
-            "trade_key": key, "trade_date": t.get("date"), "client_id": t.get("client"),
-            "symbol": t.get("symbol"), "product": t.get("bucket") or t.get("product"),
-            "buy_qty": float(t.get("buy_qty") or 0), "buy_price": t.get("buy_price"),
-            "sell_qty": float(t.get("sell_qty") or 0), "sell_price": t.get("sell_price"),
-            "realised_pnl": float(t.get("realised_pnl") or 0),
-            "sell_allocations": json.dumps(t.get("sell_allocations") or [], ensure_ascii=False),
-            "raw_details": json.dumps(t.get("raw_details") or {}, ensure_ascii=False, default=str),
-            "source_row": int(t.get("source_row") or 0), "source_file": str(source_file or ""),
-            "upload_id": upload_id,
-        })
-    return records
-
-def _save_trade_log_records(records):
-    if not records:
-        return 0
-    keys = [r["trade_key"] for r in records]
-    existing = set()
-    for start in range(0, len(keys), 400):
-        got = supabase.table("trade_logs").select("trade_key").in_("trade_key", keys[start:start+400]).execute().data or []
-        existing.update(str(x.get("trade_key")) for x in got)
-    fresh = [r for r in records if r["trade_key"] not in existing]
-    for start in range(0, len(fresh), 250):
-        supabase.table("trade_logs").insert(fresh[start:start+250]).execute()
-    return len(fresh)
-
-
-
 @app.route("/api/admin/trade-recency", methods=["GET"])
 def admin_trade_recency():
     account, auth_error = _require_supervisor()
@@ -1030,14 +991,9 @@ def admin_trade_recency():
         clients = _filter_supervisor_clients(supervisor_id, _load_all_clients())
         holdings = _filter_supervisor_holdings(supervisor_id, _load_all_holdings())
         latest = {}
-        # Prefer the permanent BUY/SELL journal so clients with fully sold
-        # positions remain in the Logbook; fall back to active holdings for
-        # legacy clients who have not yet uploaded a report since this upgrade.
-        try:
-            history_rows = supabase.table("trade_logs").select("client_id,trade_date").execute().data or []
-        except Exception:
-            history_rows = []
-        for source_row in [*holdings, *history_rows]:
+        # Until the separate trade-history table is enabled, recency is based
+        # on Trade Date values present on current open holdings only.
+        for source_row in holdings:
             cid = str(source_row.get("client_id") or "").strip()
             dt = _clean_trade_date(source_row.get("trade_date"))
             if cid and dt and (cid not in latest or dt > latest[cid]):
@@ -1067,9 +1023,10 @@ def admin_client_analytics(client_id):
         return jsonify({"success": False, "message": "Client is outside your access scope."}), 403
     try:
         holdings = supabase.table("holdings").select("*").ilike("client_id", cid).execute().data or []
-        logs = supabase.table("trade_logs").select("trade_date,buy_qty,sell_qty,buy_price,sell_price,realised_pnl,symbol,product").ilike("client_id", cid).execute().data or []
+        # Trade-day counts are provisional until historical BUY/SELL logs are added.
+        logs = []
         today = (datetime.utcnow() + timedelta(hours=5, minutes=30)).date()
-        dates = sorted({datetime.strptime(d, "%Y-%m-%d").date() for x in logs if (d := _clean_trade_date(x.get("trade_date")))})
+        dates = sorted({datetime.strptime(d, "%Y-%m-%d").date() for h in holdings if (d := _clean_trade_date(h.get("trade_date")))})
         week_start = today - timedelta(days=today.weekday())
         month_start = today.replace(day=1)
         quarter_month = ((today.month - 1) // 3) * 3 + 1
@@ -1107,29 +1064,12 @@ def admin_client_analytics(client_id):
             "companies": sorted(company.values(), key=lambda x: x["invested"], reverse=True),
             "industries": allocation(industry), "market_caps": allocation(cap),
             "activity_days": activity, "last_trade_date": max([*last_dates, *[d.isoformat() for d in dates]], default=None),
-            "trade_log_count": len(logs),
+            "trade_log_count": 0,
+            "activity_note": "Provisional: counts distinct Trade Date values on current open holdings only. Full BUY/SELL day counts require the trade-history table, which will be added later.",
             "classification_note": "Industry is taken from holding metadata or company_classifications.json. Market-cap labels should be loaded from the current AMFI list; unclassified symbols remain Unclassified."})
     except Exception as exc:
         traceback.print_exc()
         return jsonify({"success": False, "message": "Could not load client analytics.", "error": str(exc)}), 500
-
-
-@app.route("/api/admin/trade-logs/<client_id>", methods=["GET"])
-def admin_client_trade_logs(client_id):
-    account, auth_error = _require_supervisor()
-    if auth_error: return auth_error
-    db_error = _require_db()
-    if db_error: return db_error
-    cid = str(client_id or "").strip()
-    if not cid or not _supervisor_can_view(session.get("supervisor_id"), cid):
-        return jsonify({"success": False, "message": "Client is outside your access scope."}), 403
-    try:
-        logs = supabase.table("trade_logs").select("*").ilike("client_id", cid).execute().data or []
-        logs.sort(key=lambda x: (str(x.get("trade_date") or ""), int(x.get("source_row") or 0)), reverse=True)
-        return jsonify({"success": True, "client_id": cid, "count": len(logs), "logs": logs})
-    except Exception as exc:
-        traceback.print_exc()
-        return jsonify({"success": False, "message": "Could not load trade logs.", "error": str(exc)}), 500
 
 
 # ============================================================
@@ -2902,11 +2842,6 @@ def upload_trade_report():
             if negative:
                 raise RuntimeError("Negative holding detected after daily update.")
 
-            stage = "saving permanent trade history"
-            trade_log_records = _trade_log_records(trades, uploaded.filename, request_id)
-            saved_trade_logs = _save_trade_log_records(trade_log_records)
-            print(f"[TRADE-REPORT {request_id}] Permanent trade history saved: {saved_trade_logs} new rows")
-
             last_trade_rows = display_rows[:1000]
             last_upload_info = {
                 "file_name": uploaded.filename,
@@ -2918,7 +2853,6 @@ def upload_trade_report():
                 "upload_date": datetime.now().strftime("%d-%m-%Y %H:%M:%S"),
                 "logic": "BUY first; same-price buys aggregated; different prices separate; SELL lowest BUY price first; excess SELL ignored; no negative holdings",
                 "summary": stats,
-                "trade_logs_saved": saved_trade_logs,
             }
             return jsonify({
                 "success": True,
@@ -2935,7 +2869,6 @@ def upload_trade_report():
                 "partial_lots_changed": stats["partial_closes"],
                 "excess_sell_ignored": stats["sell_excess_ignored"],
                 "sell_no_buy_ignored": stats["sell_ignored_no_buy"],
-                "trade_logs_saved": saved_trade_logs,
                 "redirect": url_for("trade_report"),
                 "request_id": request_id,
             })
