@@ -175,6 +175,30 @@
   .m-product .m-date-inline{margin-left:9px!important}
 }
 </style>
+
+<style id="logbook-sidebar-space-utilization">
+/* Desktop: widen the client sidebar to make better use of available horizontal space.
+   Keep the 3 analytics cards (Company, P/L, Allocation) on one row. */
+@media (min-width: 901px) {
+  .logbook-layout {
+    grid-template-columns: minmax(300px, 340px) minmax(0, 1fr) !important;
+    gap: 14px !important;
+  }
+  .logbook-charts {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 10px !important;
+  }
+  .logbook-allocation-box {
+    grid-column: auto !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+  .logbook-allocation-box > h4 { grid-column: 1 !important; }
+  .logbook-allocation-box .logbook-chart { display: block !important; }
+}
+@media (max-width: 900px) {
+  .logbook-layout { grid-template-columns: minmax(0,1fr) !important; }
+}
+</style>
 </head>
 <body>
 <header class="top"><div class="header-overlay"><div class="header-subtitle">ADMIN / SUPERVISOR PORTFOLIO &amp; DAILY CONTROL PANEL</div><div class="header-login">Logged in: {{ supervisor_name }} ({{ supervisor_id }}){% if not can_manage %} · VIEW ONLY{% endif %}</div></div></header>
