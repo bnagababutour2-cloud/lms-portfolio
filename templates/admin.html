@@ -170,19 +170,20 @@
   .m-row .m-mtm{text-align:right!important}
   .m-product .m-date-inline{margin-left:9px!important}
 }
-</style>
 
-/* Combined industry + market-cap analytics panel (desktop and mobile) */
-.logbook-chart-combined{grid-column:1/-1;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;border:1px solid #d8e4f0;border-radius:10px;background:#fbfdff;padding:10px;min-width:0}
-.logbook-chart-combined>.logbook-chart{min-width:0}
-.logbook-chart-combined .logbook-chart-market-cap{grid-column:auto;display:flex;flex-direction:column;align-items:stretch}
-.logbook-chart-combined .logbook-chart-market-cap .logbook-legend{width:100%;max-height:165px;display:flex}
-@media(max-width:1100px){.logbook-chart-combined{grid-template-columns:1fr}.logbook-chart-combined>.logbook-chart{display:grid;grid-template-columns:minmax(120px,170px) minmax(0,1fr);align-items:center;gap:8px}.logbook-chart-combined>.logbook-chart h4{grid-column:1/-1}.logbook-chart-combined .logbook-chart-market-cap .logbook-legend{grid-template-columns:1fr}}
-<style>
-.m-ana-combined{grid-column:1/-1;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;border:1px solid #d6e2ef;border-radius:10px;padding:8px;background:#fff}
-.m-ana-combined>.m-ana-chart{border:0;padding:5px}
-@media(max-width:380px){.m-ana-combined{grid-template-columns:1fr}}
-</style></head>
+
+/* Box 3: Industry + Market-cap charts grouped in one panel on desktop and mobile */
+.logbook-chart-combined{grid-column:1/-1;border:1px solid #d8e4f0;border-radius:10px;background:#fff;padding:11px;min-width:0}
+.logbook-chart-combined>h4{margin:0 0 10px;color:#052d70;font-size:12px}
+.logbook-chart-combined-inner{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.logbook-chart-combined-inner .logbook-chart{min-width:0}
+.m-ana-chart-combined{grid-column:1/-1;background:#fff;border:1px solid #dce6f0;border-radius:9px;padding:9px;min-width:0}
+.m-ana-chart-combined> b{display:block;color:#062e70;font-size:11px;margin-bottom:8px}
+.m-ana-chart-combined-inner{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+.m-ana-chart-combined-inner .m-ana-chart{border:1px solid #e4ebf3}
+@media(max-width:700px){.logbook-chart-combined-inner,.m-ana-chart-combined-inner{grid-template-columns:1fr}}
+</style>
+</head>
 <body>
 <header class="top"><div class="header-overlay"><div class="header-subtitle">ADMIN / SUPERVISOR PORTFOLIO &amp; DAILY CONTROL PANEL</div><div class="header-login">Logged in: {{ supervisor_name }} ({{ supervisor_id }}){% if not can_manage %} · VIEW ONLY{% endif %}</div></div></header>
 <div class="container">
@@ -270,8 +271,10 @@
       <div class="logbook-charts">
         <section class="logbook-chart"><h4>1. Investment by Company</h4><div class="logbook-donut-wrap"><div class="logbook-donut" id="logbookInvestmentDonut"><div class="logbook-donut-center"><b>—</b><small>Investment</small></div></div></div><div class="logbook-legend" id="logbookInvestmentLegend"><div class="logbook-empty">Select a client.</div></div></section>
         <section class="logbook-chart"><h4>2. Profit / Loss by Company</h4><div class="logbook-donut-wrap"><div class="logbook-donut" id="logbookPnlDonut"><div class="logbook-donut-center"><b>—</b><small>Profit / Loss</small></div></div></div><div class="logbook-legend" id="logbookPnlLegend"><div class="logbook-empty">Select a client.</div></div></section>
-        <div class="logbook-chart-combined">        <section class="logbook-chart"><h4>3. Investment by Industry</h4><div class="logbook-donut-wrap"><div class="logbook-donut" id="logbookIndustryDonut"><div class="logbook-donut-center"><b>—</b><small>By industry</small></div></div></div><div class="logbook-legend" id="logbookIndustryLegend"><div class="logbook-empty">Select a client.</div></div></section>
-        <section class="logbook-chart logbook-chart-market-cap"><h4>4. Large / Mid / Small Cap Allocation</h4><div class="logbook-donut-wrap"><div class="logbook-donut" id="logbookMarketCapDonut"><div class="logbook-donut-center"><b>—</b><small>By market cap</small></div></div></div><div class="logbook-legend" id="logbookMarketCapLegend"><div class="logbook-empty">Select a client.</div></div></section></div>
+        <section class="logbook-chart-combined"><h4>3. Investment by Industry &amp; Large / Mid / Small Cap Allocation</h4><div class="logbook-chart-combined-inner">
+          <div class="logbook-chart"><h4>Investment by Industry</h4><div class="logbook-donut-wrap"><div class="logbook-donut" id="logbookIndustryDonut"><div class="logbook-donut-center"><b>—</b><small>By industry</small></div></div></div><div class="logbook-legend" id="logbookIndustryLegend"><div class="logbook-empty">Select a client.</div></div></div>
+          <div class="logbook-chart"><h4>Large / Mid / Small Cap Allocation</h4><div class="logbook-donut-wrap"><div class="logbook-donut" id="logbookMarketCapDonut"><div class="logbook-donut-center"><b>—</b><small>By market cap</small></div></div></div><div class="logbook-legend" id="logbookMarketCapLegend"><div class="logbook-empty">Select a client.</div></div></div>
+        </div></section>
       </div>
       <div class="logbook-note">Investment = quantity × buy price. Profit/Loss = current MTM from the portfolio. Industry uses the holding industry/sector field, then company_classifications.json. Market-cap categories come from that file; missing mappings appear as Unclassified. Trade-recency is based on the Trade Date currently stored on portfolio rows.</div>
     </div>
@@ -347,8 +350,10 @@
       <div class="m-analytics-charts">
         <div class="m-ana-chart"><b>Investment by Company</b><div class="m-ana-donut" id="mAnaCompanyDonut"><span>—</span></div><div class="m-ana-legend" id="mAnaCompanyLegend">Select a client.</div></div>
         <div class="m-ana-chart"><b>Profit / Loss by Company</b><div class="m-ana-donut" id="mAnaPnlDonut"><span>—</span></div><div class="m-ana-legend" id="mAnaPnlLegend">Select a client.</div></div>
-        <div class="m-ana-combined">        <div class="m-ana-chart"><b>Investment by Industry</b><div class="m-ana-donut" id="mAnaIndustryDonut"><span>—</span></div><div class="m-ana-legend" id="mAnaIndustryLegend">Select a client.</div></div>
-        <div class="m-ana-chart"><b>Market Cap Allocation</b><div class="m-ana-donut" id="mAnaCapDonut"><span>—</span></div><div class="m-ana-legend" id="mAnaCapLegend">Select a client.</div></div></div>
+        <div class="m-ana-chart-combined"><b>Investment by Industry &amp; Large / Mid / Small Cap Allocation</b><div class="m-ana-chart-combined-inner">
+          <div class="m-ana-chart"><b>Investment by Industry</b><div class="m-ana-donut" id="mAnaIndustryDonut"><span>—</span></div><div class="m-ana-legend" id="mAnaIndustryLegend">Select a client.</div></div>
+          <div class="m-ana-chart"><b>Large / Mid / Small Cap Allocation</b><div class="m-ana-donut" id="mAnaCapDonut"><span>—</span></div><div class="m-ana-legend" id="mAnaCapLegend">Select a client.</div></div>
+        </div></div>
       </div>
       <div class="m-analytics-foot" id="mAnaMessage">Data is calculated from this client's holdings. Unmapped symbols are Unclassified.</div>
     </section>
