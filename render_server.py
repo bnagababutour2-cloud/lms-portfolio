@@ -1043,18 +1043,30 @@ def admin_client_analytics(client_id):
             item["pnl"] += pnl
 
             meta = COMPANY_CLASSIFICATIONS.get(symbol, {})
-            sector = str(h.get("industry") or h.get("sector") or h.get("industry_name") or h.get("sector_name") or meta.get("industry") or meta.get("sector") or meta.get("industry_name") or "Unclassified").strip() or "Unclassified"
+            # Accept common column/key variants from manually bundled or API-derived
+            # symbol classification files, while preferring holding-level metadata.
+            sector_value = (
+                h.get("industry") or h.get("sector") or h.get("industry_name")
+                or h.get("industry_group") or meta.get("industry")
+                or meta.get("sector") or meta.get("industry_name")
+                or meta.get("industry_group")
+            )
+            sector = str(sector_value or "Unclassified").strip() or "Unclassified"
             industry[sector] = industry.get(sector, 0.0) + invested
-            # Prefer explicit holding metadata, then the symbol classification file.
-            cap_raw = (h.get("market_cap_category") or h.get("market_cap_class") or
-                       h.get("cap_category") or h.get("market_cap") or
-                       meta.get("market_cap") or meta.get("market_cap_category") or
-                       meta.get("market_cap_class") or meta.get("cap_category") or "Unclassified")
-            cap = str(cap_raw).strip().replace("_", " ").title()
-            cap = {"Large": "Large Cap", "Mid": "Mid Cap", "Small": "Small Cap",
-                   "Largecap": "Large Cap", "Midcap": "Mid Cap", "Smallcap": "Small Cap"}.get(cap, cap)
-            if cap not in ("Large Cap", "Mid Cap", "Small Cap"):
-                cap = "Unclassified"
+
+            cap_value = (
+                h.get("market_cap_category") or h.get("market_cap_class")
+                or h.get("cap_category") or meta.get("market_cap")
+                or meta.get("market_cap_category") or meta.get("market_cap_class")
+                or meta.get("cap_category") or meta.get("category")
+            )
+            cap_text = str(cap_value or "").strip().lower().replace("_", " ")
+            cap_aliases = {
+                "large": "Large Cap", "large cap": "Large Cap", "largecap": "Large Cap",
+                "mid": "Mid Cap", "mid cap": "Mid Cap", "midcap": "Mid Cap",
+                "small": "Small Cap", "small cap": "Small Cap", "smallcap": "Small Cap",
+            }
+            cap = cap_aliases.get(cap_text, "Unclassified")
             market_cap[cap] = market_cap.get(cap, 0.0) + invested
 
             dt = _clean_trade_date(h.get("trade_date"))
@@ -1081,8 +1093,8 @@ def admin_client_analytics(client_id):
             "market_caps": [{"name": k, "invested": v} for k, v in sorted(market_cap.items(), key=lambda x: x[1], reverse=True)],
             "last_trade_date": latest_date.isoformat() if latest_date else None,
             "trading_days": {"week": len(week_days), "month": len(month_days), "quarter": len(quarter_days), "financial_year": len(fy_days)},
-            "industry_note": "Industry uses holding industry/sector fields first, then company_classifications.json; unknown symbols are Unclassified.",
-            "market_cap_note": "Market-cap uses holding category fields first, then company_classifications.json. Symbols without a category mapping are Unclassified."
+            "industry_note": "Industry uses holding industry/sector fields first, then industry/sector/industry_group metadata in company_classifications.json; unknown symbols are Unclassified.",
+            "market_cap_note": "Large/Mid/Small Cap uses supplied symbol-level AMFI category metadata (market_cap, market_cap_category, market_cap_class, cap_category, or category). No category is guessed from price; symbols without a supplied category are Unclassified."
         })
     except Exception as exc:
         traceback.print_exc()
