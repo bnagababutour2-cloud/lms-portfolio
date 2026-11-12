@@ -51,6 +51,9 @@
 .m-analytics-heading{display:flex;justify-content:space-between;align-items:center;gap:8px}.m-analytics-heading b{display:block;font-size:14px;color:#062e70}.m-analytics-heading small{display:block;font-size:10px;color:#657b91;margin-top:3px}.m-analytics-heading button,.m-analytics-search button{border:0;background:#0b55b5;color:#fff;border-radius:8px;padding:9px 10px;font-weight:900;font-size:11px}
 .m-analytics-search{display:flex;gap:6px;margin:10px 0}.m-analytics-search input{min-width:0;font-size:13px;padding:10px}.m-analytics-kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}.m-analytics-kpis>div,.m-analytics-days>div{background:#fff;border:1px solid #dce6f0;border-radius:8px;padding:8px;min-width:0}.m-analytics-kpis small,.m-analytics-days small{display:block;color:#63788e;font-size:9px;font-weight:900}.m-analytics-kpis b{display:block;color:#062e70;font-size:12px;margin-top:5px;overflow-wrap:anywhere}.m-analytics-days{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;margin:7px 0}.m-analytics-days b{display:block;color:#062e70;font-size:15px;margin-top:4px}.m-analytics-charts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}.m-ana-chart{background:#fff;border:1px solid #dce6f0;border-radius:9px;padding:9px;min-width:0}.m-ana-chart>b{display:block;color:#062e70;font-size:11px;min-height:27px}.m-ana-donut{width:112px;height:112px;margin:8px auto;border-radius:50%;background:#e8eef5;display:flex;align-items:center;justify-content:center;position:relative}.m-ana-donut:after{content:'';position:absolute;inset:23px;background:#fff;border-radius:50%}.m-ana-donut span{z-index:1;font-size:10px;font-weight:900;color:#062e70;text-align:center;max-width:80px;overflow-wrap:anywhere}.m-ana-legend{font-size:9px;color:#344b64;max-height:90px;overflow:auto}.m-ana-legend-row{display:flex;justify-content:space-between;gap:4px;padding:3px 0;border-bottom:1px solid #eef2f6}.m-ana-legend-row span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.m-analytics-foot{font-size:9px;color:#718398;line-height:1.4;margin-top:8px}
 @media(max-width:380px){.m-analytics-days{grid-template-columns:repeat(2,minmax(0,1fr))}.m-analytics-charts{grid-template-columns:1fr}}
+
+/* Market-cap panel: separate full-width card on mobile too. */
+@media(max-width:700px){.m-analytics-charts .m-ana-chart:last-child{grid-column:1/-1}}
 </style>
 
 <style id="mobile-only-summary-fit-fix">
@@ -82,6 +85,16 @@
 .logbook-kpi small{display:block;color:#60748a;font-size:10px;font-weight:800}
 .logbook-kpi strong{display:block;margin-top:4px;color:#052d70;font-size:15px;overflow-wrap:anywhere}
 .logbook-charts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.logbook-chart-market-cap{grid-column:1/-1;display:flex;flex-direction:column;align-items:center}
+.logbook-chart-market-cap h4{width:100%}
+.logbook-chart-market-cap .logbook-donut-wrap{padding:12px 0 14px}
+.logbook-chart-market-cap .logbook-legend{width:100%;max-height:160px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px 14px}
+@media(max-width:1100px){
+  .logbook-chart-market-cap{display:grid;grid-template-columns:minmax(120px,170px) minmax(0,1fr);align-items:center;gap:8px}
+  .logbook-chart-market-cap h4{grid-column:1/-1}
+  .logbook-chart-market-cap .logbook-donut-wrap{grid-column:1;padding:5px 0 10px}
+  .logbook-chart-market-cap .logbook-legend{grid-column:2;grid-template-columns:1fr;max-height:165px}
+}
 .logbook-chart{border:1px solid #d8e4f0;border-radius:10px;background:#fff;padding:11px;min-width:0}
 .logbook-chart h4{margin:0 0 8px;color:#052d70;font-size:12px;min-height:30px}
 .logbook-donut-wrap{display:flex;justify-content:center;align-items:center;padding:5px 0 10px}
@@ -247,7 +260,7 @@
         <section class="logbook-chart"><h4>1. Investment by Company</h4><div class="logbook-donut-wrap"><div class="logbook-donut" id="logbookInvestmentDonut"><div class="logbook-donut-center"><b>—</b><small>Investment</small></div></div></div><div class="logbook-legend" id="logbookInvestmentLegend"><div class="logbook-empty">Select a client.</div></div></section>
         <section class="logbook-chart"><h4>2. Profit / Loss by Company</h4><div class="logbook-donut-wrap"><div class="logbook-donut" id="logbookPnlDonut"><div class="logbook-donut-center"><b>—</b><small>Profit / Loss</small></div></div></div><div class="logbook-legend" id="logbookPnlLegend"><div class="logbook-empty">Select a client.</div></div></section>
         <section class="logbook-chart"><h4>3. Investment by Industry</h4><div class="logbook-donut-wrap"><div class="logbook-donut" id="logbookIndustryDonut"><div class="logbook-donut-center"><b>—</b><small>By industry</small></div></div></div><div class="logbook-legend" id="logbookIndustryLegend"><div class="logbook-empty">Select a client.</div></div></section>
-        <section class="logbook-chart"><h4>4. Large / Mid / Small Cap Allocation</h4><div class="logbook-donut-wrap"><div class="logbook-donut" id="logbookMarketCapDonut"><div class="logbook-donut-center"><b>—</b><small>By market cap</small></div></div></div><div class="logbook-legend" id="logbookMarketCapLegend"><div class="logbook-empty">Select a client.</div></div></section>
+        <section class="logbook-chart logbook-chart-market-cap"><h4>4. Large / Mid / Small Cap Allocation</h4><div class="logbook-donut-wrap"><div class="logbook-donut" id="logbookMarketCapDonut"><div class="logbook-donut-center"><b>—</b><small>By market cap</small></div></div></div><div class="logbook-legend" id="logbookMarketCapLegend"><div class="logbook-empty">Select a client.</div></div></section>
       </div>
       <div class="logbook-note">Investment = quantity × buy price. Profit/Loss = current MTM from the portfolio. Industry uses the holding industry/sector field, then company_classifications.json. Market-cap categories come from that file; missing mappings appear as Unclassified. Trade-recency is based on the Trade Date currently stored on portfolio rows.</div>
     </div>
@@ -971,7 +984,11 @@ async function setSelectedPasswords(){
      draw('mAnaPnlDonut','mAnaPnlLegend',(data.companies||[]).map(x=>({name:x.name,value:x.pnl})),'pnl');
      draw('mAnaIndustryDonut','mAnaIndustryLegend',(data.industries||[]).map(x=>({name:x.name,value:x.invested})),'investment');
      draw('mAnaCapDonut','mAnaCapLegend',(data.market_caps||[]).map(x=>({name:x.name,value:x.invested})),'investment');
-     if(msg)msg.textContent='Last trade: '+(data.last_trade_date||'—')+'. '+(data.market_cap_note||'Unmapped symbols are Unclassified.');
+     if(msg){
+       const industryBuckets=(data.industries||[]).filter(x=>x.name&&x.name!=='Unclassified').length;
+       const capBuckets=(data.market_caps||[]).filter(x=>['Large Cap','Mid Cap','Small Cap'].includes(x.name)).length;
+       msg.textContent='Last trade: '+(data.last_trade_date||'—')+'. Industry groups: '+industryBuckets+'. AMFI market-cap groups: '+capBuckets+'. '+(data.market_cap_note||'Unmapped symbols are Unclassified.');
+     }
    }catch(err){if(msg)msg.textContent=err.message;}
  };
  const mobileInput=document.getElementById('mAnalyticsClient');if(mobileInput)mobileInput.addEventListener('keydown',e=>{if(e.key==='Enter')window.mLoadAnalytics();});
