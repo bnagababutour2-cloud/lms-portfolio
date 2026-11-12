@@ -8,8 +8,6 @@ import io
 import csv
 import re
 import uuid
-import hashlib
-import hashlib
 import traceback
 from datetime import datetime, timedelta
 import pandas as pd
@@ -17,6 +15,29 @@ import requests
 import threading
 import time
 import fcntl
+from pathlib import Path
+
+# Optional symbol metadata. Keep company_classifications.json beside this file.
+# The supplied file currently contains source instructions but no symbol records;
+# missing symbols therefore remain explicitly Unclassified.
+def _load_company_classifications():
+    candidates = [
+        Path(__file__).with_name("company_classifications.json"),
+        Path(os.environ.get("COMPANY_CLASSIFICATIONS_FILE", "")) if os.environ.get("COMPANY_CLASSIFICATIONS_FILE") else None,
+    ]
+    for candidate in candidates:
+        if not candidate:
+            continue
+        try:
+            payload = json.loads(candidate.read_text(encoding="utf-8"))
+            if isinstance(payload, dict):
+                return {str(k).strip().upper(): v for k, v in payload.items()
+                        if isinstance(v, dict) and not str(k).startswith("_")}
+        except Exception:
+            pass
+    return {}
+
+COMPANY_CLASSIFICATIONS = _load_company_classifications()
 
 load_dotenv()
 
@@ -947,37 +968,6 @@ def admin_portfolio():
 # DESKTOP ADMIN: TRADE-RECENCY FILTERS + CLIENT PORTFOLIO ANALYTICS
 # Additive endpoints only; existing portfolio and trade processing remain intact.
 # ============================================================
-
-# ============================================================
-# PERMANENT TRADE HISTORY + CLIENT ACTIVITY ANALYTICS
-# Trade logs are separate from active holdings so closed positions remain visible.
-# ============================================================
-CLASSIFICATION_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "company_classifications.json")
-
-def _load_company_classifications():
-    try:
-        with open(CLASSIFICATION_FILE, "r", encoding="utf-8") as fh:
-            data = json.load(fh)
-        return data if isinstance(data, dict) else {}
-    except Exception:
-        return {}
-
-def _classification_for(symbol, holding=None, mapping=None):
-    mapping = mapping if mapping is not None else _load_company_classifications()
-    key = str(symbol or "").strip().upper()
-    item = mapping.get(key, {}) if isinstance(mapping, dict) else {}
-    holding = holding or {}
-    industry = (holding.get("industry") or holding.get("sector") or holding.get("industry_name")
-                or (item.get("industry") if isinstance(item, dict) else None) or "Unclassified")
-    cap = (holding.get("market_cap_category") or holding.get("market_cap")
-           or (item.get("market_cap") if isinstance(item, dict) else None) or "Unclassified")
-    cap = str(cap).strip().title()
-    if cap.lower() in ("large", "large cap"): cap = "Large Cap"
-    elif cap.lower() in ("mid", "mid cap"): cap = "Mid Cap"
-    elif cap.lower() in ("small", "small cap"): cap = "Small Cap"
-    else: cap = "Unclassified"
-    return str(industry).strip() or "Unclassified", cap
-
 @app.route("/api/admin/trade-recency", methods=["GET"])
 def admin_trade_recency():
     account, auth_error = _require_supervisor()
@@ -991,11 +981,9 @@ def admin_trade_recency():
         clients = _filter_supervisor_clients(supervisor_id, _load_all_clients())
         holdings = _filter_supervisor_holdings(supervisor_id, _load_all_holdings())
         latest = {}
-        # Until the separate trade-history table is enabled, recency is based
-        # on Trade Date values present on current open holdings only.
-        for source_row in holdings:
-            cid = str(source_row.get("client_id") or "").strip()
-            dt = _clean_trade_date(source_row.get("trade_date"))
+        for h in holdings:
+            cid = str(h.get("client_id") or "").strip()
+            dt = _clean_trade_date(h.get("trade_date"))
             if cid and dt and (cid not in latest or dt > latest[cid]):
                 latest[cid] = dt
         today = (datetime.utcnow() + timedelta(hours=5, minutes=30)).date()
@@ -1006,7 +994,7 @@ def admin_trade_recency():
             age = (today - datetime.strptime(last, "%Y-%m-%d").date()).days if last else None
             rows.append({"client_id": cid, "client_name": c.get("client_name") or "", "last_trade_date": last, "days_since_trade": age})
         return jsonify({"success": True, "clients": rows, "as_of": today.isoformat(),
-                        "note": "Latest trade date uses permanent BUY/SELL history where available, with active holdings as a legacy fallback."})
+                        "note": "Last trade date is inferred from active holdings trade_date values. Closed positions without a retained holding date may not be represented."})
     except Exception as exc:
         traceback.print_exc()
         return jsonify({"success": False, "message": "Could not calculate trade recency.", "error": str(exc)}), 500
@@ -1014,59 +1002,81 @@ def admin_trade_recency():
 
 @app.route("/api/admin/client-analytics/<client_id>", methods=["GET"])
 def admin_client_analytics(client_id):
+    """Supervisor-scoped portfolio analytics; keeps existing endpoint URL."""
     account, auth_error = _require_supervisor()
-    if auth_error: return auth_error
+    if auth_error:
+        return auth_error
     db_error = _require_db()
-    if db_error: return db_error
+    if db_error:
+        return db_error
     cid = str(client_id or "").strip()
     if not cid or not _supervisor_can_view(session.get("supervisor_id"), cid):
         return jsonify({"success": False, "message": "Client is outside your access scope."}), 403
     try:
-        holdings = supabase.table("holdings").select("*").ilike("client_id", cid).execute().data or []
-        # Trade-day counts are provisional until historical BUY/SELL logs are added.
-        logs = []
+        result = supabase.table("holdings").select("*").ilike("client_id", cid).execute()
+        company, industry, market_cap = {}, {}, {}
+        total_invested = total_pnl = current_value = 0.0
+        trade_dates = set()
+        latest_date = None
         today = (datetime.utcnow() + timedelta(hours=5, minutes=30)).date()
-        dates = sorted({datetime.strptime(d, "%Y-%m-%d").date() for h in holdings if (d := _clean_trade_date(h.get("trade_date")))})
         week_start = today - timedelta(days=today.weekday())
         month_start = today.replace(day=1)
         quarter_month = ((today.month - 1) // 3) * 3 + 1
         quarter_start = today.replace(month=quarter_month, day=1)
-        fy_start = today.replace(year=today.year if today.month >= 4 else today.year - 1, month=4, day=1)
-        periods = {
-            "week": (week_start, today), "month": (month_start, today),
-            "quarter": (quarter_start, today), "financial_year": (fy_start, today),
-        }
-        activity = {k: len([d for d in dates if a <= d <= b]) for k, (a, b) in periods.items()}
-        company, industry, cap = {}, {}, {}
-        total_invested = total_pnl = current_value = 0.0
-        last_dates = []
-        classifications = _load_company_classifications()
-        for h in holdings:
+        fy_year = today.year if today.month >= 4 else today.year - 1
+        fy_start = today.replace(year=fy_year, month=4, day=1)
+        week_days, month_days, quarter_days, fy_days = set(), set(), set(), set()
+
+        for h in result.data or []:
             symbol = str(h.get("symbol") or "-").strip().upper()
-            qty, buy = _clean_number(h.get("quantity")), _clean_number(h.get("buy_price"))
+            qty = _clean_number(h.get("quantity"))
+            buy = _clean_number(h.get("buy_price"))
             ltp = _clean_number(h.get("ltp"), buy)
-            invested, pnl = qty * buy, (ltp - buy) * qty
-            current_value += qty * ltp; total_invested += invested; total_pnl += pnl
+            invested = qty * buy
+            value = qty * ltp
+            pnl = (ltp - buy) * qty
+            total_invested += invested
+            current_value += value
+            total_pnl += pnl
             item = company.setdefault(symbol, {"name": symbol, "invested": 0.0, "pnl": 0.0})
-            item["invested"] += invested; item["pnl"] += pnl
-            sector, market_cap = _classification_for(symbol, h, classifications)
-            item["industry"] = sector
-            item["market_cap"] = market_cap
+            item["invested"] += invested
+            item["pnl"] += pnl
+
+            meta = COMPANY_CLASSIFICATIONS.get(symbol, {})
+            sector = str(h.get("industry") or h.get("sector") or h.get("industry_name") or meta.get("industry") or "Unclassified").strip() or "Unclassified"
             industry[sector] = industry.get(sector, 0.0) + invested
-            cap[market_cap] = cap.get(market_cap, 0.0) + invested
+            cap = str(meta.get("market_cap") or "Unclassified").strip().title()
+            if cap not in ("Large Cap", "Mid Cap", "Small Cap"):
+                cap = "Unclassified"
+            market_cap[cap] = market_cap.get(cap, 0.0) + invested
+
             dt = _clean_trade_date(h.get("trade_date"))
-            if dt: last_dates.append(dt)
-        def allocation(data):
-            return [{"name": k, "invested": v, "percent": (v / total_invested * 100 if total_invested else 0)}
-                    for k, v in sorted(data.items(), key=lambda x: x[1], reverse=True)]
-        return jsonify({"success": True, "client_id": cid, "holdings_count": len(holdings),
-            "total_invested": total_invested, "current_value": current_value, "total_pnl": total_pnl,
+            if dt:
+                trade_dates.add(dt)
+                try:
+                    day = datetime.strptime(dt, "%Y-%m-%d").date()
+                    if latest_date is None or day > latest_date:
+                        latest_date = day
+                    if day >= week_start: week_days.add(dt)
+                    if day >= month_start: month_days.add(dt)
+                    if day >= quarter_start: quarter_days.add(dt)
+                    if day >= fy_start: fy_days.add(dt)
+                except Exception:
+                    pass
+
+        return jsonify({
+            "success": True, "client_id": cid,
+            "holdings_count": len(result.data or []),
+            "total_invested": total_invested, "current_value": current_value,
+            "total_pnl": total_pnl,
             "companies": sorted(company.values(), key=lambda x: x["invested"], reverse=True),
-            "industries": allocation(industry), "market_caps": allocation(cap),
-            "activity_days": activity, "last_trade_date": max([*last_dates, *[d.isoformat() for d in dates]], default=None),
-            "trade_log_count": 0,
-            "activity_note": "Provisional: counts distinct Trade Date values on current open holdings only. Full BUY/SELL day counts require the trade-history table, which will be added later.",
-            "classification_note": "Industry is taken from holding metadata or company_classifications.json. Market-cap labels should be loaded from the current AMFI list; unclassified symbols remain Unclassified."})
+            "industries": [{"name": k, "invested": v} for k, v in sorted(industry.items(), key=lambda x: x[1], reverse=True)],
+            "market_caps": [{"name": k, "invested": v} for k, v in sorted(market_cap.items(), key=lambda x: x[1], reverse=True)],
+            "last_trade_date": latest_date.isoformat() if latest_date else None,
+            "trading_days": {"week": len(week_days), "month": len(month_days), "quarter": len(quarter_days), "financial_year": len(fy_days)},
+            "industry_note": "Industry uses holding industry/sector first, then company_classifications.json; unknown symbols are Unclassified.",
+            "market_cap_note": "Market-cap categories are read from company_classifications.json. Symbols without a supplied category are Unclassified."
+        })
     except Exception as exc:
         traceback.print_exc()
         return jsonify({"success": False, "message": "Could not load client analytics.", "error": str(exc)}), 500
@@ -2248,7 +2258,6 @@ def _daily_parse_trades(raw_rows):
             "buy_price": buy_price,
             "sell_qty": sell_qty,
             "sell_price": sell_price,
-            "raw_details": dict(row),
         })
 
     if not trades:
@@ -2450,8 +2459,6 @@ def _daily_build_result(existing_rows, trades, product_map=None):
     # SELL: lowest BUY price first, never FIFO and never Portfolio-ID matching.
     for trade in sell_flows:
         remaining = float(trade["effective_sell_qty"])
-        trade["realised_pnl"] = 0.0
-        trade["sell_allocations"] = []
         while remaining > 1e-9:
             eligible = [
                 lot for lot in lots
@@ -2474,15 +2481,7 @@ def _daily_build_result(existing_rows, trades, product_map=None):
             lot["changed"] = True
             stats["sell_allocations"] += 1
             sell_price = float(trade["sell_price"] or 0)
-            allocation_pnl = (sell_price - lot["buy_price"]) * allocated
-            stats["realised"] += allocation_pnl
-            trade["realised_pnl"] += allocation_pnl
-            trade["sell_allocations"].append({
-                "holding_id": lot.get("id"), "buy_price": float(lot["buy_price"]),
-                "sold_qty": float(allocated), "sell_price": sell_price,
-                "realised_pnl": float(allocation_pnl),
-                "fully_closed": bool(old_qty - allocated <= 1e-9),
-            })
+            stats["realised"] += (sell_price - lot["buy_price"]) * allocated
 
             if lot["qty"] <= 1e-9:
                 lot["qty"] = 0.0
@@ -2497,12 +2496,6 @@ def _daily_build_result(existing_rows, trades, product_map=None):
 
         if remaining > 1e-9:
             stats["sell_excess_ignored"] += 0 if stats["sell_excess_ignored"] else 1
-        # sell_flows contains a working copy; mirror the realised allocation
-        # back to the parsed source row that will be written to trade_logs.
-        source_trade = next((x for x in trades if x.get("source_row") == trade.get("source_row")), None)
-        if source_trade is not None:
-            source_trade["realised_pnl"] = float(trade.get("realised_pnl") or 0)
-            source_trade["sell_allocations"] = list(trade.get("sell_allocations") or [])
 
     # Final safety: zero/negative quantities are never active.
     final_lots = [lot for lot in lots if not lot["delete"] and lot["qty"] > 1e-9]
