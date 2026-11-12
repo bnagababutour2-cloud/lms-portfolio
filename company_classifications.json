@@ -1,0 +1,4 @@
+{
+  "_instructions": "Map each uppercase BSE/NSE symbol to {industry: 'Industry name', market_cap: 'Large Cap|Mid Cap|Small Cap'}. Populate market_cap from the latest AMFI categorisation Excel list. Unknown symbols display Unclassified.",
+  "_source": "AMFI half-yearly stock categorisation; NSE industry classification"
+}
