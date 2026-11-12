@@ -1,4 +1,58 @@
 {
-  "_instructions": "Map each uppercase BSE/NSE symbol to {industry: 'Industry name', market_cap: 'Large Cap|Mid Cap|Small Cap'}. Populate market_cap from the latest AMFI categorisation Excel list. Unknown symbols display Unclassified.",
-  "_source": "AMFI half-yearly stock categorisation; NSE industry classification"
+  "KERNEX": {
+    "industry": "Capital Goods",
+    "market_cap": "Small Cap"
+  },
+  "KERNEX-EQ": {
+    "industry": "Capital Goods",
+    "market_cap": "Small Cap"
+  },
+  "HFCL": {
+    "industry": "Telecom - Equipment",
+    "market_cap": "Small Cap"
+  },
+  "BELRISE": {
+    "industry": "Auto Ancillaries",
+    "market_cap": "Small Cap"
+  },
+  "TITAGARH": {
+    "industry": "Engineering & Construction",
+    "market_cap": "Small Cap"
+  },
+  "IRFC": {
+    "industry": "Financial Services",
+    "market_cap": "Large Cap"
+  },
+  "IRFC-EQ": {
+    "industry": "Financial Services",
+    "market_cap": "Large Cap"
+  },
+  "DIXON": {
+    "industry": "Consumer Durables",
+    "market_cap": "Mid Cap"
+  },
+  "JAINREC": {
+    "industry": "Financial Services",
+    "market_cap": "Small Cap"
+  },
+  "IOC": {
+    "industry": "Oil, Gas & Consumable Fuels",
+    "market_cap": "Large Cap"
+  },
+  "LTFOODS": {
+    "industry": "Fast Moving Consumer Goods",
+    "market_cap": "Small Cap"
+  },
+  "HPCL": {
+    "industry": "Oil, Gas & Consumable Fuels",
+    "market_cap": "Large Cap"
+  },
+  "TEXMAIL": {
+    "industry": "Textiles & Apparels",
+    "market_cap": "Small Cap"
+  },
+  "DC": {
+    "industry": "Capital Goods",
+    "market_cap": "Small Cap"
+  }
 }
