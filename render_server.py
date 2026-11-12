@@ -39,6 +39,39 @@ def _load_company_classifications():
 
 COMPANY_CLASSIFICATIONS = _load_company_classifications()
 
+# Yahoo Finance fallback metadata for symbols not present in local classification JSON.
+# Market-cap thresholds are approximate (AMFI rank-based categories are authoritative).
+_YF_META_CACHE = {}
+_YF_META_LOCK = threading.Lock()
+def _yahoo_symbol_metadata(symbol):
+    symbol = str(symbol or '').strip().upper()
+    with _YF_META_LOCK:
+        if symbol in _YF_META_CACHE: return _YF_META_CACHE[symbol]
+    result = {}
+    ticker = symbol if symbol.endswith(('.NS', '.BO')) else symbol + '.NS'
+    try:
+        url = 'https://query1.finance.yahoo.com/v10/finance/quoteSummary/' + quote(ticker, safe='')
+        response = requests.get(url, params={'modules':'assetProfile,price'}, headers={'User-Agent':'Mozilla/5.0'}, timeout=3.5)
+        if response.ok:
+            data = response.json().get('quoteSummary',{}).get('result') or []
+            if data:
+                profile=data[0].get('assetProfile') or {}; price=data[0].get('price') or {}
+                sector=profile.get('sector'); industry=profile.get('industry')
+                if sector: result['industry']=sector
+                elif industry: result['industry']=industry
+                mc=((price.get('marketCap') or {}).get('raw'))
+                if mc is None: mc=((price.get('marketCap') or {}).get('fmt'))
+                try:
+                    # Yahoo market cap is INR for .NS tickers. Thresholds are a practical approximation.
+                    crore=float(mc)/10000000 if isinstance(mc,(int,float)) else None
+                    if crore is not None:
+                        result['market_cap']='Large Cap' if crore>=20000 else ('Mid Cap' if crore>=5000 else 'Small Cap')
+                except Exception: pass
+    except Exception: pass
+    with _YF_META_LOCK: _YF_META_CACHE[symbol]=result
+    return result
+
+
 load_dotenv()
 
 # ------------------------------------------------------------
@@ -1043,30 +1076,13 @@ def admin_client_analytics(client_id):
             item["pnl"] += pnl
 
             meta = COMPANY_CLASSIFICATIONS.get(symbol, {})
-            # Accept common column/key variants from manually bundled or API-derived
-            # symbol classification files, while preferring holding-level metadata.
-            sector_value = (
-                h.get("industry") or h.get("sector") or h.get("industry_name")
-                or h.get("industry_group") or meta.get("industry")
-                or meta.get("sector") or meta.get("industry_name")
-                or meta.get("industry_group")
-            )
-            sector = str(sector_value or "Unclassified").strip() or "Unclassified"
+            # Enrich missing symbol metadata from Yahoo Finance (cached per worker).
+            yf_meta = _yahoo_symbol_metadata(symbol) if (not meta.get("industry") or not meta.get("market_cap")) else {}
+            sector = str(h.get("industry") or h.get("sector") or h.get("industry_name") or meta.get("industry") or yf_meta.get("industry") or "Unclassified").strip() or "Unclassified"
             industry[sector] = industry.get(sector, 0.0) + invested
-
-            cap_value = (
-                h.get("market_cap_category") or h.get("market_cap_class")
-                or h.get("cap_category") or meta.get("market_cap")
-                or meta.get("market_cap_category") or meta.get("market_cap_class")
-                or meta.get("cap_category") or meta.get("category")
-            )
-            cap_text = str(cap_value or "").strip().lower().replace("_", " ")
-            cap_aliases = {
-                "large": "Large Cap", "large cap": "Large Cap", "largecap": "Large Cap",
-                "mid": "Mid Cap", "mid cap": "Mid Cap", "midcap": "Mid Cap",
-                "small": "Small Cap", "small cap": "Small Cap", "smallcap": "Small Cap",
-            }
-            cap = cap_aliases.get(cap_text, "Unclassified")
+            cap = str(meta.get("market_cap") or yf_meta.get("market_cap") or "Unclassified").strip().title()
+            if cap not in ("Large Cap", "Mid Cap", "Small Cap"):
+                cap = "Unclassified"
             market_cap[cap] = market_cap.get(cap, 0.0) + invested
 
             dt = _clean_trade_date(h.get("trade_date"))
@@ -1093,8 +1109,8 @@ def admin_client_analytics(client_id):
             "market_caps": [{"name": k, "invested": v} for k, v in sorted(market_cap.items(), key=lambda x: x[1], reverse=True)],
             "last_trade_date": latest_date.isoformat() if latest_date else None,
             "trading_days": {"week": len(week_days), "month": len(month_days), "quarter": len(quarter_days), "financial_year": len(fy_days)},
-            "industry_note": "Industry uses holding industry/sector fields first, then industry/sector/industry_group metadata in company_classifications.json; unknown symbols are Unclassified.",
-            "market_cap_note": "Large/Mid/Small Cap uses supplied symbol-level AMFI category metadata (market_cap, market_cap_category, market_cap_class, cap_category, or category). No category is guessed from price; symbols without a supplied category are Unclassified."
+            "industry_note": "Industry uses holding industry/sector first, then company_classifications.json; unknown symbols are Unclassified.",
+            "market_cap_note": "Market cap uses local AMFI classifications first, then Yahoo Finance market-cap thresholds (approximate); unavailable symbols remain Unclassified."
         })
     except Exception as exc:
         traceback.print_exc()
