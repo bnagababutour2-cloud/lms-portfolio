@@ -832,6 +832,7 @@ def admin_portfolio():
   .lms-kpi-box small{display:block;color:#60748a;font-size:9px;font-weight:800;letter-spacing:.2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .lms-kpi-box strong{display:block;margin-top:3px;color:#052d70;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   #lms-charts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;align-items:stretch}
+  #lms-charts-bottom{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;align-items:stretch;margin-top:10px}
   .lms-chart{background:#fff;border:1px solid #d8e4f0;border-radius:10px;padding:11px;min-width:0}
   .lms-chart h3{font-size:12px;margin:0 0 8px;color:#052d70;min-height:28px}
   .lms-svg-wrap{width:100%;display:flex;justify-content:center;align-items:center;min-height:250px}
@@ -843,7 +844,7 @@ def admin_portfolio():
   .lms-legend-val{font-weight:800;color:#1c3551;white-space:nowrap}
   .lms-empty{padding:18px 10px;text-align:center;color:#667b91;font-size:12px;background:#fff;border:1px dashed #cbd9e8;border-radius:8px;width:100%}
   #lms-disclaimer{font-size:10px;color:#6a7f94;margin-top:10px;line-height:1.45}
-  @media(max-width:960px){.lms-metrics-7{grid-template-columns:repeat(4,minmax(0,1fr))}#lms-charts{grid-template-columns:1fr}}
+  @media(max-width:960px){.lms-metrics-7{grid-template-columns:repeat(4,minmax(0,1fr))}#lms-charts,#lms-charts-bottom{grid-template-columns:1fr}}
   @media(max-width:640px){.lms-metrics-7{grid-template-columns:repeat(2,minmax(0,1fr))}#lms-drawer{width:100vw;padding:12px}}
   `;
   const style=document.createElement('style');style.textContent=css;document.head.appendChild(style);
@@ -926,6 +927,9 @@ def admin_portfolio():
       const profitList=companies.filter(x=>Number(x.pnl||0)>0).sort((a,b)=>Number(b.pnl)-Number(a.pnl)).map(x=>({name:x.name,value:Number(x.pnl)}));
       const lossList=companies.filter(x=>Number(x.pnl||0)<0).sort((a,b)=>Number(a.pnl)-Number(b.pnl)).map(x=>({name:x.name,value:Math.abs(Number(x.pnl))}));
       const invList=companies.slice().sort((a,b)=>Number(b.invested||0)-Number(a.invested||0)).map(x=>({name:x.name,value:Number(x.invested||0)}));
+      const indList=(d.industries||[]).slice().sort((a,b)=>Number(b.invested||0)-Number(a.invested||0)).map(x=>({name:x.name,value:Number(x.invested||0)}));
+      const capOrder={'Large Cap':1,'Mid Cap':2,'Small Cap':3,'Unclassified':4};
+      const capList=(d.market_caps||[]).slice().sort((a,b)=>(capOrder[a.name]||99)-(capOrder[b.name]||99)||Number(b.invested||0)-Number(a.invested||0)).map(x=>({name:x.name,value:Number(x.invested||0)}));
       const profitSum=profitList.reduce((s,x)=>s+x.value,0);
       const lossSum=lossList.reduce((s,x)=>s+x.value,0);
       let lastTradeText='Last trade: '+(d.last_trade_date||'—');
@@ -961,11 +965,17 @@ def admin_portfolio():
             <section class="lms-chart"><h3>2. Profit by Company</h3><div class="lms-svg-wrap" id="lms-profit-chart"></div><div class="lms-legend" id="lms-profit-legend"></div></section>
             <section class="lms-chart"><h3>3. Loss by Company</h3><div class="lms-svg-wrap" id="lms-loss-chart"></div><div class="lms-legend" id="lms-loss-legend"></div></section>
           </div>
+          <div id="lms-charts-bottom">
+            <section class="lms-chart"><h3>4. Investment by Industry</h3><div class="lms-svg-wrap" id="lms-industry-chart"></div><div class="lms-legend" id="lms-industry-legend"></div></section>
+            <section class="lms-chart"><h3>5. Investment by Market Cap (Large / Mid / Small)</h3><div class="lms-svg-wrap" id="lms-cap-chart"></div><div class="lms-legend" id="lms-cap-legend"></div></section>
+          </div>
           <p id="lms-disclaimer">Investment = quantity × buy price. Profit/Loss = current MTM from the portfolio. Industry and market-cap metadata are resolved from holding fields, company_classifications.json, and Yahoo Finance where available; unknown symbols remain Unclassified. Trade-recency is based on the Trade Date currently stored on portfolio rows.</p>
         </div>`;
       renderSvgDonut('lms-company-chart','lms-company-legend',invList,'investment');
       renderSvgDonut('lms-profit-chart','lms-profit-legend',profitList,'profit');
       renderSvgDonut('lms-loss-chart','lms-loss-legend',lossList,'loss');
+      renderSvgDonut('lms-industry-chart','lms-industry-legend',indList,'investment');
+      renderSvgDonut('lms-cap-chart','lms-cap-legend',capList,'investment');
     }catch(e){document.getElementById('lms-content').innerHTML='<p>'+esc(e.message)+'</p>';}
   }
   // Logbook buttons filter the EXISTING holdings table by eligible CLIENT IDs.
