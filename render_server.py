@@ -817,45 +817,155 @@ def admin_portfolio():
   #lms-recency-bar button.active{background:#0b55b5;color:#ffffff;border-color:#0b55b5;box-shadow:0 0 0 2px rgba(11,85,181,.18) inset}
   #lms-recency-note{font-size:11px;color:#637895;margin-left:4px}
   #lms-overlay{position:fixed;inset:0;background:rgba(5,24,54,.42);z-index:99998;display:none}
-  #lms-drawer{position:fixed;right:0;top:0;height:100vh;width:min(900px,94vw);background:#f5f8fd;z-index:99999;box-shadow:-8px 0 30px #001b4433;display:none;overflow:auto;padding:18px}
+  #lms-drawer{position:fixed;right:0;top:0;height:100vh;width:min(1060px,96vw);background:#f5f8fd;z-index:99999;box-shadow:-8px 0 30px #001b4433;display:none;overflow:auto;padding:18px}
   #lms-drawer h2{margin:0;color:#07377b;font-size:19px}#lms-drawer .lms-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
-  #lms-drawer .lms-close{border:0;background:#dce8f7;border-radius:7px;padding:8px 12px;font-weight:800;cursor:pointer}
-  #lms-client-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:8px;margin-top:12px}
-  .lms-client{background:white;border:1px solid #dbe6f3;border-radius:9px;padding:11px;text-align:left;cursor:pointer;color:#0a3268}
-  .lms-client strong{display:block;font-size:13px}.lms-client small{display:block;color:#617894;margin-top:4px}
-  #lms-charts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:12px}
-  .lms-chart{background:#fff;border:1px solid #dbe6f3;border-radius:11px;padding:12px;min-width:0}
-  .lms-chart h3{font-size:13px;margin:0 0 8px;color:#0a397d}.lms-chart canvas{width:100%;height:210px;display:block}
-  #lms-metrics{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0} .lms-metric{background:#fff;border:1px solid #dbe6f3;border-radius:8px;padding:9px 12px;font-size:12px;color:#48617e}.lms-metric b{display:block;color:#092e65;font-size:16px;margin-top:3px}
-  #lms-disclaimer{font-size:11px;color:#6a7d96;margin-top:10px;line-height:1.5}
-  @media(max-width:700px){#lms-charts{grid-template-columns:1fr}#lms-drawer{width:100vw;padding:12px}}
+  #lms-drawer .lms-close{border:0;background:#dce8f7;border-radius:7px;padding:8px 12px;font-weight:800;cursor:pointer;color:#07377b}
+  .lms-drawer-card{border:1px solid #d8e4f0;border-radius:12px;background:#fbfdff;padding:14px}
+  .lms-status-banner{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+  .lms-status-left{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .lms-status-left strong{color:#052d70;font-size:16px}
+  .lms-badge-profit{background:#128a43;color:#fff;border-radius:7px;padding:6px 11px;font-size:11px;font-weight:900;display:inline-block}
+  .lms-badge-loss{background:#d62828;color:#fff;border-radius:7px;padding:6px 11px;font-size:11px;font-weight:900;display:inline-block}
+  .lms-badge-date{background:#edf4fd;color:#052d70;border:1px solid #cfdeed;padding:6px 11px;border-radius:999px;font-size:12px;font-weight:800}
+  .lms-metrics-7{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:7px;margin-bottom:12px;align-items:stretch}
+  .lms-kpi-box{background:#fff;border:1px solid #d8e4f0;border-radius:8px;padding:7px 8px;min-width:0;display:flex;flex-direction:column;justify-content:center}
+  .lms-kpi-box small{display:block;color:#60748a;font-size:9px;font-weight:800;letter-spacing:.2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .lms-kpi-box strong{display:block;margin-top:3px;color:#052d70;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #lms-charts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;align-items:stretch}
+  .lms-chart{background:#fff;border:1px solid #d8e4f0;border-radius:10px;padding:11px;min-width:0}
+  .lms-chart h3{font-size:12px;margin:0 0 8px;color:#052d70;min-height:28px}
+  .lms-svg-wrap{width:100%;display:flex;justify-content:center;align-items:center;min-height:250px}
+  .lms-svg-wrap svg{width:100%;max-width:100%;height:250px;display:block;overflow:visible}
+  .lms-legend{display:flex;flex-direction:column;gap:5px;max-height:175px;overflow:auto;margin-top:4px}
+  .lms-legend-row{display:grid;grid-template-columns:11px minmax(0,1fr) auto;gap:6px;align-items:center;font-size:10px;color:#344b64}
+  .lms-legend-dot{width:10px;height:10px;border-radius:3px;display:inline-block;flex-shrink:0}
+  .lms-legend-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:700}
+  .lms-legend-val{font-weight:800;color:#1c3551;white-space:nowrap}
+  .lms-empty{padding:18px 10px;text-align:center;color:#667b91;font-size:12px;background:#fff;border:1px dashed #cbd9e8;border-radius:8px;width:100%}
+  #lms-disclaimer{font-size:10px;color:#6a7f94;margin-top:10px;line-height:1.45}
+  @media(max-width:960px){.lms-metrics-7{grid-template-columns:repeat(4,minmax(0,1fr))}#lms-charts{grid-template-columns:1fr}}
+  @media(max-width:640px){.lms-metrics-7{grid-template-columns:repeat(2,minmax(0,1fr))}#lms-drawer{width:100vw;padding:12px}}
   `;
   const style=document.createElement('style');style.textContent=css;document.head.appendChild(style);
   const overlay=document.createElement('div');overlay.id='lms-overlay';document.body.appendChild(overlay);
-  const drawer=document.createElement('aside');drawer.id='lms-drawer';drawer.innerHTML=`<div class="lms-head"><h2 id="lms-title">Client activity</h2><button class="lms-close" id="lms-close">CLOSE ✕</button></div><div id="lms-content">Loading…</div>`;document.body.appendChild(drawer);
+  const drawer=document.createElement('aside');drawer.id='lms-drawer';drawer.innerHTML=`<div class="lms-head"><h2 id="lms-title">Client Analytics</h2><button class="lms-close" id="lms-close">CLOSE ✕</button></div><div id="lms-content">Loading…</div>`;document.body.appendChild(drawer);
   const close=()=>{drawer.style.display='none';overlay.style.display='none'};
   document.getElementById('lms-close').onclick=close;overlay.onclick=close;
-  const money=v=>'₹'+Math.abs(Number(v||0)).toLocaleString('en-IN',{maximumFractionDigits:2});
+  const palette=['#0b55b5','#16a05a','#e0a400','#8b5cf6','#e05d44','#0891b2','#64748b','#db2777','#65a30d','#7c3aed','#b45309','#0f766e'];
+  const moneyShort=v=>'₹'+Math.abs(Number(v||0)).toLocaleString('en-IN',{minimumFractionDigits:0,maximumFractionDigits:0});
+  const moneyExact=v=>'₹'+Math.abs(Number(v||0)).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
   const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   function open(html,title){document.getElementById('lms-title').textContent=title;document.getElementById('lms-content').innerHTML=html;overlay.style.display='block';drawer.style.display='block'}
-  function drawDonut(canvas,items,valueKey,label){
-    const ctx=canvas.getContext('2d'),dpr=window.devicePixelRatio||1,w=canvas.clientWidth||250,h=210;
-    canvas.width=w*dpr;canvas.height=h*dpr;ctx.scale(dpr,dpr);
-    const total=items.reduce((a,x)=>a+Math.max(0,Number(x[valueKey]||0)),0);
-    const colors=['#1769c2','#19a56b','#e59b22','#8656bd','#d95757','#16a6a6','#778ba5','#d16c9a'];
-    let angle=-Math.PI/2;items.forEach((x,i)=>{const val=Math.max(0,Number(x[valueKey]||0));if(!total||!val)return;const next=angle+val/total*Math.PI*2;ctx.beginPath();ctx.arc(w/2,86,65,angle,next);ctx.arc(w/2,86,39,next,angle,true);ctx.closePath();ctx.fillStyle=colors[i%colors.length];ctx.fill();angle=next;});
-    ctx.textAlign='center';ctx.fillStyle='#173b69';ctx.font='bold 12px Arial';ctx.fillText(label,w/2,83);ctx.font='bold 13px Arial';ctx.fillText(total?money(total):'No data',w/2,101);
-    const shown=items.slice(0,5);ctx.textAlign='left';ctx.font='9px Arial';shown.forEach((x,i)=>{const y=171+i*9;if(y<209){ctx.fillStyle=(valueKey==='pnlAbs'?(Number(x.pnl||0)>=0?'#159b63':'#d94a50'):colors[i%colors.length]);ctx.fillRect(6,y-7,7,7);ctx.fillStyle='#526985';const val=valueKey==='pnlAbs'?((Number(x.pnl||0)>=0?'+':'-')+money(x.pnl)):money(x[valueKey]);ctx.fillText((String(x.name||'').slice(0,17)+'  '+val).slice(0,43),17,y);}});
+
+  function renderSvgDonut(chartId,legendId,items,kind){
+    const host=document.getElementById(chartId);
+    const legend=document.getElementById(legendId);
+    if(!host||!legend) return;
+    const clean=(items||[]).filter(x=>Math.abs(Number(x.value||0))>0);
+    const absTotal=clean.reduce((a,x)=>a+Math.abs(Number(x.value||0)),0);
+    if(!clean.length || absTotal<=0){
+      host.innerHTML='<div class="lms-empty">No data available.</div>';
+      legend.innerHTML='<div class="lms-empty">No data available.</div>';
+      return;
+    }
+    const W=340,H=250,cx=170,cy=125,rOut=88,rIn=50;
+    let start=-Math.PI/2,slices='',labels='';
+    clean.forEach((item,i)=>{
+      const rawVal=Number(item.value||0);
+      const absVal=Math.abs(rawVal);
+      const pct=(absVal/absTotal)*100;
+      const sweep=(absVal/absTotal)*Math.PI*2;
+      const end=start+sweep;
+      const mid=start+sweep/2;
+      const color=kind==='profit'?'#16a05a':(kind==='loss'?'#d62828':palette[i%palette.length]);
+      const x1=cx+rOut*Math.cos(start),y1=cy+rOut*Math.sin(start);
+      const x2=cx+rOut*Math.cos(end),y2=cy+rOut*Math.sin(end);
+      const x3=cx+rIn*Math.cos(end),y3=cy+rIn*Math.sin(end);
+      const x4=cx+rIn*Math.cos(start),y4=cy+rIn*Math.sin(start);
+      const large=sweep>Math.PI?1:0;
+      const d=clean.length===1
+        ? `M ${cx} ${cy-rOut} A ${rOut} ${rOut} 0 1 1 ${cx-0.01} ${cy-rOut} L ${cx-0.01} ${cy-rIn} A ${rIn} ${rIn} 0 1 0 ${cx} ${cy-rIn} Z`
+        : `M ${x1.toFixed(2)} ${y1.toFixed(2)} A ${rOut} ${rOut} 0 ${large} 1 ${x2.toFixed(2)} ${y2.toFixed(2)} L ${x3.toFixed(2)} ${y3.toFixed(2)} A ${rIn} ${rIn} 0 ${large} 0 ${x4.toFixed(2)} ${y4.toFixed(2)} Z`;
+      const sign=kind==='profit'?'+':(kind==='loss'?'−':'');
+      slices+=`<path d="${d}" fill="${color}" stroke="#ffffff" stroke-width="1.6"><title>${esc(item.name)}: ${sign}${moneyExact(rawVal)} (${pct.toFixed(1)}%)</title></path>`;
+      if(pct>=4.5){
+        const lx1=cx+(rOut+2)*Math.cos(mid),ly1=cy+(rOut+2)*Math.sin(mid);
+        const lx2=cx+(rOut+12)*Math.cos(mid),ly2=cy+(rOut+12)*Math.sin(mid);
+        const isRight=Math.cos(mid)>=0;
+        const lx3=lx2+(isRight?11:-11);
+        const anchor=isRight?'start':'end';
+        const tx=lx3+(isRight?3:-3);
+        labels+=`<polyline points="${lx1.toFixed(1)},${ly1.toFixed(1)} ${lx2.toFixed(1)},${ly2.toFixed(1)} ${lx3.toFixed(1)},${ly2.toFixed(1)}" fill="none" stroke="${color}" stroke-width="1.3"/>
+          <text x="${tx.toFixed(1)}" y="${(ly2-1.5).toFixed(1)}" text-anchor="${anchor}" font-size="10.5" font-weight="800" fill="#0f172a">${pct.toFixed(1)}%</text>
+          <text x="${tx.toFixed(1)}" y="${(ly2+9.5).toFixed(1)}" text-anchor="${anchor}" font-size="9.5" font-weight="700" fill="#475569">${sign}${moneyShort(rawVal)}</text>`;
+      }
+      start=end;
+    });
+    const centerLabel=kind==='investment'?'Total':'Net P/L';
+    const centerSign=kind==='profit'?'+':(kind==='loss'?'−':'');
+    host.innerHTML=`<svg viewBox="0 0 ${W} ${H}">${slices}${labels}<text x="${cx}" y="${cy-4}" text-anchor="middle" font-size="10.5" font-weight="700" fill="#64748b">${centerLabel}</text><text x="${cx}" y="${cy+13}" text-anchor="middle" font-size="12.5" font-weight="800" fill="#052d70">${centerSign}${moneyShort(absTotal)}</text></svg>`;
+    legend.innerHTML=clean.map((item,i)=>{
+      const rawVal=Number(item.value||0);
+      const pct=((Math.abs(rawVal)/absTotal)*100).toFixed(1);
+      const color=kind==='profit'?'#16a05a':(kind==='loss'?'#d62828':palette[i%palette.length]);
+      const sign=kind==='profit'?'+':(kind==='loss'?'−':'');
+      return `<div class="lms-legend-row"><span class="lms-legend-dot" style="background:${color}"></span><span class="lms-legend-name" title="${esc(item.name)}">${esc(item.name)}</span><span class="lms-legend-val">${sign}${moneyExact(rawVal)} (${pct}%)</span></div>`;
+    }).join('');
   }
+
   async function showClient(cid){
-    open('<p>Loading client portfolio analytics…</p>','Client '+cid+' — Portfolio analytics');
-    try{const r=await fetch('/api/admin/client-analytics/'+encodeURIComponent(cid),{credentials:'same-origin',cache:'no-store'});const d=await r.json();if(!r.ok||!d.success)throw new Error(d.message||'Analytics unavailable');
-      const companies=d.companies||[],industries=d.industries||[];
-      document.getElementById('lms-content').innerHTML=`<div id="lms-metrics"><div class="lms-metric">Total invested<b>${money(d.total_invested)}</b></div><div class="lms-metric">Profit / Loss<b style="color:${Number(d.total_pnl)>=0?'#079653':'#d43e45'}">${Number(d.total_pnl)>=0?'+':'-'}${money(d.total_pnl)}</b></div><div class="lms-metric">Active holdings<b>${Number(d.holdings_count||0)}</b></div><div class="lms-metric">Last trade date<b>${esc(d.last_trade_date||'Not available')}</b></div></div>
-      <div id="lms-charts"><section class="lms-chart"><h3>Investment by Company</h3><canvas id="lms-company-chart"></canvas></section><section class="lms-chart"><h3>Profit / Loss by Company</h3><canvas id="lms-pnl-chart"></canvas></section><section class="lms-chart"><h3>Investment by Industry</h3><canvas id="lms-industry-chart"></canvas></section></div><p id="lms-disclaimer">${esc(d.industry_note||'')} Company and P/L charts use the current holdings and stored LTP values.</p>`;
-      drawDonut(document.getElementById('lms-company-chart'),companies,'invested','Invested');
-      const pnlItems=companies.map(x=>({...x,pnlAbs:Math.abs(Number(x.pnl||0))}));drawDonut(document.getElementById('lms-pnl-chart'),pnlItems,'pnlAbs','P/L magnitude');
-      drawDonut(document.getElementById('lms-industry-chart'),industries,'invested','Invested');
+    open('<p>Loading client portfolio analytics…</p>','Client '+cid+' — Portfolio Analytics');
+    try{
+      const r=await fetch('/api/admin/client-analytics/'+encodeURIComponent(cid),{credentials:'same-origin',cache:'no-store'});
+      const d=await r.json();
+      if(!r.ok||!d.success)throw new Error(d.message||'Analytics unavailable');
+      const companies=d.companies||[];
+      const totalInv=Number(d.total_invested||0);
+      const totalPnl=Number(d.total_pnl||0);
+      const td=d.trading_days||{};
+      const profitList=companies.filter(x=>Number(x.pnl||0)>0).sort((a,b)=>Number(b.pnl)-Number(a.pnl)).map(x=>({name:x.name,value:Number(x.pnl)}));
+      const lossList=companies.filter(x=>Number(x.pnl||0)<0).sort((a,b)=>Number(a.pnl)-Number(b.pnl)).map(x=>({name:x.name,value:Math.abs(Number(x.pnl))}));
+      const invList=companies.slice().sort((a,b)=>Number(b.invested||0)-Number(a.invested||0)).map(x=>({name:x.name,value:Number(x.invested||0)}));
+      const profitSum=profitList.reduce((s,x)=>s+x.value,0);
+      const lossSum=lossList.reduce((s,x)=>s+x.value,0);
+      let lastTradeText='Last trade: '+(d.last_trade_date||'—');
+      if(d.last_trade_date){
+        const dt=new Date(d.last_trade_date+'T00:00:00');
+        const today=new Date();today.setHours(0,0,0,0);
+        if(!Number.isNaN(dt.getTime())){
+          const diff=Math.max(0,Math.floor((today-dt)/86400000));
+          lastTradeText='Last trade: '+d.last_trade_date+' ('+diff+' days ago)';
+        }
+      }
+      document.getElementById('lms-content').innerHTML=`
+        <div class="lms-drawer-card">
+          <div class="lms-status-banner">
+            <div class="lms-status-left">
+              <strong>Client: ${esc(cid)}</strong>
+              <span class="lms-badge-profit">Current Profit: +${moneyExact(profitSum)}</span>
+              <span class="lms-badge-loss">Current Loss: −${moneyExact(lossSum)}</span>
+            </div>
+            <span class="lms-badge-date">${esc(lastTradeText)}</span>
+          </div>
+          <div class="lms-metrics-7">
+            <div class="lms-kpi-box"><small>TOTAL INVESTMENT</small><strong>${moneyExact(totalInv)}</strong></div>
+            <div class="lms-kpi-box"><small>UNREALIZED PROFIT / LOSS</small><strong style="color:${totalPnl>=0?'#128a43':'#d62828'}">${totalPnl>=0?'+':'−'}${moneyExact(totalPnl)}</strong></div>
+            <div class="lms-kpi-box"><small>COMPANIES HELD</small><strong>${companies.length}</strong></div>
+            <div class="lms-kpi-box"><small>THIS WEEK</small><strong>${td.week??0} days</strong></div>
+            <div class="lms-kpi-box"><small>THIS MONTH</small><strong>${td.month??0} days</strong></div>
+            <div class="lms-kpi-box"><small>THIS QUARTER</small><strong>${td.quarter??0} days</strong></div>
+            <div class="lms-kpi-box"><small>FINANCIAL YEAR</small><strong>${td.financial_year??0} days</strong></div>
+          </div>
+          <div id="lms-charts">
+            <section class="lms-chart"><h3>1. Investment by Company</h3><div class="lms-svg-wrap" id="lms-company-chart"></div><div class="lms-legend" id="lms-company-legend"></div></section>
+            <section class="lms-chart"><h3>2. Profit by Company</h3><div class="lms-svg-wrap" id="lms-profit-chart"></div><div class="lms-legend" id="lms-profit-legend"></div></section>
+            <section class="lms-chart"><h3>3. Loss by Company</h3><div class="lms-svg-wrap" id="lms-loss-chart"></div><div class="lms-legend" id="lms-loss-legend"></div></section>
+          </div>
+          <p id="lms-disclaimer">Investment = quantity × buy price. Profit/Loss = current MTM from the portfolio. Industry and market-cap metadata are resolved from holding fields, company_classifications.json, and Yahoo Finance where available; unknown symbols remain Unclassified. Trade-recency is based on the Trade Date currently stored on portfolio rows.</p>
+        </div>`;
+      renderSvgDonut('lms-company-chart','lms-company-legend',invList,'investment');
+      renderSvgDonut('lms-profit-chart','lms-profit-legend',profitList,'profit');
+      renderSvgDonut('lms-loss-chart','lms-loss-legend',lossList,'loss');
     }catch(e){document.getElementById('lms-content').innerHTML='<p>'+esc(e.message)+'</p>';}
   }
   // Logbook buttons filter the EXISTING holdings table by eligible CLIENT IDs.
@@ -880,7 +990,6 @@ def admin_portfolio():
   }
 
   function bucketMatches(days, bucket){
-    if(bucket === 'all') return true;
     if(days === null || days === undefined || !Number.isFinite(Number(days))) return false;
     const n = Number(days);
     if(bucket === 'recent' || bucket === '0-9') return n >= 0 && n <= 10;
@@ -920,7 +1029,7 @@ def admin_portfolio():
     activePortfolioBucket=null;
     activeClientIds=null;
     const note=document.getElementById('lms-recency-note');
-    if(note) note.textContent='Select a period to view clients';
+    if(note) note.textContent='Showing all clients and existing holdings';
     const bar=document.getElementById('lms-recency-bar');
     if(bar) bar.querySelectorAll('button[data-bucket]').forEach(b=>b.classList.remove('active'));
     if(typeof window.setLogbookFilter==='function'){
@@ -936,41 +1045,22 @@ def admin_portfolio():
       if(note) note.textContent='Portfolio table not found. Refresh the page.';
       return;
     }
-    if(activePortfolioBucket===bucket && bucket!=='all'){
+    if(activePortfolioBucket===bucket){
       clearPortfolioBucket();
       return;
     }
     const requestId=++bucketRequestSerial;
     activePortfolioBucket=bucket;
     activeClientIds=null;
+    if(note) note.textContent='Loading matching clients…';
     const bar=document.getElementById('lms-recency-bar');
     if(bar) bar.querySelectorAll('button[data-bucket]').forEach(b=>b.classList.toggle('active',b.dataset.bucket===bucket));
 
-    const mapToCardFilter={'all':'all','recent':'0-9','10-30':'10-29','30-60':'30-59','60+':'60+'};
+    const mapToCardFilter={'recent':'0-9','10-30':'10-29','30-60':'30-59','60+':'60+'};
     if(typeof window.setLogbookFilter==='function' && mapToCardFilter[bucket]){
       const targetBtn=document.querySelector('[data-logbook-filter="'+mapToCardFilter[bucket]+'"]');
       window.setLogbookFilter(mapToCardFilter[bucket],targetBtn);
     }
-
-    if(bucket==='all'){
-      let totalRows=0;
-      const allClients=new Set();
-      const headers=Array.from(table.querySelectorAll('thead th'));
-      let clientIndex=headers.findIndex(th=>/^\s*client\s*$/i.test(th.textContent||''));
-      if(clientIndex<0) clientIndex=1;
-      table.querySelectorAll('tbody tr').forEach(row=>{
-        row.hidden=false;
-        row.style.display='';
-        totalRows++;
-        const cid=clientIdForRow(row,clientIndex);
-        if(cid) allClients.add(cid);
-      });
-      if(typeof updateTotal==='function') updateTotal();
-      if(note) note.textContent='Showing all '+allClients.size+' active clients · '+totalRows+' holding rows';
-      return;
-    }
-
-    if(note) note.textContent='Loading matching clients…';
 
     try{
       const response=await fetch('/api/admin/trade-recency',{credentials:'same-origin',cache:'no-store'});
@@ -996,26 +1086,9 @@ def admin_portfolio():
     if(document.getElementById('lms-recency-bar'))return true;
     const candidates=Array.from(document.querySelectorAll('h1,h2,h3,h4,div,span,p')).filter(el=>el.children.length<4&&/Portfolio\s*[—-]\s*Click\s*▲\s*\/\s*▼\s*in any header to sort/i.test(el.textContent||''));
     const heading=candidates[0];if(!heading)return false;
-    const bar=document.createElement('div');
-    bar.id='lms-recency-bar';
-    bar.innerHTML=`<b style="font-size:12px;color:#0a3475;margin-right:3px">Logbook:</b>`
-      + `<button data-bucket="all" style="min-width:54px">All</button>`
-      + `<button data-bucket="recent">Traded in last 10 days</button>`
-      + `<button data-bucket="10-30">10–30 days</button>`
-      + `<button data-bucket="30-60">30–60 days</button>`
-      + `<button data-bucket="60+">Above 60 days</button>`
-      + `<span id="lms-recency-note">Select a period to view clients</span>`;
+    const bar=document.createElement('div');bar.id='lms-recency-bar';bar.innerHTML=`<b style="font-size:12px;color:#0a3475;margin-right:3px">Logbook:</b><button data-bucket="recent">Traded in last 10 days</button><button data-bucket="10-30">10–30 days</button><button data-bucket="30-60">30–60 days</button><button data-bucket="60+">Above 60 days</button><span id="lms-recency-note">Select a period to view clients</span>`;
     heading.insertAdjacentElement('afterend',bar);
-    bar.querySelectorAll('button[data-bucket]').forEach(b=>b.addEventListener('click',()=>{
-      const names={
-        all:'All clients',
-        recent:'Traded in last 10 days',
-        '10-30':'10–30 days',
-        '30-60':'30–60 days',
-        '60+':'Above 60 days'
-      };
-      showBucket(b.dataset.bucket,names[b.dataset.bucket]);
-    }));
+    bar.querySelectorAll('button[data-bucket]').forEach(b=>b.addEventListener('click',()=>{const names={recent:'Traded in last 10 days','10-30':'10–30 days','30-60':'30–60 days','60+':'Above 60 days'};showBucket(b.dataset.bucket,names[b.dataset.bucket]);}));
     const clearButton=document.createElement('button');
     clearButton.type='button';clearButton.id='lms-recency-clear';clearButton.textContent='Clear';
     clearButton.addEventListener('click',clearPortfolioBucket);
@@ -1033,7 +1106,7 @@ def admin_portfolio():
     if(!button || button.id==='lms-recency-clear') return;
     if((button.textContent||'').trim().toLowerCase()==='clear') clearPortfolioBucket();
   },true);
-  // Clicking a Client ID cell in the desktop portfolio table opens its three charts.
+  // Clicking a Client ID cell in the desktop portfolio table opens its analytics drawer.
   document.addEventListener('click',function(ev){
     if(ev.target.closest('button,a,input,select,textarea'))return;
     const cell=ev.target.closest('td');if(!cell)return;
