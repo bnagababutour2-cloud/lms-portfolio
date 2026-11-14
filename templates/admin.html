@@ -411,7 +411,7 @@ body.tradelogs-split-open #tradeLogsSplitDrawer{display:flex;}
 <button class="btn" onclick="location.reload()">REFRESH</button>
 {% if can_manage %}<button class="btn gold" onclick="openAdd()">ADD POSITION</button>{% endif %}
 {% if can_upload %}<a href="/trade-report"><button class="btn">DAILY TRADE REPORT</button></a>{% endif %}
-<button type="button" class="btn" style="background:#052d70" onclick="window.openTradeLogsSplit()">TRADE LOGS HISTORY</button>
+{% if can_manage %}<button type="button" class="btn" style="background:#052d70" onclick="window.openTradeLogsSplit()">TRADE LOGS HISTORY</button>{% endif %}
 <a href="/download/holdings.csv"><button class="btn green">DOWNLOAD PORTFOLIO</button></a>
 <a href="/download/clients.csv"><button class="btn light">DOWNLOAD CLIENTS</button></a>
 <a href="/logout"><button class="btn gray">LOGOUT</button></a>
@@ -487,7 +487,7 @@ body.tradelogs-split-open #tradeLogsSplitDrawer{display:flex;}
     <button type="button" class="btn green" id="logbookCurrentProfitBtn" style="padding:6px 11px;font-size:11px;cursor:default">Current Profit: ₹0.00</button>
     <button type="button" class="btn red" id="logbookCurrentLossBtn" style="padding:6px 11px;font-size:11px;cursor:default">Current Loss: ₹0.00</button>
   </div>
-  <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span class="pill" id="logbookLastTrade">Last trade: —</span><button type="button" class="btn" style="padding:6px 10px;font-size:11px;background:#052d70" onclick="window.openTradeLogsSplit(document.getElementById('logbookSelectedClient').textContent.replace('Client: ','').trim())">VIEW CLIENT LOGS ▸</button></div>
+  <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span class="pill" id="logbookLastTrade">Last trade: —</span>{% if can_manage %}<button type="button" class="btn" style="padding:6px 10px;font-size:11px;background:#052d70" onclick="window.openTradeLogsSplit(document.getElementById('logbookSelectedClient').textContent.replace('Client: ','').trim())">VIEW CLIENT LOGS ▸</button>{% endif %}</div>
 </div>
       <div class="logbook-metrics-7" id="logbookTradingDays">
         <div class="logbook-kpi"><small>TOTAL INVESTMENT</small><strong id="logbookInvestment">—</strong></div>
@@ -626,7 +626,7 @@ body.tradelogs-split-open #tradeLogsSplitDrawer{display:flex;}
   <h2>LM Securities <button onclick="mCloseDrawer()" style="float:right;width:auto;padding:0 8px;font-size:24px">×</button></h2>
   <button onclick="mGoHome()">▥ &nbsp; Client Portfolio</button>
   <button onclick="location.href='/trade-report'">▣ &nbsp; Daily Report</button>
-  <button onclick="mCloseDrawer();window.openTradeLogsSplit()">🕘 &nbsp; Trade Logs History</button>
+  {% if can_manage %}<button onclick="mCloseDrawer();window.openTradeLogsSplit()">🕘 &nbsp; Trade Logs History</button>{% endif %}
   <button onclick="location.href='/download/clients.csv'">▣ &nbsp; Clients Lists</button>
   <button onclick="mGoPassword()">🔒 &nbsp; Password</button>
   <button onclick="location.href='/logout'">↪ &nbsp; Logout</button>
