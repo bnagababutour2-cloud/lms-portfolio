@@ -334,6 +334,73 @@ body.screener-split-open #screenerSplitDrawer{display:flex;}
   cursor:pointer;
 }
 .portfolio-symbol-link:hover{color:#0b55b5;background:#eef5ff;}
+
+/* Trade Logs History Right-Side Split Drawer */
+@media(min-width:1024px){
+  body.tradelogs-split-open .container{
+    max-width:calc(100vw - 475px) !important;
+    margin-left:14px !important;
+    margin-right:460px !important;
+    transition:all .2s ease;
+  }
+}
+#tradeLogsSplitDrawer{
+  position:fixed;
+  top:0;
+  right:0;
+  width:450px;
+  max-width:100vw;
+  height:100vh;
+  background:#fff;
+  border-left:2px solid #052d70;
+  box-shadow:-8px 0 28px rgba(5,45,112,.18);
+  z-index:100001;
+  display:none;
+  flex-direction:column;
+}
+body.tradelogs-split-open #tradeLogsSplitDrawer{display:flex;}
+.tlog-filters{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:6px;
+  padding:10px 12px;
+  background:#f4f8fd;
+  border-bottom:1px solid #d8e4f0;
+}
+.tlog-filters input, .tlog-filters select{
+  padding:7px 8px;
+  font-size:11px;
+  border-radius:6px;
+  border:1px solid #cbd9e8;
+}
+.tlog-table-wrap{
+  flex:1;
+  overflow:auto;
+}
+.tlog-table{
+  width:100%;
+  min-width:100%;
+  border-collapse:collapse;
+  font-size:11px;
+}
+.tlog-table th{
+  background:#062e70;
+  color:#fff;
+  padding:7px 6px;
+  position:sticky;
+  top:0;
+  z-index:1;
+  font-size:10px;
+  text-align:left;
+}
+.tlog-table td{
+  padding:7px 6px;
+  border-bottom:1px solid #e2e8f0;
+  font-size:11px;
+}
+.tlog-badge-buy{background:#dcfce7;color:#15803d;padding:2px 6px;border-radius:4px;font-weight:800;font-size:10px;}
+.tlog-badge-sell{background:#fee2e2;color:#b91c1c;padding:2px 6px;border-radius:4px;font-weight:800;font-size:10px;}
+.tlog-badge-mod{background:#dbeafe;color:#1d4ed8;padding:2px 6px;border-radius:4px;font-weight:800;font-size:10px;}
 </style>
 
 </head>
@@ -344,6 +411,7 @@ body.screener-split-open #screenerSplitDrawer{display:flex;}
 <button class="btn" onclick="location.reload()">REFRESH</button>
 {% if can_manage %}<button class="btn gold" onclick="openAdd()">ADD POSITION</button>{% endif %}
 {% if can_upload %}<a href="/trade-report"><button class="btn">DAILY TRADE REPORT</button></a>{% endif %}
+<button type="button" class="btn" style="background:#052d70" onclick="window.openTradeLogsSplit()">TRADE LOGS HISTORY</button>
 <a href="/download/holdings.csv"><button class="btn green">DOWNLOAD PORTFOLIO</button></a>
 <a href="/download/clients.csv"><button class="btn light">DOWNLOAD CLIENTS</button></a>
 <a href="/logout"><button class="btn gray">LOGOUT</button></a>
@@ -419,7 +487,7 @@ body.screener-split-open #screenerSplitDrawer{display:flex;}
     <button type="button" class="btn green" id="logbookCurrentProfitBtn" style="padding:6px 11px;font-size:11px;cursor:default">Current Profit: ₹0.00</button>
     <button type="button" class="btn red" id="logbookCurrentLossBtn" style="padding:6px 11px;font-size:11px;cursor:default">Current Loss: ₹0.00</button>
   </div>
-  <span class="pill" id="logbookLastTrade">Last trade: —</span>
+  <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span class="pill" id="logbookLastTrade">Last trade: —</span><button type="button" class="btn" style="padding:6px 10px;font-size:11px;background:#052d70" onclick="window.openTradeLogsSplit(document.getElementById('logbookSelectedClient').textContent.replace('Client: ','').trim())">VIEW CLIENT LOGS ▸</button></div>
 </div>
       <div class="logbook-metrics-7" id="logbookTradingDays">
         <div class="logbook-kpi"><small>TOTAL INVESTMENT</small><strong id="logbookInvestment">—</strong></div>
@@ -558,6 +626,7 @@ body.screener-split-open #screenerSplitDrawer{display:flex;}
   <h2>LM Securities <button onclick="mCloseDrawer()" style="float:right;width:auto;padding:0 8px;font-size:24px">×</button></h2>
   <button onclick="mGoHome()">▥ &nbsp; Client Portfolio</button>
   <button onclick="location.href='/trade-report'">▣ &nbsp; Daily Report</button>
+  <button onclick="mCloseDrawer();window.openTradeLogsSplit()">🕘 &nbsp; Trade Logs History</button>
   <button onclick="location.href='/download/clients.csv'">▣ &nbsp; Clients Lists</button>
   <button onclick="mGoPassword()">🔒 &nbsp; Password</button>
   <button onclick="location.href='/logout'">↪ &nbsp; Logout</button>
@@ -670,8 +739,8 @@ function sortTable(col,ascending){
 function openAdd(){editMode=false;$('modalTitle').textContent='Add Portfolio Position';['fId','fClient','fSymbol','fProduct','fQty','fBuy','fTradeDate'].forEach(x=>$(x).value='');$('fPid').value='(Auto generated)';$('fPid').style.display='none';$('fExchange').value='BSE';$('positionModal').classList.add('show')}
 function openEdit(btn){editMode=true;const r=btn.closest('tr');$('modalTitle').textContent='Modify Portfolio Position';$('fId').value=r.dataset.id||r.dataset.portfolioId;$('fPid').value=r.dataset.id||'-';$('fPid').style.display='block';$('fClient').value=r.cells[1].innerText.trim();$('fSymbol').value=r.cells[2].innerText.trim();$('fProduct').value=r.cells[3].innerText.trim();$('fExchange').value=r.cells[4].innerText.trim();$('fQty').value=r.cells[7].innerText.trim();$('fBuy').value=r.cells[8].innerText.trim();$('fTradeDate').value=(r.cells[10].innerText.trim()==='-'?'':r.cells[10].innerText.trim());$('positionModal').classList.add('show')}
 function closeModal(){$('positionModal').classList.remove('show')}
-async function savePosition(){const payload={client_id:$('fClient').value.trim(),symbol:$('fSymbol').value.trim().toUpperCase(),product:$('fProduct').value.trim().toUpperCase(),exchange:$('fExchange').value,quantity:Number($('fQty').value),buy_price:Number($('fBuy').value),trade_date:$('fTradeDate').value};if(!payload.client_id||!payload.symbol||!payload.quantity||!payload.buy_price||!payload.trade_date){alert('Please enter Client ID, Symbol, Qty, Buy Price and Trade Date.');return}const url=editMode?'/api/holdings/modify':'/api/holdings/add';if(editMode)payload.id=$('fId').value;const res=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});const data=await res.json();if(!data.success){alert(data.message||data.error||'Operation failed');return}location.reload()}
-async function deleteHolding(btn){if(!confirm('Delete this portfolio record?'))return;const r=btn.closest('tr');const id=r.dataset.id||r.dataset.portfolioId;const res=await fetch('/api/holdings/delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id})});const data=await res.json();if(!data.success){alert(data.message||data.error||'Delete failed');return}location.reload()}
+async function savePosition(){const payload={client_id:$('fClient').value.trim(),symbol:$('fSymbol').value.trim().toUpperCase(),product:$('fProduct').value.trim().toUpperCase(),exchange:$('fExchange').value,quantity:Number($('fQty').value),buy_price:Number($('fBuy').value),trade_date:$('fTradeDate').value};if(!payload.client_id||!payload.symbol||!payload.quantity||!payload.buy_price||!payload.trade_date){alert('Please enter Client ID, Symbol, Qty, Buy Price and Trade Date.');return}const url=editMode?'/api/holdings/modify':'/api/holdings/add';if(editMode)payload.id=$('fId').value;const res=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});const data=await res.json();if(!data.success){alert(data.message||data.error||'Operation failed');return}if(typeof window.recordLocalTradeLog==='function'){window.recordLocalTradeLog({date:payload.trade_date,client_id:payload.client_id,symbol:payload.symbol,side:editMode?'MODIFY':'BUY',product:payload.product,exchange:payload.exchange,qty:payload.quantity,price:payload.buy_price});}location.reload()}
+async function deleteHolding(btn){if(!confirm('Delete this portfolio record?'))return;const r=btn.closest('tr');const id=r.dataset.id||r.dataset.portfolioId;const res=await fetch('/api/holdings/delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id})});const data=await res.json();if(!data.success){alert(data.message||data.error||'Delete failed');return}if(typeof window.recordLocalTradeLog==='function'&&r){window.recordLocalTradeLog({date:r.cells[10]?.innerText.trim(),client_id:r.cells[1]?.innerText.trim(),symbol:r.cells[2]?.innerText.trim(),side:'SELL / DELETE',product:r.cells[3]?.innerText.trim(),exchange:r.cells[4]?.innerText.trim(),qty:r.cells[7]?.innerText.trim(),price:r.cells[8]?.innerText.trim()});}location.reload()}
 function toggleAllRows(master){document.querySelectorAll('.row-check').forEach(x=>{if(x.closest('tr').style.display!=='none')x.checked=master.checked});updateRowCount()}
 function selectAllRows(){visibleRows().forEach(r=>r.querySelector('.row-check').checked=true);updateRowCount()}
 function clearRowSelection(){document.querySelectorAll('.row-check').forEach(x=>x.checked=false);updateRowCount()}
@@ -1513,6 +1582,238 @@ window.setLogbookFilter=async function(filter,button){
    }catch(err){if(msg)msg.textContent=err.message;}
  };
  const mobileInput=document.getElementById('mAnalyticsClient');if(mobileInput)mobileInput.addEventListener('keydown',e=>{if(e.key==='Enter')window.mLoadAnalytics();});
+})();
+
+
+
+// ===== TRADE LOGS HISTORY RIGHT-SIDE SPLIT DRAWER =====
+(function(){
+  if(document.getElementById('tradeLogsSplitDrawer')) return;
+  const drawer = document.createElement('aside');
+  drawer.id = 'tradeLogsSplitDrawer';
+  drawer.innerHTML = `
+    <div style="background:#052d70;color:#fff;padding:12px 14px;display:flex;align-items:center;justify-content:space-between;gap:8px">
+      <div style="min-width:0">
+        <div style="font-size:10px;letter-spacing:.6px;opacity:.85;font-weight:800">AUDIT &amp; EXECUTION LOGBOOK</div>
+        <strong style="font-size:15px;display:block">Trade Logs History</strong>
+      </div>
+      <div style="display:flex;gap:6px;flex-shrink:0">
+        <button type="button" onclick="window.exportTradeLogsCsv()"
+                style="background:#128a43;color:#fff;border:0;border-radius:6px;padding:5px 9px;font-size:11px;font-weight:800;cursor:pointer">CSV ↓</button>
+        <button type="button" onclick="window.refreshTradeLogsHistory()"
+                style="background:#fff;color:#052d70;border:0;border-radius:6px;padding:5px 9px;font-size:11px;font-weight:800;cursor:pointer">↻</button>
+        <button type="button" onclick="window.closeTradeLogsSplit()"
+                style="background:rgba(255,255,255,.18);color:#fff;border:0;border-radius:6px;padding:5px 9px;font-weight:800;cursor:pointer">✕</button>
+      </div>
+    </div>
+    <div class="tlog-filters">
+      <input id="tlogClientFilter" placeholder="Filter Client ID..." oninput="window.renderTradeLogsTable()">
+      <input id="tlogSymbolFilter" placeholder="Filter Symbol..." oninput="window.renderTradeLogsTable()">
+      <select id="tlogTypeFilter" onchange="window.renderTradeLogsTable()">
+        <option value="">All Actions / Sides</option>
+        <option value="BUY">BUY / ADD</option>
+        <option value="SELL">SELL / DELETE</option>
+        <option value="MODIFY">MODIFY</option>
+      </select>
+      <input id="tlogDateFilter" type="date" title="Filter by Trade Date" onchange="window.renderTradeLogsTable()">
+    </div>
+    <div style="padding:6px 12px;background:#fbfdff;border-bottom:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center;font-size:11px;color:#475569">
+      <span id="tlogSummaryCount">0 trade logs</span>
+      <button type="button" onclick="window.clearTradeLogsFilters()" style="border:0;background:transparent;color:#0b55b5;font-weight:800;cursor:pointer;font-size:11px">Reset Filters</button>
+    </div>
+    <div class="tlog-table-wrap">
+      <table class="tlog-table">
+        <thead>
+          <tr>
+            <th>Date / Time</th>
+            <th>Client</th>
+            <th>Symbol</th>
+            <th>Side</th>
+            <th style="text-align:right">Qty</th>
+            <th style="text-align:right">Price</th>
+          </tr>
+        </thead>
+        <tbody id="tlogTableBody">
+          <tr><td colspan="6" style="text-align:center;padding:20px;color:#64748b">Click "TRADE LOGS HISTORY" to load records.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  `;
+  document.body.appendChild(drawer);
+
+  const LOCAL_LOG_KEY = 'lms_admin_trade_logs_v1';
+  let combinedLogs = [];
+
+  function escHtml(v){
+    return String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  function getLocalSessionLogs(){
+    try { return JSON.parse(localStorage.getItem(LOCAL_LOG_KEY) || '[]'); }
+    catch(e){ return []; }
+  }
+
+  window.recordLocalTradeLog = function(entry){
+    try {
+      const list = getLocalSessionLogs();
+      list.unshift({
+        timestamp: new Date().toLocaleString('en-IN', {hour12:true}),
+        date: entry.date || new Date().toISOString().slice(0,10),
+        client_id: (entry.client_id || '-').toUpperCase(),
+        symbol: (entry.symbol || '-').toUpperCase(),
+        side: (entry.side || 'BUY').toUpperCase(),
+        product: (entry.product || '-').toUpperCase(),
+        exchange: (entry.exchange || '-').toUpperCase(),
+        qty: Number(entry.qty || 0),
+        price: Number(entry.price || 0),
+        source: 'Admin Action'
+      });
+      localStorage.setItem(LOCAL_LOG_KEY, JSON.stringify(list.slice(0, 300)));
+    } catch(e){}
+  };
+
+  function buildPortfolioTradeLogs(){
+    const rows = [...document.querySelectorAll('#portfolioTable tbody tr')];
+    return rows.map(r => {
+      const client = (r.cells[1]?.innerText || '').trim();
+      const symbol = (r.cells[2]?.innerText || '').trim();
+      const product = (r.cells[3]?.innerText || '').trim();
+      const exchange = (r.cells[4]?.innerText || '').trim();
+      const qty = Number((r.cells[7]?.innerText || '0').replace(/,/g, '')) || 0;
+      const buy = Number((r.cells[8]?.innerText || '0').replace(/,/g, '')) || 0;
+      const tDate = (r.cells[10]?.innerText || '-').trim();
+      const pid = (r.cells[11]?.innerText || '-').trim();
+      return {
+        timestamp: tDate !== '-' ? tDate : 'Active Holding',
+        date: tDate !== '-' ? tDate : '',
+        client_id: client,
+        symbol: symbol,
+        side: 'BUY',
+        product: product,
+        exchange: exchange,
+        qty: qty,
+        price: buy,
+        id: pid,
+        source: 'Portfolio'
+      };
+    });
+  }
+
+  window.refreshTradeLogsHistory = async function(){
+    const tbody = document.getElementById('tlogTableBody');
+    if(tbody) tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:18px;color:#60748a">Loading trade logs history…</td></tr>';
+
+    let serverLogs = [];
+    try {
+      const res = await fetch('/api/admin/trade-logs?_=' + Date.now(), {credentials:'same-origin', cache:'no-store'});
+      if(res.ok){
+        const data = await res.json();
+        if(data && data.success && Array.isArray(data.logs)){
+          serverLogs = data.logs.map(x => ({
+            timestamp: x.timestamp || x.trade_time || x.trade_date || '-',
+            date: x.trade_date || x.date || '',
+            client_id: String(x.client_id || '-').toUpperCase(),
+            symbol: String(x.symbol || '-').toUpperCase(),
+            side: String(x.side || x.action || x.type || 'BUY').toUpperCase(),
+            product: String(x.product || '-').toUpperCase(),
+            exchange: String(x.exchange || '-').toUpperCase(),
+            qty: Number(x.qty || x.quantity || 0),
+            price: Number(x.price || x.buy_price || 0),
+            source: 'Server Log'
+          }));
+        }
+      }
+    } catch(e){}
+
+    const localLogs = getLocalSessionLogs();
+    const portfolioLogs = buildPortfolioTradeLogs();
+
+    // Sort portfolio logs newest trade date first
+    portfolioLogs.sort((a,b) => (b.date || '').localeCompare(a.date || ''));
+
+    combinedLogs = [...localLogs, ...serverLogs, ...portfolioLogs];
+    window.renderTradeLogsTable();
+  };
+
+  window.renderTradeLogsTable = function(){
+    const tbody = document.getElementById('tlogTableBody');
+    if(!tbody) return;
+    const cFilter = (document.getElementById('tlogClientFilter')?.value || '').trim().toUpperCase();
+    const sFilter = (document.getElementById('tlogSymbolFilter')?.value || '').trim().toUpperCase();
+    const tFilter = (document.getElementById('tlogTypeFilter')?.value || '').trim().toUpperCase();
+    const dFilter = (document.getElementById('tlogDateFilter')?.value || '').trim();
+
+    const filtered = combinedLogs.filter(item => {
+      if(cFilter && !item.client_id.toUpperCase().includes(cFilter)) return false;
+      if(sFilter && !item.symbol.toUpperCase().includes(sFilter)) return false;
+      if(tFilter && !item.side.toUpperCase().includes(tFilter)) return false;
+      if(dFilter && !(item.date || '').includes(dFilter)) return false;
+      return true;
+    });
+
+    const countEl = document.getElementById('tlogSummaryCount');
+    if(countEl) countEl.textContent = filtered.length + ' log record(s)';
+
+    if(!filtered.length){
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;color:#64748b">No matching trade logs found.</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = filtered.slice(0, 500).map(item => {
+      const sideUp = item.side.toUpperCase();
+      const badgeCls = sideUp.includes('SELL') || sideUp.includes('DEL')
+        ? 'tlog-badge-sell'
+        : (sideUp.includes('MOD') ? 'tlog-badge-mod' : 'tlog-badge-buy');
+      return `<tr>
+        <td style="white-space:nowrap;color:#475569;font-size:10px">${escHtml(item.timestamp)}<br><small style="color:#94a3b8">${escHtml(item.product)} · ${escHtml(item.exchange)}</small></td>
+        <td style="font-weight:800;color:#052d70">${escHtml(item.client_id)}</td>
+        <td style="font-weight:800">${escHtml(item.symbol)}</td>
+        <td><span class="${badgeCls}">${escHtml(sideUp)}</span></td>
+        <td style="text-align:right;font-weight:700">${Number(item.qty).toLocaleString('en-IN')}</td>
+        <td style="text-align:right;font-weight:700">₹${Number(item.price).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2})}</td>
+      </tr>`;
+    }).join('');
+  };
+
+  window.clearTradeLogsFilters = function(){
+    ['tlogClientFilter','tlogSymbolFilter','tlogTypeFilter','tlogDateFilter'].forEach(id => {
+      const el = document.getElementById(id);
+      if(el) el.value = '';
+    });
+    window.renderTradeLogsTable();
+  };
+
+  window.openTradeLogsSplit = function(prefillClient){
+    // Close Screener drawer if open so right-side drawers don't overlap
+    if(typeof window.closeScreenerSplit === 'function') window.closeScreenerSplit();
+    document.body.classList.add('tradelogs-split-open');
+    if(prefillClient && prefillClient !== 'No client selected'){
+      const inp = document.getElementById('tlogClientFilter');
+      if(inp) inp.value = prefillClient;
+    }
+    window.refreshTradeLogsHistory();
+  };
+
+  window.closeTradeLogsSplit = function(){
+    document.body.classList.remove('tradelogs-split-open');
+  };
+
+  window.exportTradeLogsCsv = function(){
+    if(!combinedLogs.length){ alert('No trade logs to export.'); return; }
+    const head = ['Timestamp','Client ID','Symbol','Side','Product','Exchange','Qty','Price','Source'];
+    const lines = [head.map(csvEscape).join(',')];
+    combinedLogs.forEach(x => lines.push([x.timestamp, x.client_id, x.symbol, x.side, x.product, x.exchange, x.qty, x.price, x.source].map(csvEscape).join(',')));
+    downloadText(lines.join('\n'), 'lms_trade_logs_history.csv');
+  };
+
+  // Ensure opening Screener split automatically closes Trade Logs drawer so right side stays clean
+  const origOpenScreener = window.openScreenerSplit;
+  if(typeof origOpenScreener === 'function'){
+    window.openScreenerSplit = function(sym){
+      window.closeTradeLogsSplit();
+      return origOpenScreener.apply(this, arguments);
+    };
+  }
 })();
 
 </script>
