@@ -1602,6 +1602,81 @@ def admin_portfolio():
     }
   }
 
+  function resetLogbookSelectionToEmpty(){
+    const card=document.getElementById('tradeLogbookCard');
+    if(!card) return;
+    // Clear search box inside Trade Logbook card
+    card.querySelectorAll('input[type="text"],input[type="search"],input:not([type])').forEach(inp=>{
+      inp.value='';
+    });
+    // Reset header title to "No client selected"
+    const titleEl=Array.from(card.querySelectorAll('h1,h2,h3,h4,strong,div,span')).find(el=>/^\s*Client:\s*\S+/i.test(el.textContent||''));
+    if(titleEl) titleEl.textContent='No client selected';
+    // Reset profit/loss pills to ₹0.00
+    card.querySelectorAll('span,div').forEach(el=>{
+      if(el.children.length>0) return;
+      const t=(el.textContent||'').trim();
+      if(/^Current Profit:/i.test(t)) el.textContent='Current Profit: ₹0.00';
+      if(/^Current Loss:/i.test(t)) el.textContent='Current Loss: ₹0.00';
+      if(/^Last trade:/i.test(t)) el.textContent='Last trade: —';
+      if(/^\d+\s+clients?$/i.test(t)) el.textContent='0 clients';
+    });
+    // Reset the 7 KPI metric boxes to "—"
+    card.querySelectorAll('small').forEach(sm=>{
+      const label=(sm.textContent||'').trim().toUpperCase();
+      if(/TOTAL INVEST|UNREALIZED|COMPANIES HELD|THIS WEEK|THIS MONTH|THIS QUARTER|FINANCIAL YEAR/.test(label)){
+        const valEl=sm.parentElement && sm.parentElement.querySelector('strong,div:last-child,span:last-child');
+        if(valEl && valEl!==sm){
+          valEl.textContent='—';
+          valEl.style.color='';
+        }
+      }
+    });
+    // Clear Matching Clients list so no client is selected or listed
+    const injectedList=document.getElementById('lms-logbook-client-list');
+    if(injectedList) injectedList.remove();
+    const matchHeading=Array.from(card.querySelectorAll('*')).find(el=>el.children.length===0 && /^\s*Matching Clients\s*$/i.test(el.textContent||''));
+    const leftPane=matchHeading ? matchHeading.closest('div') : null;
+    if(leftPane){
+      Array.from(leftPane.querySelectorAll('button,li,a,div')).forEach(el=>{
+        if(el===leftPane || el.contains(matchHeading) || el.querySelector('input')) return;
+        const txt=(el.textContent||'').trim();
+        if(/SEARCH/i.test(txt) || /Search or select a client/i.test(txt)) return;
+        if(el.parentElement===leftPane || /\d+d\s+ago|No matching clients/i.test(txt)){
+          el.remove();
+        }
+      });
+      if(!leftPane.querySelector('.lms-empty-clients')){
+        const emptyMsg=document.createElement('div');
+        emptyMsg.className='lms-empty-clients';
+        emptyMsg.style.cssText='margin-top:10px;padding:16px 10px;text-align:center;color:#667b91;font-size:12px;border:1px dashed #cbd9e8;border-radius:8px;background:#fff';
+        emptyMsg.textContent='No client selected.';
+        leftPane.appendChild(emptyMsg);
+      }
+    }
+    // Clear all donut chart SVGs and legends back to "No chart data"
+    card.querySelectorAll('svg').forEach(svg=>{
+      const wrap=svg.parentElement;
+      if(wrap) wrap.innerHTML='<div style="padding:28px 10px;text-align:center;color:#667b91;font-size:12px;border:1px dashed #cbd9e8;border-radius:8px;width:100%">No chart data</div>';
+    });
+    card.querySelectorAll('[class*="legend"],[id*="legend"]').forEach(leg=>{
+      leg.innerHTML='';
+    });
+    // Also remove any sibling rows rendered below each donut inside each chart card
+    Array.from(card.querySelectorAll('h1,h2,h3,h4,strong,div')).forEach(h=>{
+      if(h.children.length===0 && /^[1-5]\.\s+/.test((h.textContent||'').trim())){
+        const box=h.parentElement;
+        if(box){
+          Array.from(box.children).forEach(ch=>{
+            if(ch===h) return;
+            if(ch.querySelector('svg') || /No chart data/i.test(ch.textContent||'')) return;
+            ch.remove();
+          });
+        }
+      }
+    });
+  }
+
   function clearPortfolioBucket(){
     bucketRequestSerial++;
     activePortfolioBucket=null;
@@ -1611,6 +1686,13 @@ def admin_portfolio():
       table.querySelectorAll('tbody tr').forEach(row=>{
         row.hidden=false;
         row.style.display='';
+      });
+    }
+    // Uncheck any selected row checkboxes in the portfolio table so selection is empty
+    if(table){
+      table.querySelectorAll('input[type="checkbox"]:checked').forEach(cb=>{
+        cb.checked=false;
+        cb.indeterminate=false;
       });
     }
     // Reset any search inputs on the admin page as well if present
@@ -1623,18 +1705,12 @@ def admin_portfolio():
     });
     if(typeof updateTotal==='function') updateTotal();
     const note=document.getElementById('lms-recency-note');
-    if(note) note.textContent='Showing all clients and existing holdings';
+    if(note) note.textContent='Select a period to view clients';
     const bar=document.getElementById('lms-recency-bar');
     if(bar) bar.querySelectorAll('button[data-bucket]').forEach(b=>b.classList.remove('active'));
-    const injectedList=document.getElementById('lms-logbook-client-list');
-    if(injectedList) injectedList.remove();
-    if(typeof window.setLogbookFilter==='function'){
-      document.querySelectorAll('[data-logbook-filter]').forEach(b=>b.classList.remove('active'));
-      try{ window.setLogbookFilter('all', null); }catch(_){}
-      if(typeof window.refreshTradeLogbook==='function'){
-        try{ window.refreshTradeLogbook(); }catch(_){}
-      }
-    }
+    document.querySelectorAll('[data-logbook-filter]').forEach(b=>b.classList.remove('active'));
+    if(typeof window.selectedLogbookClient !== 'undefined') window.selectedLogbookClient = null;
+    resetLogbookSelectionToEmpty();
   }
 
   async function showBucket(bucket,label){
