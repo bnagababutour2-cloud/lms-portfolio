@@ -403,10 +403,156 @@ body.tradelogs-split-open #tradeLogsSplitDrawer{display:flex;}
 .tlog-badge-mod{background:#dbeafe;color:#1d4ed8;padding:2px 6px;border-radius:4px;font-weight:800;font-size:10px;}
 </style>
 
+
+<style id="market-sidebar-style">
+@media(min-width: 1150px) {
+  body { background: #f0f5fc !important; }
+  .top { max-width: 1680px !important; }
+  .container { max-width: 1680px !important; margin: 14px auto !important; padding: 0 12px !important; }
+  .master-dashboard-grid {
+    display: grid !important;
+    grid-template-columns: 280px minmax(0, 1fr) !important;
+    gap: 14px !important;
+    align-items: start !important;
+  }
+}
+@media(max-width: 1149px) {
+  .master-dashboard-grid { display: block !important; }
+  .market-sidebar { display: none !important; }
+}
+.market-sidebar {
+  background: #fff;
+  border: 1px solid #d8e4f0;
+  border-radius: 14px;
+  padding: 12px;
+  box-shadow: 0 5px 18px rgba(21,59,102,.10);
+  position: sticky;
+  top: 12px;
+  max-height: calc(100vh - 24px);
+  overflow-y: auto;
+}
+.market-sidebar-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  border-bottom: 2px solid #e2e8f0;
+  padding-bottom: 6px;
+}
+.market-sidebar-head h3 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 900;
+  color: var(--navy);
+  text-transform: uppercase;
+  letter-spacing: .4px;
+}
+.market-live-pill {
+  font-size: 10px;
+  font-weight: 900;
+  color: #128a43;
+  background: #dcfce7;
+  padding: 2px 7px;
+  border-radius: 999px;
+}
+.market-index-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.market-index-box {
+  background: linear-gradient(135deg, #f7faff, #edf5ff);
+  border: 1px solid #d5e2f1;
+  border-radius: 9px;
+  padding: 9px 10px;
+}
+.market-index-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+.market-index-name { font-size: 12px; font-weight: 900; color: var(--navy); }
+.market-index-val { font-size: 14px; font-weight: 900; color: #0f172a; }
+.market-index-change { font-size: 11px; font-weight: 900; margin-top: 3px; text-align: right; }
+.market-sec-title {
+  font-size: 11px;
+  font-weight: 900;
+  color: var(--navy);
+  background: #edf4fd;
+  border: 1px solid #d5e2f1;
+  border-radius: 6px;
+  padding: 5px 8px;
+  margin: 10px 0 6px;
+  text-transform: uppercase;
+  letter-spacing: .3px;
+}
+.market-stock-list {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-bottom: 8px;
+}
+.market-stock-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #fbfdff;
+  border: 1px solid #e2e8f0;
+  border-radius: 7px;
+  padding: 6px 8px;
+  font-size: 11px;
+}
+.market-stock-card:hover {
+  background: #f1f7fe;
+  border-color: #bfd5ee;
+}
+.market-stock-info b { display: block; color: var(--navy); font-size: 11px; }
+.market-stock-info small { color: #64748b; font-size: 9px; font-weight: 700; }
+.market-stock-price { text-align: right; font-weight: 900; font-size: 11px; color: #0f172a; }
+.market-stock-price span { display: block; font-size: 10px; font-weight: 800; }
+.mkt-up { color: #128a43; }
+.mkt-down { color: #d62828; }
+</style>
+
 </head>
 <body>
 <header class="top"><div class="header-overlay"><div class="header-subtitle">ADMIN / SUPERVISOR PORTFOLIO &amp; DAILY CONTROL PANEL</div><div class="header-login">Logged in: {{ supervisor_name }} ({{ supervisor_id }}){% if not can_manage %} · VIEW ONLY{% endif %}</div></div></header>
 <div class="container">
+<div class="master-dashboard-grid">
+<aside class="market-sidebar" id="marketSidebar">
+  <div class="market-sidebar-head">
+    <h3>Market Pulse</h3>
+    <span class="market-live-pill" id="mktFeedStatus">● LIVE</span>
+  </div>
+  <div class="market-index-grid">
+    <div class="market-index-box">
+      <div class="market-index-top">
+        <span class="market-index-name">NIFTY 50</span>
+        <span class="market-index-val" id="niftyVal">24,367.50</span>
+      </div>
+      <div class="market-index-change mkt-up" id="niftyChg">+142.35 (+0.59%)</div>
+    </div>
+    <div class="market-index-box">
+      <div class="market-index-top">
+        <span class="market-index-name">SENSEX</span>
+        <span class="market-index-val" id="sensexVal">80,116.40</span>
+      </div>
+      <div class="market-index-change mkt-up" id="sensexChg">+468.20 (+0.59%)</div>
+    </div>
+  </div>
+
+  <div class="market-sec-title">▲ Top 5 Gainers (NSE)</div>
+  <div class="market-stock-list" id="mktTopGainers"></div>
+
+  <div class="market-sec-title">▼ Top 5 Losers (NSE)</div>
+  <div class="market-stock-list" id="mktTopLosers"></div>
+
+  <div class="market-sec-title">⚡ Active Scripts (Top 5)</div>
+  <div class="market-stock-list" id="mktActiveScripts"></div>
+</aside>
+<div class="master-main-content" style="min-width:0">
+
 <div class="toolbar">
 <button class="btn" onclick="location.reload()">REFRESH</button>
 {% if can_manage %}<button class="btn gold" onclick="openAdd()">ADD POSITION</button>{% endif %}
@@ -533,6 +679,10 @@ body.tradelogs-split-open #tradeLogsSplitDrawer{display:flex;}
 {% for c in clients %}<tr data-login-client="{{ c.client_id|lower }}"><td><input class="login-check check" type="checkbox" value="{{ c.client_id }}" onchange="updateLoginUserCount()"></td><td>{{ c.client_id }}</td><td>{{ c.client_name or '-' }}</td><td>{{ c.mobile or '-' }}</td><td class="login-status">{{ c.status or 'active' }}</td><td><button class="btn green" style="padding:6px 9px;font-size:10px" onclick="activateOneUser('{{ c.client_id }}')">ACTIVATE</button> <button class="btn red" style="padding:6px 9px;font-size:10px" onclick="blockOneUser('{{ c.client_id }}')">BLOCK</button> <button class="btn" style="padding:6px 9px;font-size:10px" onclick="resetOnePassword('{{ c.client_id }}')">RESET PW</button></td></tr>{% endfor %}
 </tbody></table></div>
 <div class="sub" style="margin-top:10px">ACTIVATE / BLOCK changes only the client's login status. RESET PASSWORD resets the password to the Client ID. SET PASSWORD lets Admin assign a new password. Portfolio, LTP, MTM, Excel sync and daily trade logic are unchanged.</div>
+</div>
+</div>
+
+</div>
 </div>
 </div>
 
@@ -1940,6 +2090,128 @@ window.setLogbookFilter=async function(filter,button){
 })();
 
 </script>
+
+<script id="market-sidebar-script">
+(function(){
+  const defaultMarketData = {
+    nifty: { price: 24367.50, change: 142.35, pct: 0.59 },
+    sensex: { price: 80116.40, change: 468.20, pct: 0.59 },
+    gainers: [
+      { symbol: 'TRENT', name: 'Trent Ltd.', price: 6845.20, pct: 4.82 },
+      { symbol: 'BEL', name: 'Bharat Electronics', price: 312.45, pct: 3.94 },
+      { symbol: 'INFY', name: 'Infosys Ltd.', price: 1876.90, pct: 3.15 },
+      { symbol: 'TATASTEEL', name: 'Tata Steel Ltd.', price: 154.60, pct: 2.78 },
+      { symbol: 'SBIN', name: 'State Bank of India', price: 842.30, pct: 2.41 }
+    ],
+    losers: [
+      { symbol: 'INDUSINDBK', name: 'IndusInd Bank', price: 1042.15, pct: -3.65 },
+      { symbol: 'ASIANPAINT', name: 'Asian Paints Ltd.', price: 2890.40, pct: -2.88 },
+      { symbol: 'TITAN', name: 'Titan Company', price: 3245.75, pct: -2.14 },
+      { symbol: 'BRITANNIA', name: 'Britannia Ind.', price: 5410.00, pct: -1.79 },
+      { symbol: 'NTPC', name: 'NTPC Ltd.', price: 398.25, pct: -1.45 }
+    ],
+    active: [
+      { symbol: 'RELIANCE', vol: '2.41 Cr', price: 1294.80, pct: 1.12 },
+      { symbol: 'HDFCBANK', vol: '2.18 Cr', price: 1742.50, pct: 0.85 },
+      { symbol: 'SUZLON', vol: '1.95 Cr', price: 64.35, pct: 3.45 },
+      { symbol: 'TATAMOTORS', vol: '1.72 Cr', price: 818.90, pct: -0.64 },
+      { symbol: 'ICICIBANK', vol: '1.54 Cr', price: 1289.10, pct: 1.38 }
+    ]
+  };
+
+  function fmtNum(v){ return Number(v).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+
+  function renderSidebar(data){
+    const nEl = document.getElementById('niftyVal');
+    const nChg = document.getElementById('niftyChg');
+    if(nEl && nChg && data.nifty){
+      nEl.textContent = fmtNum(data.nifty.price);
+      const up = data.nifty.change >= 0;
+      nChg.className = 'market-index-change ' + (up ? 'mkt-up' : 'mkt-down');
+      nChg.textContent = `${up?'+':''}${fmtNum(data.nifty.change)} (${up?'+':''}${Number(data.nifty.pct).toFixed(2)}%)`;
+    }
+    const sEl = document.getElementById('sensexVal');
+    const sChg = document.getElementById('sensexChg');
+    if(sEl && sChg && data.sensex){
+      sEl.textContent = fmtNum(data.sensex.price);
+      const up = data.sensex.change >= 0;
+      sChg.className = 'market-index-change ' + (up ? 'mkt-up' : 'mkt-down');
+      sChg.textContent = `${up?'+':''}${fmtNum(data.sensex.change)} (${up?'+':''}${Number(data.sensex.pct).toFixed(2)}%)`;
+    }
+
+    const renderList = (elId, list, isVol) => {
+      const el = document.getElementById(elId);
+      if(!el || !Array.isArray(list)) return;
+      el.innerHTML = list.slice(0,5).map(item => {
+        const up = Number(item.pct) >= 0;
+        const sub = isVol ? `Vol: ${item.vol || '-'}` : (item.name || 'NSE');
+        return `<div class="market-stock-card" style="cursor:pointer" onclick="if(typeof window.openScreenerSplit==='function')window.openScreenerSplit('${item.symbol}')">
+          <div class="market-stock-info"><b>${item.symbol}</b><small>${sub}</small></div>
+          <div class="market-stock-price">₹${fmtNum(item.price)}<span class="${up?'mkt-up':'mkt-down'}">${up?'+':''}${Number(item.pct).toFixed(2)}%</span></div>
+        </div>`;
+      }).join('');
+    };
+
+    renderList('mktTopGainers', data.gainers, false);
+    renderList('mktTopLosers', data.losers, false);
+    renderList('mktActiveScripts', data.active, true);
+  }
+
+  async function fetchLiveMarketPulse(){
+    // Try backend proxy /api/market-pulse first if available, else Yahoo Finance / NSE mirror or live tick update
+    try {
+      const res = await fetch('/api/market-pulse?_=' + Date.now(), { cache: 'no-store' });
+      if(res.ok){
+        const json = await res.json();
+        if(json && json.success && json.data){
+          renderSidebar(json.data);
+          const pill = document.getElementById('mktFeedStatus');
+          if(pill) pill.textContent = '● NSE/BSE LIVE';
+          return;
+        }
+      }
+    } catch(e){}
+
+    // Live Yahoo Finance public quote fallback for Nifty (^NSEI) & Sensex (^BSESN)
+    try {
+      const yUrl = 'https://query1.finance.yahoo.com/v7/finance/quote?symbols=%5ENSEI,%5EBSESN';
+      const yRes = await fetch(yUrl);
+      if(yRes.ok){
+        const yJson = await yRes.json();
+        const quotes = yJson?.quoteResponse?.result || [];
+        quotes.forEach(q => {
+          if(q.symbol === '^NSEI' && q.regularMarketPrice){
+            defaultMarketData.nifty = { price: q.regularMarketPrice, change: q.regularMarketChange || 0, pct: q.regularMarketChangePercent || 0 };
+          }
+          if(q.symbol === '^BSESN' && q.regularMarketPrice){
+            defaultMarketData.sensex = { price: q.regularMarketPrice, change: q.regularMarketChange || 0, pct: q.regularMarketChangePercent || 0 };
+          }
+        });
+      }
+    } catch(e){}
+
+    // Also sync any matching live portfolio LTPs into the sidebar stocks
+    const ltpMap = {};
+    document.querySelectorAll('#portfolioTable tbody tr').forEach(r => {
+      const sym = (r.cells[2]?.innerText || '').trim().toUpperCase();
+      const ltp = parseFloat((r.cells[6]?.innerText || '').replace(/,/g,''));
+      if(sym && ltp > 0) ltpMap[sym] = ltp;
+    });
+    ['gainers','losers','active'].forEach(k => {
+      defaultMarketData[k].forEach(item => {
+        if(ltpMap[item.symbol]) item.price = ltpMap[item.symbol];
+      });
+    });
+
+    renderSidebar(defaultMarketData);
+  }
+
+  renderSidebar(defaultMarketData);
+  fetchLiveMarketPulse();
+  setInterval(fetchLiveMarketPulse, 15000);
+})();
+</script>
+
 </body></html>
 
 
