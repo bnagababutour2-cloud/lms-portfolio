@@ -411,7 +411,14 @@ body.screener-split-open #screenerSplitDrawer{display:flex;}
   <div class="logbook-layout">
     <div class="logbook-client-panel"><b style="color:#052d70;font-size:13px">Matching Clients</b><div class="sub" style="margin-top:4px">Search or select a client code to view portfolio analytics.</div><div class="logbook-client-search-row"><input id="logbookClientSearchInput" type="text" placeholder="Client ID or name..." onkeydown="if(event.key==='Enter'){event.preventDefault();window.searchLogbookClients();}"><button type="button" class="btn" id="logbookClientSearchBtn" onclick="window.searchLogbookClients()">SEARCH</button></div><div class="logbook-client-list" id="logbookClientList"><div class="logbook-empty">Select a trade-recency filter above.</div></div></div>
     <div class="logbook-chart-panel">
-      <div class="logbook-summary"><strong id="logbookSelectedClient">No client selected</strong><span class="pill" id="logbookLastTrade">Last trade: —</span></div>
+      <div class="logbook-summary">
+  <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+    <strong id="logbookSelectedClient">No client selected</strong>
+    <button type="button" class="btn green" id="logbookCurrentProfitBtn" style="padding:6px 11px;font-size:11px;cursor:default">Current Profit: ₹0.00</button>
+    <button type="button" class="btn red" id="logbookCurrentLossBtn" style="padding:6px 11px;font-size:11px;cursor:default">Current Loss: ₹0.00</button>
+  </div>
+  <span class="pill" id="logbookLastTrade">Last trade: —</span>
+</div>
       <div class="logbook-metrics-7" id="logbookTradingDays">
         <div class="logbook-kpi"><small>TOTAL INVESTMENT</small><strong id="logbookInvestment">—</strong></div>
         <div class="logbook-kpi"><small>UNREALIZED PROFIT / LOSS</small><strong id="logbookPnl">—</strong></div>
@@ -1174,6 +1181,10 @@ async function setSelectedPasswords(){
      const e=document.getElementById(id);
      if(e) e.innerHTML='<div class="logbook-empty">No chart data</div>';
    });
+   const profBtn=document.getElementById('logbookCurrentProfitBtn');
+   if(profBtn) profBtn.textContent='Current Profit: ₹0.00';
+   const lossBtn=document.getElementById('logbookCurrentLossBtn');
+   if(lossBtn) lossBtn.textContent='Current Loss: ₹0.00';
  }
 
  function renderDonut(donutId,legendId,items,total,kind){
@@ -1292,6 +1303,12 @@ async function setSelectedPasswords(){
    pnlEl.textContent=(pnl>=0?'+':'−')+moneyExact(pnl);
    pnlEl.style.color=pnl>=0?'#128a43':'#d62828';
    document.getElementById('logbookCompanyCount').textContent=companies.size;
+   const totalProfitAmt = [...companies.values()].filter(x => x.pnl > 0).reduce((s, x) => s + x.pnl, 0);
+   const totalLossAmt = [...companies.values()].filter(x => x.pnl < 0).reduce((s, x) => s + Math.abs(x.pnl), 0);
+   const profBtn = document.getElementById('logbookCurrentProfitBtn');
+   if (profBtn) profBtn.textContent = 'Current Profit: +' + moneyExact(totalProfitAmt);
+   const lossBtn = document.getElementById('logbookCurrentLossBtn');
+   if (lossBtn) lossBtn.textContent = 'Current Loss: −' + moneyExact(totalLossAmt);
 
    const byInvestment=[...companies.values()].sort((a,b)=>b.investment-a.investment).map(x=>({name:x.name,value:x.investment}));
    const byProfit=[...companies.values()].filter(x=>x.pnl>0).sort((a,b)=>b.pnl-a.pnl).map(x=>({name:x.name,value:x.pnl}));
