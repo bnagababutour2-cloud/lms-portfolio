@@ -502,29 +502,17 @@ body.screener-split-open #screenerSplitDrawer{display:flex;}
     <section class="m-analytics-card" id="mAnalyticsCard">
       <div class="m-analytics-heading"><div><b>CLIENT PORTFOLIO ANALYTICS</b><small>Search a client to view live portfolio charts</small></div><button type="button" onclick="mLoadAnalytics()">REFRESH</button></div>
       <div class="m-analytics-search"><input id="mAnalyticsClient" placeholder="Enter Client ID"><button type="button" onclick="mLoadAnalytics()">VIEW</button></div>
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;flex-wrap:wrap;margin-bottom:8px">
-        <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap">
-          <strong id="mAnaClientTitle" style="color:#052d70;font-size:13px">No client selected</strong>
-          <span id="mAnaProfitBadge" style="background:#128a43;color:#fff;border-radius:6px;padding:4px 7px;font-size:10px;font-weight:900">Current Profit: +₹0.00</span>
-          <span id="mAnaLossBadge" style="background:#d62828;color:#fff;border-radius:6px;padding:4px 7px;font-size:10px;font-weight:900">Current Loss: −₹0.00</span>
-        </div>
-        <span class="pill" id="mAnaLastTradePill" style="font-size:10px;padding:4px 8px">Last trade: —</span>
+      <div class="m-analytics-kpis">
+        <div><small>INVESTMENT</small><b id="mAnaInvestment">—</b></div><div><small>UNREALIZED P/L</small><b id="mAnaPnl">—</b></div><div><small>COMPANIES</small><b id="mAnaCompanies">—</b></div>
       </div>
-      <div class="logbook-metrics-7" style="margin-bottom:10px">
-        <div class="logbook-kpi"><small>TOTAL INVESTMENT</small><strong id="mAnaInvestment">—</strong></div>
-        <div class="logbook-kpi"><small>UNREALIZED PROFIT / LOSS</small><strong id="mAnaPnl">—</strong></div>
-        <div class="logbook-kpi"><small>COMPANIES HELD</small><strong id="mAnaCompanies">—</strong></div>
-        <div class="logbook-kpi"><small>THIS WEEK</small><strong id="mAnaWeek">—</strong></div>
-        <div class="logbook-kpi"><small>THIS MONTH</small><strong id="mAnaMonth">—</strong></div>
-        <div class="logbook-kpi"><small>THIS QUARTER</small><strong id="mAnaQuarter">—</strong></div>
-        <div class="logbook-kpi"><small>FINANCIAL YEAR</small><strong id="mAnaFY">—</strong></div>
+      <div class="m-analytics-days"><div><small>THIS WEEK</small><b id="mAnaWeek">—</b></div><div><small>THIS MONTH</small><b id="mAnaMonth">—</b></div><div><small>THIS QUARTER</small><b id="mAnaQuarter">—</b></div><div><small>FINANCIAL YEAR</small><b id="mAnaFY">—</b></div></div>
+      <div class="m-analytics-charts">
+        <div class="m-ana-chart"><b>Investment by Company</b><div class="m-ana-donut" id="mAnaCompanyDonut"><span>—</span></div><div class="m-ana-legend" id="mAnaCompanyLegend">Select a client.</div></div>
+        <div class="m-ana-chart"><b>Profit / Loss by Company</b><div class="m-ana-donut" id="mAnaPnlDonut"><span>—</span></div><div class="m-ana-legend" id="mAnaPnlLegend">Select a client.</div></div>
+        <div class="m-ana-chart"><b>Investment by Industry</b><div class="m-ana-donut" id="mAnaIndustryDonut"><span>—</span></div><div class="m-ana-legend" id="mAnaIndustryLegend">Select a client.</div></div>
+        <div class="m-ana-chart"><b>Market Cap Allocation</b><div class="m-ana-donut" id="mAnaCapDonut"><span>—</span></div><div class="m-ana-legend" id="mAnaCapLegend">Select a client.</div></div>
       </div>
-      <div class="m-analytics-charts" style="grid-template-columns:1fr">
-        <div class="m-ana-chart"><b>1. Investment by Company</b><div class="logbook-svg-wrap" id="mAnaCompanyDonut"><div class="logbook-empty">Select a client.</div></div><div class="m-ana-legend" id="mAnaCompanyLegend">Select a client.</div></div>
-        <div class="m-ana-chart"><b>2. Profit by Company</b><div class="logbook-svg-wrap" id="mAnaProfitDonut"><div class="logbook-empty">Select a client.</div></div><div class="m-ana-legend" id="mAnaProfitLegend">Select a client.</div></div>
-        <div class="m-ana-chart"><b>3. Loss by Company</b><div class="logbook-svg-wrap" id="mAnaLossDonut"><div class="logbook-empty">Select a client.</div></div><div class="m-ana-legend" id="mAnaLossLegend">Select a client.</div></div>
-      </div>
-      <div class="m-analytics-foot" id="mAnaMessage">Investment = quantity × buy price. Profit/Loss = current MTM from the portfolio.</div>
+      <div class="m-analytics-foot" id="mAnaMessage">Data is calculated from this client's holdings. Unmapped symbols are Unclassified.</div>
     </section>
   </main>
   <section class="m-password" id="mPasswordPanel">
@@ -1135,10 +1123,18 @@ function clearLogbookFilterState(){
 }
 
 window.setLogbookFilter=async function(filter,button){
-   currentLogbookFilter=(currentLogbookFilter===filter)?'all':filter;
+   currentLogbookFilter=(filter==='all')?'all':((currentLogbookFilter===filter)?'all':filter);
    document.querySelectorAll('[data-logbook-filter]').forEach(b=>{
      b.classList.toggle('active',b.dataset.logbookFilter===currentLogbookFilter);
    });
+   const recBar=document.getElementById('lms-recency-bar');
+   if(recBar){
+     const revMap={'all':'all','0-9':'recent','10-29':'10-30','30-59':'30-60','60+':'60+'};
+     const targetBucket=revMap[currentLogbookFilter];
+     recBar.querySelectorAll('button[data-bucket]').forEach(b=>{
+       b.classList.toggle('active',b.dataset.bucket===targetBucket);
+     });
+   }
    const descriptions={
      'all':'Showing all active clients. Click any recency button to narrow by last trade date.',
      '0-9':'Clients traded in the last 10 days (0–10 days).',
@@ -1245,8 +1241,6 @@ window.setLogbookFilter=async function(filter,button){
 
      let color=logbookColors[i%logbookColors.length];
      if(kind==='cap' && CAP_META[item.name]) color=CAP_META[item.name].color;
-     else if(kind==='profit') color='#16a05a';
-     else if(kind==='loss') color='#d62828';
      else if(kind==='pnl') color=rawVal>=0?'#16a05a':'#d62828';
 
      const x1=cx+rOut*Math.cos(start), y1=cy+rOut*Math.sin(start);
@@ -1259,7 +1253,7 @@ window.setLogbookFilter=async function(filter,button){
        ? `M ${cx} ${cy-rOut} A ${rOut} ${rOut} 0 1 1 ${cx-0.01} ${cy-rOut} L ${cx-0.01} ${cy-rIn} A ${rIn} ${rIn} 0 1 0 ${cx} ${cy-rIn} Z`
        : `M ${x1.toFixed(2)} ${y1.toFixed(2)} A ${rOut} ${rOut} 0 ${large} 1 ${x2.toFixed(2)} ${y2.toFixed(2)} L ${x3.toFixed(2)} ${y3.toFixed(2)} A ${rIn} ${rIn} 0 ${large} 0 ${x4.toFixed(2)} ${y4.toFixed(2)} Z`;
 
-     const sign=kind==='profit'?'+':(kind==='loss'?'−':(kind==='pnl'?(rawVal>=0?'+':'−'):''));
+     const sign=kind==='pnl'?(rawVal>=0?'+':'−'):'';
      slices+=`<path d="${d}" fill="${color}" stroke="#ffffff" stroke-width="1.6"><title>${safeText(item.name)}: ${sign}${moneyExact(rawVal)} (${pct.toFixed(1)}%)</title></path>`;
 
      if(pct>=4.5){
@@ -1278,8 +1272,8 @@ window.setLogbookFilter=async function(filter,button){
    });
 
    const netVal=kind==='pnl'?clean.reduce((a,x)=>a+Number(x.value||0),0):absTotal;
-   const centerSign=kind==='profit'?'+':(kind==='loss'?'−':(kind==='pnl'?(netVal>=0?'+':'−'):''));
-   const centerLabel=(kind==='pnl'||kind==='profit'||kind==='loss')?'Net P/L':(kind==='cap'?'Cap Total':'Total');
+   const centerSign=kind==='pnl'?(netVal>=0?'+':'−'):'';
+   const centerLabel=kind==='pnl'?'Net P/L':(kind==='cap'?'Cap Total':'Total');
 
    donutHost.outerHTML=`<div id="${donutId}" style="width:100%">
      <svg viewBox="0 0 ${W} ${H}">
@@ -1295,10 +1289,8 @@ window.setLogbookFilter=async function(filter,button){
      const pct=((Math.abs(rawVal)/absTotal)*100).toFixed(1);
      let color=logbookColors[i%logbookColors.length];
      if(kind==='cap' && CAP_META[item.name]) color=CAP_META[item.name].color;
-     else if(kind==='profit') color='#16a05a';
-     else if(kind==='loss') color='#d62828';
      else if(kind==='pnl') color=rawVal>=0?'#16a05a':'#d62828';
-     const sign=kind==='profit'?'+':(kind==='loss'?'−':(kind==='pnl'?(rawVal>=0?'+':'−'):''));
+     const sign=kind==='pnl'?(rawVal>=0?'+':'−'):'';
      return `<div class="logbook-legend-row" style="grid-template-columns:11px minmax(0,1fr) auto">
        <span class="cap-badge-dot" style="background:${color}"></span>
        <span class="logbook-legend-name" title="${safeText(item.name)}" style="font-weight:700">${safeText(item.name)}</span>
@@ -1345,8 +1337,8 @@ window.setLogbookFilter=async function(filter,button){
    const byLoss=[...companies.values()].filter(x=>x.pnl<0).sort((a,b)=>a.pnl-b.pnl).map(x=>({name:x.name,value:x.pnl}));
 
    renderDonut('logbookInvestmentDonut','logbookInvestmentLegend',byInvestment,byInvestment.reduce((a,x)=>a+Math.abs(x.value),0),'investment');
-   renderDonut('logbookProfitDonut','logbookProfitLegend',byProfit,byProfit.reduce((a,x)=>a+Math.abs(x.value),0),'profit');
-   renderDonut('logbookLossDonut','logbookLossLegend',byLoss,byLoss.reduce((a,x)=>a+Math.abs(x.value),0),'loss');
+   renderDonut('logbookProfitDonut','logbookProfitLegend',byProfit,byProfit.reduce((a,x)=>a+Math.abs(x.value),0),'pnl');
+   renderDonut('logbookLossDonut','logbookLossLegend',byLoss,byLoss.reduce((a,x)=>a+Math.abs(x.value),0),'pnl');
 
    fetch('/api/admin/client-analytics/'+encodeURIComponent(clientId),{credentials:'same-origin',cache:'no-store'})
      .then(r=>r.json())
@@ -1484,73 +1476,40 @@ window.setLogbookFilter=async function(filter,button){
 
 
 
-// Responsive mobile client analytics panel; aligned with desktop 7-metric & 3-chart SVG layout.
+// Responsive mobile client analytics panel; reuses the supervisor-scoped API.
 (function(){
- const colors=['#0b55b5','#16a05a','#e0a400','#8b5cf6','#e05d44','#0891b2','#64748b','#db2777','#65a30d','#7c3aed'];
- const moneyShort=v=>'₹'+Math.abs(Number(v)||0).toLocaleString('en-IN',{minimumFractionDigits:0,maximumFractionDigits:0});
- const moneyExact=v=>'₹'+Math.abs(Number(v)||0).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
- const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
- function drawSvg(id,legendId,items,kind){
-   const host=document.getElementById(id),legend=document.getElementById(legendId);if(!host||!legend)return;
-   const clean=(items||[]).filter(x=>Math.abs(Number(x.value)||0)>0);
-   const absTotal=clean.reduce((s,x)=>s+Math.abs(Number(x.value)||0),0);
-   if(!clean.length||absTotal<=0){host.innerHTML='<div class="logbook-empty">No data available.</div>';legend.textContent='No data available.';return;}
-   const W=340,H=250,cx=170,cy=125,rOut=88,rIn=50;
-   let start=-Math.PI/2,slices='',labels='';
-   clean.forEach((x,i)=>{
-     const rawVal=Number(x.value||0),absVal=Math.abs(rawVal),pct=(absVal/absTotal)*100,sweep=(absVal/absTotal)*Math.PI*2,end=start+sweep,mid=start+sweep/2;
-     const c=kind==='profit'?'#16a05a':(kind==='loss'?'#d62828':colors[i%colors.length]);
-     const x1=cx+rOut*Math.cos(start),y1=cy+rOut*Math.sin(start),x2=cx+rOut*Math.cos(end),y2=cy+rOut*Math.sin(end);
-     const x3=cx+rIn*Math.cos(end),y3=cy+rIn*Math.sin(end),x4=cx+rIn*Math.cos(start),y4=cy+rIn*Math.sin(start);
-     const large=sweep>Math.PI?1:0;
-     const d=clean.length===1?`M ${cx} ${cy-rOut} A ${rOut} ${rOut} 0 1 1 ${cx-0.01} ${cy-rOut} L ${cx-0.01} ${cy-rIn} A ${rIn} ${rIn} 0 1 0 ${cx} ${cy-rIn} Z`:`M ${x1.toFixed(2)} ${y1.toFixed(2)} A ${rOut} ${rOut} 0 ${large} 1 ${x2.toFixed(2)} ${y2.toFixed(2)} L ${x3.toFixed(2)} ${y3.toFixed(2)} A ${rIn} ${rIn} 0 ${large} 0 ${x4.toFixed(2)} ${y4.toFixed(2)} Z`;
-     const sign=kind==='profit'?'+':(kind==='loss'?'−':'');
-     slices+=`<path d="${d}" fill="${c}" stroke="#fff" stroke-width="1.6"></path>`;
-     if(pct>=4.5){
-       const lx1=cx+(rOut+2)*Math.cos(mid),ly1=cy+(rOut+2)*Math.sin(mid),lx2=cx+(rOut+12)*Math.cos(mid),ly2=cy+(rOut+12)*Math.sin(mid);
-       const isRight=Math.cos(mid)>=0,lx3=lx2+(isRight?11:-11),anchor=isRight?'start':'end',tx=lx3+(isRight?3:-3);
-       labels+=`<polyline points="${lx1.toFixed(1)},${ly1.toFixed(1)} ${lx2.toFixed(1)},${ly2.toFixed(1)} ${lx3.toFixed(1)},${ly2.toFixed(1)}" fill="none" stroke="${c}" stroke-width="1.3"/><text x="${tx.toFixed(1)}" y="${(ly2-1.5).toFixed(1)}" text-anchor="${anchor}" font-size="10.5" font-weight="800" fill="#0f172a">${pct.toFixed(1)}%</text><text x="${tx.toFixed(1)}" y="${(ly2+9.5).toFixed(1)}" text-anchor="${anchor}" font-size="9.5" font-weight="700" fill="#475569">${sign}${moneyShort(rawVal)}</text>`;
-     }
-     start=end;
-   });
-   const centerLabel=kind==='investment'?'Total':'Net P/L';
-   const centerSign=kind==='profit'?'+':(kind==='loss'?'−':'');
-   host.innerHTML=`<svg viewBox="0 0 ${W} ${H}">${slices}${labels}<text x="${cx}" y="${cy-4}" text-anchor="middle" font-size="10.5" font-weight="700" fill="#64748b">${centerLabel}</text><text x="${cx}" y="${cy+13}" text-anchor="middle" font-size="12.5" font-weight="800" fill="#052d70">${centerSign}${moneyShort(absTotal)}</text></svg>`;
-   legend.innerHTML=clean.map((x,i)=>{
-     const rawVal=Number(x.value||0),pct=((Math.abs(rawVal)/absTotal)*100).toFixed(1);
-     const c=kind==='profit'?'#16a05a':(kind==='loss'?'#d62828':colors[i%colors.length]);
-     const sign=kind==='profit'?'+':(kind==='loss'?'−':'');
-     return '<div class="m-ana-legend-row"><span><i style="display:inline-block;width:8px;height:8px;border-radius:2px;background:'+c+';margin-right:5px"></i>'+esc(x.name)+'</span><b>'+sign+moneyExact(rawVal)+' ('+pct+'%)</b></div>';
-   }).join('');
+ const colors=['#0b55b5','#16a05a','#e0a400','#8b5cf6','#e05d44','#0891b2','#64748b','#db2777'];
+ const money=v=>'₹ '+Math.abs(Number(v)||0).toLocaleString('en-IN',{maximumFractionDigits:2});
+ function draw(id,legendId,items,kind){
+   const donut=document.getElementById(id),legend=document.getElementById(legendId);if(!donut||!legend)return;
+   const clean=(items||[]).filter(x=>Number(x.value)!==0);const total=clean.reduce((s,x)=>s+Math.abs(Number(x.value)||0),0);
+   if(!total){donut.style.background='#e8eef5';donut.querySelector('span').textContent='No data';legend.textContent='No data available.';return;}
+   let p=0,stops=[];clean.forEach((x,i)=>{const q=Math.abs(Number(x.value)||0)/total*100,c=kind==='pnl'?(Number(x.value)>=0?'#16a05a':'#d62828'):colors[i%colors.length];stops.push(c+' '+p+'% '+(p+q)+'%');p+=q;});
+   donut.style.background='conic-gradient('+stops.join(',')+')';donut.querySelector('span').textContent=money(kind==='pnl'?clean.reduce((s,x)=>s+Number(x.value||0),0):total);
+   legend.innerHTML=clean.map((x,i)=>{const c=kind==='pnl'?(Number(x.value)>=0?'#16a05a':'#d62828'):colors[i%colors.length];return '<div class="m-ana-legend-row"><span><i style="display:inline-block;width:7px;height:7px;border-radius:50%;background:'+c+';margin-right:4px"></i>'+String(x.name).replace(/[&<>"']/g,'')+'</span><b>'+money(x.value)+'</b></div>';}).join('');
  }
  window.mLoadAnalytics=async function(){
    const input=document.getElementById('mAnalyticsClient'),cid=(input?.value||'').trim();if(!cid){alert('Enter a Client ID first.');return;}
    const msg=document.getElementById('mAnaMessage');if(msg)msg.textContent='Loading '+cid+'…';
-   try{
-     const response=await fetch('/api/admin/client-analytics/'+encodeURIComponent(cid));
-     const data=await response.json();
-     if(!response.ok||!data.success)throw new Error(data.message||'Analytics could not be loaded.');
-     const companies=data.companies||[];
-     const invItems=companies.slice().sort((a,b)=>Number(b.invested||0)-Number(a.invested||0)).map(x=>({name:x.name,value:Number(x.invested||0)}));
-     const profItems=companies.filter(x=>Number(x.pnl||0)>0).sort((a,b)=>Number(b.pnl)-Number(a.pnl)).map(x=>({name:x.name,value:Number(x.pnl)}));
-     const lossItems=companies.filter(x=>Number(x.pnl||0)<0).sort((a,b)=>Number(a.pnl)-Number(b.pnl)).map(x=>({name:x.name,value:Math.abs(Number(x.pnl))}));
-     const profSum=profItems.reduce((s,x)=>s+x.value,0),lossSum=lossItems.reduce((s,x)=>s+x.value,0);
-     document.getElementById('mAnaClientTitle').textContent='Client: '+cid;
-     document.getElementById('mAnaProfitBadge').textContent='Current Profit: +'+moneyExact(profSum);
-     document.getElementById('mAnaLossBadge').textContent='Current Loss: −'+moneyExact(lossSum);
-     document.getElementById('mAnaLastTradePill').textContent='Last trade: '+(data.last_trade_date||'—');
-     document.getElementById('mAnaInvestment').textContent=moneyExact(data.total_invested);
-     const pnl=document.getElementById('mAnaPnl');pnl.textContent=(Number(data.total_pnl)>=0?'+':'−')+moneyExact(data.total_pnl);pnl.style.color=Number(data.total_pnl)>=0?'#128a43':'#d62828';
-     document.getElementById('mAnaCompanies').textContent=companies.length;
-     const d=data.trading_days||{};document.getElementById('mAnaWeek').textContent=(d.week??0)+' days';document.getElementById('mAnaMonth').textContent=(d.month??0)+' days';document.getElementById('mAnaQuarter').textContent=(d.quarter??0)+' days';document.getElementById('mAnaFY').textContent=(d.financial_year??0)+' days';
-     drawSvg('mAnaCompanyDonut','mAnaCompanyLegend',invItems,'investment');
-     drawSvg('mAnaProfitDonut','mAnaProfitLegend',profItems,'profit');
-     drawSvg('mAnaLossDonut','mAnaLossLegend',lossItems,'loss');
-     if(msg) msg.textContent='Investment = quantity × buy price. Profit/Loss = current MTM from the portfolio. Last trade: '+(data.last_trade_date||'—')+'.';
+   try{const response=await fetch('/api/admin/client-analytics/'+encodeURIComponent(cid));const data=await response.json();if(!response.ok||!data.success)throw new Error(data.message||'Analytics could not be loaded.');
+     document.getElementById('mAnaInvestment').textContent=money(data.total_invested);
+     const pnl=document.getElementById('mAnaPnl');pnl.textContent=(Number(data.total_pnl)>=0?'+':'−')+money(data.total_pnl);pnl.style.color=Number(data.total_pnl)>=0?'#128a43':'#d62828';
+     document.getElementById('mAnaCompanies').textContent=(data.companies||[]).length;
+     const d=data.trading_days||{};document.getElementById('mAnaWeek').textContent=d.week??0;document.getElementById('mAnaMonth').textContent=d.month??0;document.getElementById('mAnaQuarter').textContent=d.quarter??0;document.getElementById('mAnaFY').textContent=d.financial_year??0;
+     draw('mAnaCompanyDonut','mAnaCompanyLegend',(data.companies||[]).map(x=>({name:x.name,value:x.invested})),'investment');
+     draw('mAnaPnlDonut','mAnaPnlLegend',(data.companies||[]).map(x=>({name:x.name,value:x.pnl})),'pnl');
+     draw('mAnaIndustryDonut','mAnaIndustryLegend',(data.industries||[]).map(x=>({name:x.name,value:x.invested})),'investment');
+     draw('mAnaCapDonut','mAnaCapLegend',(data.market_caps||[]).map(x=>({name:x.name,value:x.invested})),'investment');
+     if(msg){
+       const industryBuckets=(data.industries||[]).filter(x=>x.name&&x.name!=='Unclassified').length;
+       const capBuckets=(data.market_caps||[]).filter(x=>['Large Cap','Mid Cap','Small Cap'].includes(x.name)).length;
+       msg.textContent='Last trade: '+(data.last_trade_date||'—')+'. Industry groups: '+industryBuckets+'. AMFI market-cap groups: '+capBuckets+'. '+(data.market_cap_note||'Unmapped symbols are Unclassified.');
+     }
    }catch(err){if(msg)msg.textContent=err.message;}
  };
  const mobileInput=document.getElementById('mAnalyticsClient');if(mobileInput)mobileInput.addEventListener('keydown',e=>{if(e.key==='Enter')window.mLoadAnalytics();});
 })();
+
 </script>
 </body></html>
 
