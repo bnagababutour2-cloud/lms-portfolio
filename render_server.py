@@ -1531,12 +1531,11 @@ def admin_portfolio():
       renderSvgDonut('lms-cap-chart','lms-cap-legend',capList,'investment');
     }catch(e){document.getElementById('lms-content').innerHTML='<p>'+esc(e.message)+'</p>';}
   }
-  // Logbook buttons filter the EXISTING holdings table by eligible CLIENT IDs.
-  // The API's latest trade date per client drives eligibility; every existing
-  // holding row for a matching client remains visible in the portfolio table.
+  // Logbook buttons filter the EXISTING holdings table by eligible CLIENT IDs
+  // AND synchronize the Trade Logbook & Client Analytics card below.
   let activePortfolioBucket = null;
   let activeClientIds = null;
-  const originalRowDisplay = new WeakMap();
+  let cachedRecencyClients = null;
   let bucketRequestSerial = 0;
 
   function portfolioTable(){
@@ -1580,7 +1579,33 @@ def admin_portfolio():
     return shown;
   }
 
+  function syncLogbookCardUI(eligible, bucket){
+    const card=document.getElementById('tradeLogbookCard');
+    if(!card) return;
+    // Update badge count ("0 clients" -> "N clients")
+    const pill=Array.from(card.querySelectorAll('span,div,button')).find(el=>/^\s*\d+\s+clients?\s*$/i.test(el.textContent||''));
+    if(pill) pill.textContent=eligible.length+(eligible.length===1?' client':' clients');
+    // Populate Matching Clients list if template rendered an empty placeholder
+    const emptyBox=Array.from(card.querySelectorAll('div,p,span')).find(el=>/No matching clients found for this filter/i.test(el.textContent||''));
+    if(emptyBox && eligible.length>0){
+      const listWrap=document.createElement('div');
+      listWrap.id='lms-logbook-client-list';
+      listWrap.style.cssText='display:flex;flex-direction:column;gap:6px;max-height:260px;overflow:auto;margin-top:8px';
+      listWrap.innerHTML=eligible.map(c=>{
+        const ageTxt=c.last_trade_date ? (c.days_since_trade+'d ago') : 'Older (>60d)';
+        return `<button type="button" data-cid="${esc(c.client_id)}" style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px;border:1px solid #d5e2f2;border-radius:8px;background:#fff;cursor:pointer;text-align:left;font-size:12px;font-weight:700;color:#07377b"><span>${esc(c.client_id)}${c.client_name?' · '+esc(c.client_name):''}</span><span style="font-size:11px;color:#5f748d">${esc(ageTxt)}</span></button>`;
+      }).join('');
+      listWrap.querySelectorAll('button[data-cid]').forEach(btn=>{
+        btn.addEventListener('click',()=>showClient(btn.dataset.cid));
+      });
+      emptyBox.replaceWith(listWrap);
+    }
+  }
+
   function clearPortfolioBucket(){
+    bucketRequestSerial++;
+    activePortfolioBucket=null;
+    activeClientIds=null;
     const table=portfolioTable();
     if(table){
       table.querySelectorAll('tbody tr').forEach(row=>{
@@ -1588,16 +1613,27 @@ def admin_portfolio():
         row.style.display='';
       });
     }
+    // Reset any search inputs on the admin page as well if present
+    ['searchClient','searchSymbol','searchProduct'].forEach(id=>{
+      const inp=document.getElementById(id);
+      if(inp && inp.value){
+        inp.value='';
+        inp.dispatchEvent(new Event('input',{bubbles:true}));
+      }
+    });
     if(typeof updateTotal==='function') updateTotal();
-    activePortfolioBucket=null;
-    activeClientIds=null;
     const note=document.getElementById('lms-recency-note');
     if(note) note.textContent='Showing all clients and existing holdings';
     const bar=document.getElementById('lms-recency-bar');
     if(bar) bar.querySelectorAll('button[data-bucket]').forEach(b=>b.classList.remove('active'));
+    const injectedList=document.getElementById('lms-logbook-client-list');
+    if(injectedList) injectedList.remove();
     if(typeof window.setLogbookFilter==='function'){
       document.querySelectorAll('[data-logbook-filter]').forEach(b=>b.classList.remove('active'));
-      if(typeof window.refreshTradeLogbook==='function') window.refreshTradeLogbook();
+      try{ window.setLogbookFilter('all', null); }catch(_){}
+      if(typeof window.refreshTradeLogbook==='function'){
+        try{ window.refreshTradeLogbook(); }catch(_){}
+      }
     }
   }
 
@@ -1622,26 +1658,33 @@ def admin_portfolio():
     const mapToCardFilter={'recent':'0-9','10-30':'10-29','30-60':'30-59','60+':'60+'};
     if(typeof window.setLogbookFilter==='function' && mapToCardFilter[bucket]){
       const targetBtn=document.querySelector('[data-logbook-filter="'+mapToCardFilter[bucket]+'"]');
-      window.setLogbookFilter(mapToCardFilter[bucket],targetBtn);
+      try{ window.setLogbookFilter(mapToCardFilter[bucket],targetBtn); }catch(_){}
     }
 
     try{
-      const response=await fetch('/api/admin/trade-recency',{credentials:'same-origin',cache:'no-store'});
-      const data=await response.json();
-      if(!response.ok || !data.success) throw new Error(data.message||'Unable to load trade dates');
+      let clientsList = cachedRecencyClients;
+      if(!clientsList){
+        const controller = new AbortController();
+        const timer = setTimeout(()=>controller.abort(), 15000);
+        const response=await fetch('/api/admin/trade-recency',{credentials:'same-origin',cache:'no-store',signal:controller.signal});
+        clearTimeout(timer);
+        const data=await response.json();
+        if(!response.ok || !data.success) throw new Error(data.message||'Unable to load trade dates');
+        clientsList = data.clients || [];
+        cachedRecencyClients = clientsList;
+      }
       if(requestId!==bucketRequestSerial) return;
-      const eligible=(data.clients||[]).filter(c=>bucketMatches(c.days_since_trade,bucket));
+      const eligible=clientsList.filter(c=>bucketMatches(c.days_since_trade,bucket));
       activeClientIds=new Set(eligible.map(c=>String(c.client_id||'').trim().toLowerCase()).filter(Boolean));
       const count=applyPortfolioBucket();
+      syncLogbookCardUI(eligible, bucket);
       if(note) note.textContent=eligible.length+' matching clients · '+count+' holding rows · '+label;
-      const card=document.getElementById('tradeLogbookCard');
-      if(card) card.scrollIntoView({behavior:'smooth',block:'nearest'});
     }catch(error){
       if(requestId!==bucketRequestSerial) return;
       activePortfolioBucket=null;
       activeClientIds=null;
       if(bar) bar.querySelectorAll('button[data-bucket]').forEach(b=>b.classList.remove('active'));
-      if(note) note.textContent='Could not filter holdings: '+(error.message||'request failed');
+      if(note) note.textContent='Could not filter holdings: '+(error.name==='AbortError'?'request timed out':(error.message||'request failed'));
     }
   }
 
@@ -1649,12 +1692,12 @@ def admin_portfolio():
     if(document.getElementById('lms-recency-bar'))return true;
     const candidates=Array.from(document.querySelectorAll('h1,h2,h3,h4,div,span,p')).filter(el=>el.children.length<4&&/Portfolio\s*[—-]\s*Click\s*▲\s*\/\s*▼\s*in any header to sort/i.test(el.textContent||''));
     const heading=candidates[0];if(!heading)return false;
-    const bar=document.createElement('div');bar.id='lms-recency-bar';bar.innerHTML=`<b style="font-size:12px;color:#0a3475;margin-right:3px">Logbook:</b><button data-bucket="recent">Traded in last 10 days</button><button data-bucket="10-30">10–30 days</button><button data-bucket="30-60">30–60 days</button><button data-bucket="60+">Above 60 days</button><span id="lms-recency-note">Select a period to view clients</span>`;
+    const bar=document.createElement('div');bar.id='lms-recency-bar';bar.innerHTML=`<b style="font-size:12px;color:#0a3475;margin-right:3px">Logbook:</b><button type="button" data-bucket="recent">Traded in last 10 days</button><button type="button" data-bucket="10-30">10–30 days</button><button type="button" data-bucket="30-60">30–60 days</button><button type="button" data-bucket="60+">Above 60 days</button><span id="lms-recency-note">Select a period to view clients</span>`;
     heading.insertAdjacentElement('afterend',bar);
     bar.querySelectorAll('button[data-bucket]').forEach(b=>b.addEventListener('click',()=>{const names={recent:'Traded in last 10 days','10-30':'10–30 days','30-60':'30–60 days','60+':'Above 60 days'};showBucket(b.dataset.bucket,names[b.dataset.bucket]);}));
     const clearButton=document.createElement('button');
     clearButton.type='button';clearButton.id='lms-recency-clear';clearButton.textContent='Clear';
-    clearButton.addEventListener('click',clearPortfolioBucket);
+    clearButton.addEventListener('click',function(e){e.preventDefault();e.stopPropagation();clearPortfolioBucket();});
     bar.appendChild(clearButton);
     return true;
   }
@@ -1666,8 +1709,10 @@ def admin_portfolio():
   installBar();
   document.addEventListener('click',function(ev){
     const button=ev.target.closest('button');
-    if(!button || button.id==='lms-recency-clear') return;
-    if((button.textContent||'').trim().toLowerCase()==='clear') clearPortfolioBucket();
+    if(!button) return;
+    if(button.id==='lms-recency-clear' || (button.textContent||'').trim().toLowerCase()==='clear'){
+      clearPortfolioBucket();
+    }
   },true);
   // Clicking a Client ID cell in the desktop portfolio table opens its analytics drawer.
   document.addEventListener('click',function(ev){
@@ -1709,22 +1754,48 @@ def admin_trade_recency():
     try:
         supervisor_id = session.get("supervisor_id")
         clients = _filter_supervisor_clients(supervisor_id, _load_all_clients())
-        holdings = _filter_supervisor_holdings(supervisor_id, _load_all_holdings())
+        # Lightweight direct query on holdings instead of full _load_all_holdings()
+        h_res = supabase.table("holdings").select("client_id,trade_date,created_at").execute()
+        holdings = _filter_supervisor_holdings(supervisor_id, h_res.data or [])
+
         latest = {}
+        has_holdings = set()
         for h in holdings:
-            cid = str(h.get("client_id") or "").strip()
-            dt = _clean_trade_date(h.get("trade_date"))
-            if cid and dt and (cid not in latest or dt > latest[cid]):
-                latest[cid] = dt
+            cid_raw = str(h.get("client_id") or "").strip()
+            if not cid_raw:
+                continue
+            cid_key = cid_raw.lower()
+            has_holdings.add(cid_key)
+            dt = _clean_trade_date(h.get("trade_date")) or _clean_trade_date(h.get("created_at"))
+            if dt and (cid_key not in latest or dt > latest[cid_key]):
+                latest[cid_key] = dt
+
         today = (datetime.utcnow() + timedelta(hours=5, minutes=30)).date()
         rows = []
         for c in clients:
             cid = str(c.get("client_id") or "").strip()
-            last = latest.get(cid)
-            age = (today - datetime.strptime(last, "%Y-%m-%d").date()).days if last else None
-            rows.append({"client_id": cid, "client_name": c.get("client_name") or "", "last_trade_date": last, "days_since_trade": age})
-        return jsonify({"success": True, "clients": rows, "as_of": today.isoformat(),
-                        "note": "Last trade date is inferred from active holdings trade_date values. Closed positions without a retained holding date may not be represented."})
+            cid_key = cid.lower()
+            last = latest.get(cid_key)
+            if last:
+                age = max(0, (today - datetime.strptime(last, "%Y-%m-%d").date()).days)
+            elif cid_key in has_holdings:
+                # Legacy holdings imported without trade_date belong to older positions (> 60 days)
+                age = 999
+            else:
+                age = None
+            rows.append({
+                "client_id": cid,
+                "client_name": c.get("client_name") or "",
+                "last_trade_date": last,
+                "days_since_trade": age,
+                "has_holdings": cid_key in has_holdings,
+            })
+        return jsonify({
+            "success": True,
+            "clients": rows,
+            "as_of": today.isoformat(),
+            "note": "Last trade date is inferred from holdings trade_date values; legacy holdings without a recorded trade_date are grouped under Above 60 days."
+        })
     except Exception as exc:
         traceback.print_exc()
         return jsonify({"success": False, "message": "Could not calculate trade recency.", "error": str(exc)}), 500
