@@ -738,7 +738,7 @@ def admin_portfolio():
         # portfolio data, API calls, or any mobile routes. The small script below
         # only limits desktop row selection to 11 rows.
         admin_html = render_template(
-            "admin.html",
+            "admin_5.html",
             clients=clients,
             holdings=holdings,
             supervisor_id=supervisor_id,
@@ -3769,14 +3769,3 @@ def api_screener_proxy(symbol):
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", "5000")), debug=os.environ.get("FLASK_DEBUG", "").lower() == "true")
-
-
-
-
-
-
-
-
-
-
-
