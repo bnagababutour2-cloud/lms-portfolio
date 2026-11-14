@@ -1298,6 +1298,7 @@ def admin_portfolio():
             supervisor_name=account.get("name"),
             can_manage=account.get("can_manage", False),
             can_upload=account.get("can_upload", False),
+            is_main_admin=bool(account.get("is_main_admin", False)),
         )
 
         selection_limit_script = r"""
