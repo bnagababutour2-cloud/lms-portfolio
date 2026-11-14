@@ -738,7 +738,7 @@ def admin_portfolio():
         # portfolio data, API calls, or any mobile routes. The small script below
         # only limits desktop row selection to 11 rows.
         admin_html = render_template(
-            "admin_5.html",
+            "admin.html",
             clients=clients,
             holdings=holdings,
             supervisor_id=supervisor_id,
