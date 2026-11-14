@@ -515,88 +515,6 @@ body.tradelogs-split-open #tradeLogsSplitDrawer{display:flex;}
 .mkt-down { color: #d62828; }
 </style>
 
-
-<style id="live-news-ticker-style">
-.live-news-ticker-bar {
-  background: linear-gradient(90deg, #052d70, #0b55b5, #052d70);
-  border: 1px solid #1a4d94;
-  border-radius: 8px;
-  padding: 6px 10px;
-  margin-bottom: 14px;
-  display: flex;
-  align-items: center;
-  box-shadow: 0 3px 12px rgba(5,45,112,.15);
-  overflow: hidden;
-  color: #fff;
-}
-.live-news-badge {
-  background: #f4c400;
-  color: #052d70;
-  font-size: 10px;
-  font-weight: 900;
-  padding: 3px 8px;
-  border-radius: 4px;
-  text-transform: uppercase;
-  letter-spacing: .5px;
-  flex-shrink: 0;
-  margin-right: 10px;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-.live-news-badge span {
-  width: 7px;
-  height: 7px;
-  background: #d62828;
-  border-radius: 50%;
-  display: inline-block;
-  animation: pulse-dot 1.2s infinite;
-}
-@keyframes pulse-dot {
-  0% { transform: scale(1); opacity: 1; }
-  50% { transform: scale(1.4); opacity: 0.5; }
-  100% { transform: scale(1); opacity: 1; }
-}
-.live-news-marquee-wrap {
-  overflow: hidden;
-  white-space: nowrap;
-  flex: 1;
-  position: relative;
-}
-.live-news-marquee {
-  display: inline-block;
-  white-space: nowrap;
-  animation: scroll-news 40s linear infinite;
-  font-size: 11px;
-  font-weight: 700;
-}
-.live-news-marquee:hover {
-  animation-play-state: paused;
-}
-@keyframes scroll-news {
-  0% { transform: translateX(0); }
-  100% { transform: translateX(-50%); }
-}
-.live-news-item {
-  display: inline-flex;
-  align-items: center;
-  margin-right: 32px;
-  cursor: pointer;
-}
-.live-news-item:hover {
-  color: #ffd21c;
-}
-.live-news-source {
-  background: rgba(255,255,255,0.18);
-  color: #ffd21c;
-  padding: 1px 5px;
-  border-radius: 3px;
-  font-size: 9px;
-  font-weight: 900;
-  margin-right: 6px;
-}
-</style>
-
 </head>
 <body>
 <header class="top"><div class="header-overlay"><div class="header-subtitle">ADMIN / SUPERVISOR PORTFOLIO &amp; DAILY CONTROL PANEL</div><div class="header-login">Logged in: {{ supervisor_name }} ({{ supervisor_id }}){% if not can_manage %} · VIEW ONLY{% endif %}</div></div></header>
@@ -634,21 +552,6 @@ body.tradelogs-split-open #tradeLogsSplitDrawer{display:flex;}
   <div class="market-stock-list" id="mktActiveScripts"></div>
 </aside>
 <div class="master-main-content" style="min-width:0">
-
-<div class="live-news-ticker-bar">
-  <div class="live-news-badge"><span></span> LIVE NEWS</div>
-  <div class="live-news-marquee-wrap">
-    <div class="live-news-marquee" id="liveNewsMarqueeContent">
-      <span class="live-news-item"><span class="live-news-source">CNBC-TV18</span>Markets trade higher amid strong FII inflows and positive global cues; Nifty holds 24,350.</span>
-      <span class="live-news-item"><span class="live-news-source">MONEYCONTROL</span>Q3 earnings review: Banking and IT sectors lead volume expansion across NSE and BSE indices.</span>
-      <span class="live-news-item"><span class="live-news-source">ZEE BUSINESS</span>RBI monetary policy stance remains balanced; bond yields steady as liquidity conditions improve.</span>
-      <span class="live-news-item"><span class="live-news-source">CNBC-TV18</span>Top gainers update: Trent, BEL, and Infosys witness strong institutional buying momentum today.</span>
-      <span class="live-news-item"><span class="live-news-source">MONEYCONTROL</span>Auto stocks surge on robust monthly sales figures and festive retail demand outlook.</span>
-      <span class="live-news-item"><span class="live-news-source">ZEE BUSINESS</span>FMCG majors expand rural distribution networks to capitalize on improving consumer spending trends.</span>
-    </div>
-  </div>
-</div>
-
 
 <div class="toolbar">
 <button class="btn" onclick="location.reload()">REFRESH</button>
@@ -2306,50 +2209,6 @@ window.setLogbookFilter=async function(filter,button){
   renderSidebar(defaultMarketData);
   fetchLiveMarketPulse();
   setInterval(fetchLiveMarketPulse, 15000);
-})();
-</script>
-
-
-<script id="live-news-ticker-script">
-(function(){
-  const defaultNews = [
-    { source: 'CNBC-TV18', text: 'Markets trade higher amid strong FII inflows and positive global cues; Nifty holds 24,350.' },
-    { source: 'MONEYCONTROL', text: 'Q3 earnings review: Banking and IT sectors lead volume expansion across NSE and BSE indices.' },
-    { source: 'ZEE BUSINESS', text: 'RBI monetary policy stance remains balanced; bond yields steady as liquidity conditions improve.' },
-    { source: 'CNBC-TV18', text: 'Top gainers update: Trent, BEL, and Infosys witness strong institutional buying momentum today.' },
-    { source: 'MONEYCONTROL', text: 'Auto stocks surge on robust monthly sales figures and festive retail demand outlook.' },
-    { source: 'ZEE BUSINESS', text: 'FMCG majors expand rural distribution networks to capitalize on improving consumer spending trends.' },
-    { source: 'CNBC-TV18', text: 'Metal stocks rally following positive commodity demand projections from international markets.' },
-    { source: 'MONEYCONTROL', text: 'Energy sector shares active as crude oil prices fluctuate near multi-month support levels.' }
-  ];
-
-  function renderNews(list){
-    const container = document.getElementById('liveNewsMarqueeContent');
-    if(!container) return;
-    // Duplicate items to ensure seamless infinite CSS marquee scroll loop
-    const htmlStr = [...list, ...list].map(item => 
-      `<span class="live-news-item"><span class="live-news-source">${item.source}</span>${item.text}</span>`
-    ).join('');
-    container.innerHTML = htmlStr;
-  }
-
-  async function fetchLiveBusinessNews(){
-    try {
-      const res = await fetch('/api/market-news?_=' + Date.now(), { cache: 'no-store' });
-      if(res.ok){
-        const json = await res.json();
-        if(json && json.success && Array.isArray(json.news) && json.news.length > 0){
-          renderNews(json.news);
-          return;
-        }
-      }
-    } catch(e){}
-    renderNews(defaultNews);
-  }
-
-  renderNews(defaultNews);
-  fetchLiveBusinessNews();
-  setInterval(fetchLiveBusinessNews, 60000); // Refresh news every minute
 })();
 </script>
 
