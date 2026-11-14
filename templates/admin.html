@@ -421,11 +421,9 @@ body.screener-split-open #screenerSplitDrawer{display:flex;}
         <div class="logbook-kpi"><small>THIS QUARTER</small><strong id="daysQuarter">—</strong></div>
         <div class="logbook-kpi"><small>FINANCIAL YEAR</small><strong id="daysFY">—</strong></div>
       </div>
-      <div class="logbook-charts">
+      <div class="logbook-charts" style="grid-template-columns:repeat(2,minmax(0,1fr))">
         <section class="logbook-chart"><h4>1. Investment by Company</h4><div class="logbook-donut-wrap"><div class="logbook-donut" id="logbookInvestmentDonut"><div class="logbook-donut-center"><b>—</b><small>Investment</small></div></div></div><div class="logbook-legend" id="logbookInvestmentLegend"><div class="logbook-empty">Select a client.</div></div></section>
         <section class="logbook-chart"><h4>2. Profit / Loss by Company</h4><div class="logbook-donut-wrap"><div class="logbook-donut" id="logbookPnlDonut"><div class="logbook-donut-center"><b>—</b><small>Profit / Loss</small></div></div></div><div class="logbook-legend" id="logbookPnlLegend"><div class="logbook-empty">Select a client.</div></div></section>
-        <div class="logbook-allocation-box"><h4>3. Investment by Industry &amp; Large / Mid / Small Cap Allocation</h4><section class="logbook-chart"><h4>Investment by Industry</h4><div class="logbook-donut-wrap"><div class="logbook-donut" id="logbookIndustryDonut"><div class="logbook-donut-center"><b>—</b><small>By industry</small></div></div></div><div class="logbook-legend" id="logbookIndustryLegend"><div class="logbook-empty">Select a client.</div></div></section>
-        <section class="logbook-chart logbook-chart-market-cap"><h4>Large / Mid / Small Cap Allocation</h4><div class="logbook-donut-wrap"><div class="logbook-donut" id="logbookMarketCapDonut"><div class="logbook-donut-center"><b>—</b><small>By market cap</small></div></div></div><div class="logbook-legend" id="logbookMarketCapLegend"><div class="logbook-empty">Select a client.</div></div></section>
       </div>
       <div class="logbook-note">Investment = quantity × buy price. Profit/Loss = current MTM from the portfolio. Industry and market-cap metadata are resolved from holding fields, company_classifications.json, and Yahoo Finance where available; unknown symbols remain Unclassified. Trade-recency is based on the Trade Date currently stored on portfolio rows.</div>
     </div>
