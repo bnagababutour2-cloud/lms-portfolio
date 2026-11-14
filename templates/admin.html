@@ -270,13 +270,15 @@
   display:flex;
   justify-content:center;
   align-items:center;
-  min-height:205px;
+  min-height:260px;
+  padding:0;
   transition:opacity .18s ease;
 }
 .logbook-svg-wrap svg{
   width:100%;
-  max-width:310px;
-  height:205px;
+  max-width:100%;
+  height:260px;
+  display:block;
   overflow:visible;
 }
 .cap-badge-dot{
@@ -1204,7 +1206,7 @@ async function setSelectedPasswords(){
      return;
    }
 
-   const W=300,H=200,cx=150,cy=100,rOut=60,rIn=36;
+   const W=340,H=250,cx=170,cy=125,rOut=88,rIn=50;
    let start=-Math.PI/2;
    let slices='';
    let outsideLabels='';
@@ -1232,19 +1234,19 @@ async function setSelectedPasswords(){
        : `M ${x1.toFixed(2)} ${y1.toFixed(2)} A ${rOut} ${rOut} 0 ${large} 1 ${x2.toFixed(2)} ${y2.toFixed(2)} L ${x3.toFixed(2)} ${y3.toFixed(2)} A ${rIn} ${rIn} 0 ${large} 0 ${x4.toFixed(2)} ${y4.toFixed(2)} Z`;
 
      const sign=kind==='pnl'?(rawVal>=0?'+':'−'):'';
-     slices+=`<path d="${d}" fill="${color}" stroke="#ffffff" stroke-width="1.5"><title>${safeText(item.name)}: ${sign}${moneyExact(rawVal)} (${pct.toFixed(1)}%)</title></path>`;
+     slices+=`<path d="${d}" fill="${color}" stroke="#ffffff" stroke-width="1.6"><title>${safeText(item.name)}: ${sign}${moneyExact(rawVal)} (${pct.toFixed(1)}%)</title></path>`;
 
      if(pct>=4.5){
        const lx1=cx+(rOut+2)*Math.cos(mid), ly1=cy+(rOut+2)*Math.sin(mid);
-       const lx2=cx+(rOut+13)*Math.cos(mid), ly2=cy+(rOut+13)*Math.sin(mid);
+       const lx2=cx+(rOut+12)*Math.cos(mid), ly2=cy+(rOut+12)*Math.sin(mid);
        const isRight=Math.cos(mid)>=0;
-       const lx3=lx2+(isRight?12:-12);
+       const lx3=lx2+(isRight?11:-11);
        const anchor=isRight?'start':'end';
        const tx=lx3+(isRight?3:-3);
        outsideLabels+=`
-         <polyline points="${lx1.toFixed(1)},${ly1.toFixed(1)} ${lx2.toFixed(1)},${ly2.toFixed(1)} ${lx3.toFixed(1)},${ly2.toFixed(1)}" fill="none" stroke="${color}" stroke-width="1.2"/>
-         <text x="${tx.toFixed(1)}" y="${(ly2-1).toFixed(1)}" text-anchor="${anchor}" font-size="9.5" font-weight="800" fill="#0f172a">${pct.toFixed(1)}%</text>
-         <text x="${tx.toFixed(1)}" y="${(ly2+9).toFixed(1)}" text-anchor="${anchor}" font-size="8.5" font-weight="700" fill="#475569">${sign}${money(rawVal)}</text>`;
+         <polyline points="${lx1.toFixed(1)},${ly1.toFixed(1)} ${lx2.toFixed(1)},${ly2.toFixed(1)} ${lx3.toFixed(1)},${ly2.toFixed(1)}" fill="none" stroke="${color}" stroke-width="1.3"/>
+         <text x="${tx.toFixed(1)}" y="${(ly2-1.5).toFixed(1)}" text-anchor="${anchor}" font-size="10.5" font-weight="800" fill="#0f172a">${pct.toFixed(1)}%</text>
+         <text x="${tx.toFixed(1)}" y="${(ly2+9.5).toFixed(1)}" text-anchor="${anchor}" font-size="9.5" font-weight="700" fill="#475569">${sign}${money(rawVal)}</text>`;
      }
      start=end;
    });
@@ -1257,8 +1259,8 @@ async function setSelectedPasswords(){
      <svg viewBox="0 0 ${W} ${H}">
        ${slices}
        ${outsideLabels}
-       <text x="${cx}" y="${cy-3}" text-anchor="middle" font-size="9" font-weight="700" fill="#64748b">${centerLabel}</text>
-       <text x="${cx}" y="${cy+11}" text-anchor="middle" font-size="10.5" font-weight="800" fill="#052d70">${centerSign}${money(netVal)}</text>
+       <text x="${cx}" y="${cy-4}" text-anchor="middle" font-size="10.5" font-weight="700" fill="#64748b">${centerLabel}</text>
+       <text x="${cx}" y="${cy+13}" text-anchor="middle" font-size="12.5" font-weight="800" fill="#052d70">${centerSign}${money(netVal)}</text>
      </svg>
    </div>`;
 
