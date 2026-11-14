@@ -378,7 +378,7 @@ body.screener-split-open #screenerSplitDrawer{display:flex;}
 </div>
 
 <div class="card">
-<div class="logbook-title-row"><div class="title">Portfolio — Click ▲ / ▼ in any header to sort</div><div class="logbook-filter-row" aria-label="Trade recency logbook filters"><button type="button" class="btn light" data-logbook-filter="0-9" onclick="setLogbookFilter('0-9',this)">TRADED IN LAST 10 DAYS</button><button type="button" class="btn light" data-logbook-filter="10-29" onclick="setLogbookFilter('10-29',this)">10–30 DAYS</button><button type="button" class="btn light" data-logbook-filter="30-59" onclick="setLogbookFilter('30-59',this)">30–60 DAYS</button><button type="button" class="btn light" data-logbook-filter="60+" onclick="setLogbookFilter('60+',this)">ABOVE 60 DAYS</button></div></div>
+<div class="logbook-title-row"><div class="title">Portfolio — Click ▲ / ▼ in any header to sort</div><div class="logbook-filter-row" aria-label="Trade recency logbook filters"><button type="button" class="btn light" data-logbook-filter="all" onclick="setLogbookFilter('all',this)">ALL</button><button type="button" class="btn light" data-logbook-filter="0-9" onclick="setLogbookFilter('0-9',this)">TRADED IN LAST 10 DAYS</button><button type="button" class="btn light" data-logbook-filter="10-29" onclick="setLogbookFilter('10-29',this)">10–30 DAYS</button><button type="button" class="btn light" data-logbook-filter="30-59" onclick="setLogbookFilter('30-59',this)">30–60 DAYS</button><button type="button" class="btn light" data-logbook-filter="60+" onclick="setLogbookFilter('60+',this)">ABOVE 60 DAYS</button><button type="button" class="btn light" onclick="clearLogbookFilterState()">CLEAR</button></div></div>
 <div class="selectbar portfolio-bar"><span class="metric"><b>Visible MTM:</b> <strong id="totalMtm">0.00</strong></span><span class="metric"><b>Investment:</b> <strong id="totalInvestment">0.00</strong></span><span class="metric"><b>Total Clients:</b> <strong>{{ clients|length }}</strong></span><span class="metric"><b>Portfolio Rows:</b> <strong>{{ holdings|length }}</strong></span><span class="metric"><b>Live LTP:</b> <strong id="liveLtpStatus">STARTING...</strong></span><button class="btn light" onclick="selectAllRows()">SELECT ALL ROWS</button><button class="btn light" onclick="clearRowSelection()">CLEAR</button><button class="btn light" onclick="setLiveViewAll()">SHOW HIDDEN</button><span class="live-control"><span class="live-label">LIVE VIEW:</span><button class="btn light" id="liveAllBtn" onclick="setLiveViewAll()">ALL</button><button class="btn light" id="liveHideBtn" onclick="hideSelectedFromLive()">HIDE SELECTED</button><button class="btn light" id="liveFocusBtn" onclick="focusSelectedLive()">FOCUS SELECTED</button><button class="btn light" onclick="clearLiveView()">SHOW ALL</button></span><button class="btn green" onclick="downloadSelectedRows()">DOWNLOAD SELECTED</button>{% if can_manage %}<button class="btn red" onclick="deleteSelectedRows()">DELETE SELECTED</button>{% endif %}<span class="pill" id="rowCount">0 selected</span><span class="pill" id="liveViewStatus">LIVE VIEW: ALL</span></div>
 <div class="table-wrap"><table id="portfolioTable"><thead><tr>
 <th><input class="check" type="checkbox" onchange="toggleAllRows(this)"></th>
@@ -1110,7 +1110,19 @@ async function setSelectedPasswords(){
    return true;
  }
 
- window.setLogbookFilter=async function(filter,button){
+ 
+function clearLogbookFilterState(){
+  currentLogbookFilter='none';
+  document.querySelectorAll('[data-logbook-filter]').forEach(b=>b.classList.remove('active'));
+  const desc=document.getElementById('logbookFilterDescription');
+  if(desc) desc.textContent='Click any recency button above or ALL to list matching clients.';
+  const list=document.getElementById('logbookClientList');
+  if(list) list.innerHTML='<div class="logbook-empty">Select a trade-recency filter above.</div>';
+  selectedLogbookClient=null;
+  if(typeof clearLogbookCharts==='function') clearLogbookCharts();
+}
+
+window.setLogbookFilter=async function(filter,button){
    currentLogbookFilter=(currentLogbookFilter===filter)?'all':filter;
    document.querySelectorAll('[data-logbook-filter]').forEach(b=>{
      b.classList.toggle('active',b.dataset.logbookFilter===currentLogbookFilter);
