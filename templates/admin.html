@@ -330,7 +330,7 @@ body.screener-split-open #screenerSplitDrawer{display:flex;}
 .portfolio-symbol-link{
   color:#052d70;
   font-weight:800;
-  text-decoration:underline dotted;
+  text-decoration:none;
   cursor:pointer;
 }
 .portfolio-symbol-link:hover{color:#0b55b5;background:#eef5ff;}
@@ -399,7 +399,7 @@ body.screener-split-open #screenerSplitDrawer{display:flex;}
     data-client="{{ h.client_id|lower }}" data-symbol="{{ h.symbol|lower }}"
     data-product="{{ h.product|lower }}" data-exchange="{{ h.exchange|lower }}" data-industry="{{ (h.get('industry') or h.get('sector') or h.get('industry_name') or 'Unclassified')|e|lower }}">
 <td><input class="row-check check" type="checkbox" onchange="updateRowCount()"></td>
-<td>{{ h.client_id }}</td><td class="portfolio-symbol-link" data-symbol="{{ h.symbol }}" title="Hover or click for Screener.in view">{{ h.symbol }}</td><td><b>{{ h.product }}</b></td><td>{{ h.exchange }}</td>
+<td>{{ h.client_id }}</td><td class="portfolio-symbol-link" data-symbol="{{ h.symbol }}">{{ h.symbol }}</td><td><b>{{ h.product }}</b></td><td>{{ h.exchange }}</td>
 <td class="{{ 'profit' if h.mtm >= 0 else 'loss' }}" data-mtm="{{ h.mtm }}">{{ '%.2f'|format(h.mtm) }}</td>
 <td>{{ '%.2f'|format(h.ltp) }}</td><td>{{ '%.2f'|format(h.qty) }}</td><td>{{ '%.2f'|format(h.buy_price) }}</td>
 <td>{{ '%.2f'|format(h.ltp-h.buy_price) }}</td><td>{{ h.get('trade_date') or '-' }}</td><td>{{ h.get('id',h.get('portfolio_id','-')) }}</td>
@@ -1400,13 +1400,12 @@ window.setLogbookFilter=async function(filter,button){
       </div>
     </div>
     <div id="scrDrawerBody" style="padding:14px;overflow-y:auto;flex:1;font-size:12px;color:#0f172a">
-      Hover or click any stock symbol in the portfolio table to view Screener.in data.
+      Click any stock symbol in the portfolio table to view Screener.in data.
     </div>`;
   document.body.appendChild(drawer);
 
   const cache={};
   let activeSym='';
-  let hoverTimeout=null;
 
   window.closeScreenerSplit=function(){
     document.body.classList.remove('screener-split-open');
@@ -1472,18 +1471,6 @@ window.setLogbookFilter=async function(filter,button){
     `;
   }
 
-  document.addEventListener('mouseover',function(e){
-    if(window.innerWidth<1024) return;
-    const td=e.target.closest('#portfolioTable tbody td');
-    if(!td || td.cellIndex!==2) return;
-    const sym=td.dataset.symbol||td.textContent.trim();
-    clearTimeout(hoverTimeout);
-    hoverTimeout=setTimeout(()=>window.openScreenerSplit(sym),350);
-  });
-  document.addEventListener('mouseout',function(e){
-    const td=e.target.closest('#portfolioTable tbody td');
-    if(td && td.cellIndex===2) clearTimeout(hoverTimeout);
-  });
   document.addEventListener('click',function(e){
     const td=e.target.closest('#portfolioTable tbody td');
     if(!td || td.cellIndex!==2) return;
