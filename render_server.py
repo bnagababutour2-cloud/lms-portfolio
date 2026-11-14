@@ -814,7 +814,7 @@ def admin_portfolio():
   const css = `
   #lms-recency-bar{display:flex;gap:7px;flex-wrap:wrap;align-items:center;margin:8px 0 12px;padding:7px 9px;background:#f7faff;border:1px solid #d8e5f5;border-radius:9px}
   #lms-recency-bar button{border:1px solid #c9d9ef;background:#eaf2fc;color:#07377b;border-radius:6px;padding:7px 12px;font-size:12px;font-weight:800;cursor:pointer;white-space:nowrap;min-width:88px}
-  #lms-recency-bar button.active{background:#eaf2fc;color:#07377b;border-color:#8fb4e6;box-shadow:inset 0 0 0 1px #8fb4e6}
+  #lms-recency-bar button.active{background:#0b55b5;color:#ffffff;border-color:#0b55b5;box-shadow:0 0 0 2px rgba(11,85,181,.18) inset}
   #lms-recency-note{font-size:11px;color:#637895;margin-left:4px}
   #lms-overlay{position:fixed;inset:0;background:rgba(5,24,54,.42);z-index:99998;display:none}
   #lms-drawer{position:fixed;right:0;top:0;height:100vh;width:min(900px,94vw);background:#f5f8fd;z-index:99999;box-shadow:-8px 0 30px #001b4433;display:none;overflow:auto;padding:18px}
@@ -896,19 +896,14 @@ def admin_portfolio():
     if(clientIndex<0) clientIndex=1;
     let shown=0;
     table.querySelectorAll('tbody tr').forEach(row=>{
-      if(!originalRowDisplay.has(row)){
-        originalRowDisplay.set(row,{display:row.style.display,hidden:row.hidden});
-      }
-      const base=originalRowDisplay.get(row);
       const matches=activeClientIds.has(clientIdForRow(row,clientIndex));
-      const baseWasHidden=base.hidden || base.display==='none';
-      const visible=matches && !baseWasHidden;
-      row.hidden=!visible;
-      row.style.display=visible ? base.display : 'none';
-      if(visible) shown++;
+      row.hidden=!matches;
+      row.style.display=matches ? '' : 'none';
+      if(matches) shown++;
     });
+    if(typeof updateTotal==='function') updateTotal();
     const note=document.getElementById('lms-recency-note');
-    if(note) note.textContent=activeClientIds.size+' matching clients · '+shown+' existing holding rows shown';
+    if(note) note.textContent=activeClientIds.size+' matching clients · '+shown+' holding rows shown';
     return shown;
   }
 
@@ -916,20 +911,21 @@ def admin_portfolio():
     const table=portfolioTable();
     if(table){
       table.querySelectorAll('tbody tr').forEach(row=>{
-        const base=originalRowDisplay.get(row);
-        if(base){
-          row.hidden=base.hidden;
-          row.style.display=base.display;
-          originalRowDisplay.delete(row);
-        }
+        row.hidden=false;
+        row.style.display='';
       });
     }
+    if(typeof updateTotal==='function') updateTotal();
     activePortfolioBucket=null;
     activeClientIds=null;
     const note=document.getElementById('lms-recency-note');
     if(note) note.textContent='Showing all clients and existing holdings';
     const bar=document.getElementById('lms-recency-bar');
     if(bar) bar.querySelectorAll('button[data-bucket]').forEach(b=>b.classList.remove('active'));
+    if(typeof window.setLogbookFilter==='function'){
+      document.querySelectorAll('[data-logbook-filter]').forEach(b=>b.classList.remove('active'));
+      if(typeof window.refreshTradeLogbook==='function') window.refreshTradeLogbook();
+    }
   }
 
   async function showBucket(bucket,label){
@@ -950,6 +946,12 @@ def admin_portfolio():
     const bar=document.getElementById('lms-recency-bar');
     if(bar) bar.querySelectorAll('button[data-bucket]').forEach(b=>b.classList.toggle('active',b.dataset.bucket===bucket));
 
+    const mapToCardFilter={'recent':'0-9','10-30':'10-29','30-60':'30-59','60+':'60+'};
+    if(typeof window.setLogbookFilter==='function' && mapToCardFilter[bucket]){
+      const targetBtn=document.querySelector('[data-logbook-filter="'+mapToCardFilter[bucket]+'"]');
+      window.setLogbookFilter(mapToCardFilter[bucket],targetBtn);
+    }
+
     try{
       const response=await fetch('/api/admin/trade-recency',{credentials:'same-origin',cache:'no-store'});
       const data=await response.json();
@@ -958,7 +960,9 @@ def admin_portfolio():
       const eligible=(data.clients||[]).filter(c=>bucketMatches(c.days_since_trade,bucket));
       activeClientIds=new Set(eligible.map(c=>String(c.client_id||'').trim().toLowerCase()).filter(Boolean));
       const count=applyPortfolioBucket();
-      if(note) note.textContent=eligible.length+' matching clients · '+count+' existing holding rows · '+label;
+      if(note) note.textContent=eligible.length+' matching clients · '+count+' holding rows · '+label;
+      const card=document.getElementById('tradeLogbookCard');
+      if(card) card.scrollIntoView({behavior:'smooth',block:'nearest'});
     }catch(error){
       if(requestId!==bucketRequestSerial) return;
       activePortfolioBucket=null;
