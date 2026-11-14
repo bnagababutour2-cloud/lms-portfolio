@@ -2482,17 +2482,23 @@ body.bse-alerts-split-open #bseAlertsSplitDrawer{display: flex;}
 (function(){
   let portfolioAlertsCache = [];
 
+  let bseAlertsTimer = null;
   window.openBseAlertsSplit = function(){
-    // Close other drawers
     if(typeof window.closeScreenerSplit === 'function') window.closeScreenerSplit();
     if(typeof window.closeTradeLogsSplit === 'function') window.closeTradeLogsSplit();
     
     document.body.classList.add('bse-alerts-split-open');
     window.refreshBseAlerts();
+    if(!bseAlertsTimer){
+      bseAlertsTimer = setInterval(() => {
+        window.refreshBseAlerts();
+      }, 15000);
+    }
   };
 
   window.closeBseAlertsSplit = function(){
     document.body.classList.remove('bse-alerts-split-open');
+    if(bseAlertsTimer){ clearInterval(bseAlertsTimer); bseAlertsTimer = null; }
   };
 
   window.clearBseAlertFilters = function(){
@@ -2609,7 +2615,7 @@ body.bse-alerts-split-open #bseAlertsSplitDrawer{display: flex;}
         <div class="bse-alert-headline">${item.headline}</div>
         <div class="bse-alert-desc">${item.details}</div>
         <div style="margin-top:6px;display:flex;justify-content:space-between;align-items:center">
-          <a href="https://www.bseindia.com/corporates/anndet_new.aspx?newsid=announcement_${item.symbol}" target="_blank" rel="noopener noreferrer" style="color:#0b55b5;font-weight:800;font-size:11px;text-decoration:none">View Filing on BSE ↗</a>
+          <a href="https://www.bseindia.com/stock-share-price/${(item.symbol||'').toLowerCase()}/" target="_blank" rel="noopener noreferrer" style="color:#0b55b5;font-weight:800;font-size:11px;text-decoration:none">View Filing on BSE ↗</a>
           <a href="https://www.screener.in/company/${item.symbol}/" target="_blank" rel="noopener noreferrer" style="color:#64748b;font-weight:700;font-size:10px;text-decoration:none">Screener ↗</a>
         </div>
       </div>`;
