@@ -1287,6 +1287,39 @@ def admin_portfolio():
     try:
         clients = _filter_supervisor_clients(supervisor_id, _load_all_clients())
         holdings = _filter_supervisor_holdings(supervisor_id, _load_all_holdings())
+
+        # Precompute trade-recency rows directly from loaded clients & holdings (0 extra DB queries)
+        _latest_td = {}
+        _has_h = set()
+        for _h in holdings:
+            _cid_raw = str(_h.get("client_id") or "").strip()
+            if not _cid_raw:
+                continue
+            _cid_k = _cid_raw.lower()
+            _has_h.add(_cid_k)
+            _dt = _clean_trade_date(_h.get("trade_date"))
+            if _dt and (_cid_k not in _latest_td or _dt > _latest_td[_cid_k]):
+                _latest_td[_cid_k] = _dt
+        _today_ist = (datetime.utcnow() + timedelta(hours=5, minutes=30)).date()
+        _precomputed_recency = []
+        for _c in clients:
+            _cid = str(_c.get("client_id") or "").strip()
+            _cid_k = _cid.lower()
+            _last = _latest_td.get(_cid_k)
+            if _last:
+                _age = max(0, (_today_ist - datetime.strptime(_last, "%Y-%m-%d").date()).days)
+            elif _cid_k in _has_h:
+                _age = 999
+            else:
+                _age = None
+            _precomputed_recency.append({
+                "client_id": _cid,
+                "client_name": _c.get("client_name") or "",
+                "last_trade_date": _last,
+                "days_since_trade": _age,
+                "has_holdings": _cid_k in _has_h,
+            })
+        precomputed_recency_script = f"<script>window.__LMS_TRADE_RECENCY__ = {json.dumps(_precomputed_recency)};</script>\n"
         # Render the existing desktop Admin page without changing its template,
         # portfolio data, API calls, or any mobile routes. The small script below
         # only limits desktop row selection to 11 rows.
@@ -1532,10 +1565,10 @@ def admin_portfolio():
     }catch(e){document.getElementById('lms-content').innerHTML='<p>'+esc(e.message)+'</p>';}
   }
   // Logbook buttons filter the EXISTING holdings table by eligible CLIENT IDs
-  // AND synchronize the Trade Logbook & Client Analytics card below.
+  // AND synchronize the Trade Logbook & Client Analytics card below without mutating template DOM structure.
   let activePortfolioBucket = null;
   let activeClientIds = null;
-  let cachedRecencyClients = null;
+  let cachedRecencyClients = Array.isArray(window.__LMS_TRADE_RECENCY__) ? window.__LMS_TRADE_RECENCY__ : null;
   let bucketRequestSerial = 0;
 
   function portfolioTable(){
@@ -1574,54 +1607,90 @@ def admin_portfolio():
       if(matches) shown++;
     });
     if(typeof updateTotal==='function') updateTotal();
-    const note=document.getElementById('lms-recency-note');
-    if(note) note.textContent=activeClientIds.size+' matching clients · '+shown+' holding rows shown';
     return shown;
   }
 
-  function syncLogbookCardUI(eligible, bucket){
+  function findLogbookListContainer(card){
+    if(!card) return null;
+    // Try common template container IDs/classes first
+    const byId = card.querySelector('#logbookClientList, #matchingClientsList, #logbookClients, .matching-clients-list, .client-list');
+    if(byId) return byId;
+    // Otherwise locate the left column box under "Matching Clients" search row
+    const searchInput = card.querySelector('input');
+    if(searchInput){
+      const searchRow = searchInput.closest('div');
+      if(searchRow && searchRow.nextElementSibling) return searchRow.nextElementSibling;
+    }
+    return null;
+  }
+
+  function renderLogbookCardClients(eligible, bucketLabel){
     const card=document.getElementById('tradeLogbookCard');
     if(!card) return;
-    // Update badge count ("0 clients" -> "N clients")
-    const pill=Array.from(card.querySelectorAll('span,div,button')).find(el=>/^\s*\d+\s+clients?\s*$/i.test(el.textContent||''));
+    // Update subtitle under "Trade Logbook & Client Analytics"
+    const sub=Array.from(card.querySelectorAll('p,div,span')).find(el=>el.children.length===0 && /Clients traded|Showing all active clients|Clients whose last trade|No period selected/i.test(el.textContent||''));
+    if(sub && bucketLabel) sub.textContent=bucketLabel;
+
+    // Update badge count ("N clients")
+    const pill=Array.from(card.querySelectorAll('span,div,button')).find(el=>el.children.length===0 && /^\s*\d+\s+clients?\s*$/i.test(el.textContent||''));
     if(pill) pill.textContent=eligible.length+(eligible.length===1?' client':' clients');
-    // Populate Matching Clients list if template rendered an empty placeholder
-    const emptyBox=Array.from(card.querySelectorAll('div,p,span')).find(el=>/No matching clients found for this filter/i.test(el.textContent||''));
-    if(emptyBox && eligible.length>0){
-      const listWrap=document.createElement('div');
-      listWrap.id='lms-logbook-client-list';
-      listWrap.style.cssText='display:flex;flex-direction:column;gap:6px;max-height:260px;overflow:auto;margin-top:8px';
-      listWrap.innerHTML=eligible.map(c=>{
-        const ageTxt=c.last_trade_date ? (c.days_since_trade+'d ago') : 'Older (>60d)';
-        return `<button type="button" data-cid="${esc(c.client_id)}" style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px;border:1px solid #d5e2f2;border-radius:8px;background:#fff;cursor:pointer;text-align:left;font-size:12px;font-weight:700;color:#07377b"><span>${esc(c.client_id)}${c.client_name?' · '+esc(c.client_name):''}</span><span style="font-size:11px;color:#5f748d">${esc(ageTxt)}</span></button>`;
-      }).join('');
-      listWrap.querySelectorAll('button[data-cid]').forEach(btn=>{
-        btn.addEventListener('click',()=>showClient(btn.dataset.cid));
-      });
-      emptyBox.replaceWith(listWrap);
+
+    const listBox=findLogbookListContainer(card);
+    if(listBox){
+      if(!eligible.length){
+        listBox.innerHTML='<div style="padding:18px 10px;text-align:center;color:#667b91;font-size:12px;border:1px dashed #cbd9e8;border-radius:8px;background:#fff">No matching clients found for this filter.</div>';
+      }else{
+        listBox.innerHTML=eligible.map(c=>{
+          const ageTxt=c.last_trade_date ? (c.days_since_trade+'d ago') : 'Older (>60d)';
+          return `<button type="button" data-lms-cid="${esc(c.client_id)}" style="display:flex;justify-content:space-between;align-items:center;width:100%;margin-bottom:6px;padding:8px 10px;border:1px solid #d5e2f2;border-radius:8px;background:#fff;cursor:pointer;text-align:left;font-size:12px;font-weight:700;color:#07377b"><span>${esc(c.client_id)}${c.client_name?' · '+esc(c.client_name):''}</span><span style="font-size:11px;color:#5f748d">${esc(ageTxt)}</span></button>`;
+        }).join('');
+        listBox.querySelectorAll('button[data-lms-cid]').forEach(btn=>{
+          btn.addEventListener('click',function(e){
+            e.preventDefault();
+            e.stopPropagation();
+            const cid=btn.getAttribute('data-lms-cid');
+            if(typeof window.selectLogbookClient==='function'){
+              try{ window.selectLogbookClient(cid); return; }catch(_){}
+            }
+            showClient(cid);
+          });
+        });
+      }
     }
   }
 
-  function resetLogbookSelectionToEmpty(){
+  function resetLogbookCardToEmpty(){
     const card=document.getElementById('tradeLogbookCard');
     if(!card) return;
-    // Clear search box inside Trade Logbook card
-    card.querySelectorAll('input[type="text"],input[type="search"],input:not([type])').forEach(inp=>{
-      inp.value='';
-    });
-    // Reset header title to "No client selected"
-    const titleEl=Array.from(card.querySelectorAll('h1,h2,h3,h4,strong,div,span')).find(el=>/^\s*Client:\s*\S+/i.test(el.textContent||''));
+    // Clear search input inside card
+    card.querySelectorAll('input').forEach(inp=>{ inp.value=''; });
+
+    // Update subtitle & client count pill
+    const sub=Array.from(card.querySelectorAll('p,div,span')).find(el=>el.children.length===0 && /Clients traded|Showing all active clients|Clients whose last trade|No period selected/i.test(el.textContent||''));
+    if(sub) sub.textContent='No period selected. Choose a period above or search a client.';
+
+    const pill=Array.from(card.querySelectorAll('span,div,button')).find(el=>el.children.length===0 && /^\s*\d+\s+clients?\s*$/i.test(el.textContent||''));
+    if(pill) pill.textContent='0 clients';
+
+    // Empty the Matching Clients list container cleanly without removing the container itself
+    const listBox=findLogbookListContainer(card);
+    if(listBox){
+      listBox.innerHTML='<div style="padding:18px 10px;text-align:center;color:#667b91;font-size:12px;border:1px dashed #cbd9e8;border-radius:8px;background:#fff">No client selected.</div>';
+    }
+
+    // Reset right-side client analytics header to "No client selected"
+    const titleEl=Array.from(card.querySelectorAll('h1,h2,h3,h4,strong,div,span')).find(el=>el.children.length===0 && /^\s*Client:\s*\S+/i.test(el.textContent||''));
     if(titleEl) titleEl.textContent='No client selected';
-    // Reset profit/loss pills to ₹0.00
+
     card.querySelectorAll('span,div').forEach(el=>{
       if(el.children.length>0) return;
       const t=(el.textContent||'').trim();
       if(/^Current Profit:/i.test(t)) el.textContent='Current Profit: ₹0.00';
       if(/^Current Loss:/i.test(t)) el.textContent='Current Loss: ₹0.00';
       if(/^Last trade:/i.test(t)) el.textContent='Last trade: —';
-      if(/^\d+\s+clients?$/i.test(t)) el.textContent='0 clients';
     });
-    // Reset the 7 KPI metric boxes to "—"
+
+    // Reset KPI boxes to "—"
     card.querySelectorAll('small').forEach(sm=>{
       const label=(sm.textContent||'').trim().toUpperCase();
       if(/TOTAL INVEST|UNREALIZED|COMPANIES HELD|THIS WEEK|THIS MONTH|THIS QUARTER|FINANCIAL YEAR/.test(label)){
@@ -1632,48 +1701,14 @@ def admin_portfolio():
         }
       }
     });
-    // Clear Matching Clients list so no client is selected or listed
-    const injectedList=document.getElementById('lms-logbook-client-list');
-    if(injectedList) injectedList.remove();
-    const matchHeading=Array.from(card.querySelectorAll('*')).find(el=>el.children.length===0 && /^\s*Matching Clients\s*$/i.test(el.textContent||''));
-    const leftPane=matchHeading ? matchHeading.closest('div') : null;
-    if(leftPane){
-      Array.from(leftPane.querySelectorAll('button,li,a,div')).forEach(el=>{
-        if(el===leftPane || el.contains(matchHeading) || el.querySelector('input')) return;
-        const txt=(el.textContent||'').trim();
-        if(/SEARCH/i.test(txt) || /Search or select a client/i.test(txt)) return;
-        if(el.parentElement===leftPane || /\d+d\s+ago|No matching clients/i.test(txt)){
-          el.remove();
-        }
-      });
-      if(!leftPane.querySelector('.lms-empty-clients')){
-        const emptyMsg=document.createElement('div');
-        emptyMsg.className='lms-empty-clients';
-        emptyMsg.style.cssText='margin-top:10px;padding:16px 10px;text-align:center;color:#667b91;font-size:12px;border:1px dashed #cbd9e8;border-radius:8px;background:#fff';
-        emptyMsg.textContent='No client selected.';
-        leftPane.appendChild(emptyMsg);
-      }
-    }
-    // Clear all donut chart SVGs and legends back to "No chart data"
+
+    // Clear chart canvases/containers safely without removing wrapper nodes
     card.querySelectorAll('svg').forEach(svg=>{
       const wrap=svg.parentElement;
       if(wrap) wrap.innerHTML='<div style="padding:28px 10px;text-align:center;color:#667b91;font-size:12px;border:1px dashed #cbd9e8;border-radius:8px;width:100%">No chart data</div>';
     });
     card.querySelectorAll('[class*="legend"],[id*="legend"]').forEach(leg=>{
       leg.innerHTML='';
-    });
-    // Also remove any sibling rows rendered below each donut inside each chart card
-    Array.from(card.querySelectorAll('h1,h2,h3,h4,strong,div')).forEach(h=>{
-      if(h.children.length===0 && /^[1-5]\.\s+/.test((h.textContent||'').trim())){
-        const box=h.parentElement;
-        if(box){
-          Array.from(box.children).forEach(ch=>{
-            if(ch===h) return;
-            if(ch.querySelector('svg') || /No chart data/i.test(ch.textContent||'')) return;
-            ch.remove();
-          });
-        }
-      }
     });
   }
 
@@ -1687,15 +1722,11 @@ def admin_portfolio():
         row.hidden=false;
         row.style.display='';
       });
-    }
-    // Uncheck any selected row checkboxes in the portfolio table so selection is empty
-    if(table){
       table.querySelectorAll('input[type="checkbox"]:checked').forEach(cb=>{
         cb.checked=false;
         cb.indeterminate=false;
       });
     }
-    // Reset any search inputs on the admin page as well if present
     ['searchClient','searchSymbol','searchProduct'].forEach(id=>{
       const inp=document.getElementById(id);
       if(inp && inp.value){
@@ -1710,7 +1741,7 @@ def admin_portfolio():
     if(bar) bar.querySelectorAll('button[data-bucket]').forEach(b=>b.classList.remove('active'));
     document.querySelectorAll('[data-logbook-filter]').forEach(b=>b.classList.remove('active'));
     if(typeof window.selectedLogbookClient !== 'undefined') window.selectedLogbookClient = null;
-    resetLogbookSelectionToEmpty();
+    resetLogbookCardToEmpty();
   }
 
   async function showBucket(bucket,label){
@@ -1727,7 +1758,6 @@ def admin_portfolio():
     const requestId=++bucketRequestSerial;
     activePortfolioBucket=bucket;
     activeClientIds=null;
-    if(note) note.textContent='Loading matching clients…';
     const bar=document.getElementById('lms-recency-bar');
     if(bar) bar.querySelectorAll('button[data-bucket]').forEach(b=>b.classList.toggle('active',b.dataset.bucket===bucket));
 
@@ -1740,6 +1770,7 @@ def admin_portfolio():
     try{
       let clientsList = cachedRecencyClients;
       if(!clientsList){
+        if(note) note.textContent='Loading matching clients…';
         const controller = new AbortController();
         const timer = setTimeout(()=>controller.abort(), 15000);
         const response=await fetch('/api/admin/trade-recency',{credentials:'same-origin',cache:'no-store',signal:controller.signal});
@@ -1753,7 +1784,7 @@ def admin_portfolio():
       const eligible=clientsList.filter(c=>bucketMatches(c.days_since_trade,bucket));
       activeClientIds=new Set(eligible.map(c=>String(c.client_id||'').trim().toLowerCase()).filter(Boolean));
       const count=applyPortfolioBucket();
-      syncLogbookCardUI(eligible, bucket);
+      renderLogbookCardClients(eligible, 'Clients in bucket: '+label);
       if(note) note.textContent=eligible.length+' matching clients · '+count+' holding rows · '+label;
     }catch(error){
       if(requestId!==bucketRequestSerial) return;
@@ -1770,10 +1801,19 @@ def admin_portfolio():
     const heading=candidates[0];if(!heading)return false;
     const bar=document.createElement('div');bar.id='lms-recency-bar';bar.innerHTML=`<b style="font-size:12px;color:#0a3475;margin-right:3px">Logbook:</b><button type="button" data-bucket="recent">Traded in last 10 days</button><button type="button" data-bucket="10-30">10–30 days</button><button type="button" data-bucket="30-60">30–60 days</button><button type="button" data-bucket="60+">Above 60 days</button><span id="lms-recency-note">Select a period to view clients</span>`;
     heading.insertAdjacentElement('afterend',bar);
-    bar.querySelectorAll('button[data-bucket]').forEach(b=>b.addEventListener('click',()=>{const names={recent:'Traded in last 10 days','10-30':'10–30 days','30-60':'30–60 days','60+':'Above 60 days'};showBucket(b.dataset.bucket,names[b.dataset.bucket]);}));
+    bar.querySelectorAll('button[data-bucket]').forEach(b=>b.addEventListener('click',function(e){
+      e.preventDefault();
+      e.stopPropagation();
+      const names={recent:'Traded in last 10 days','10-30':'10–30 days','30-60':'30–60 days','60+':'Above 60 days'};
+      showBucket(b.dataset.bucket,names[b.dataset.bucket]);
+    }));
     const clearButton=document.createElement('button');
     clearButton.type='button';clearButton.id='lms-recency-clear';clearButton.textContent='Clear';
-    clearButton.addEventListener('click',function(e){e.preventDefault();e.stopPropagation();clearPortfolioBucket();});
+    clearButton.addEventListener('click',function(e){
+      e.preventDefault();
+      e.stopPropagation();
+      clearPortfolioBucket();
+    });
     bar.appendChild(clearButton);
     return true;
   }
@@ -1783,13 +1823,6 @@ def admin_portfolio():
   });
   observer.observe(document.body,{childList:true,subtree:true});
   installBar();
-  document.addEventListener('click',function(ev){
-    const button=ev.target.closest('button');
-    if(!button) return;
-    if(button.id==='lms-recency-clear' || (button.textContent||'').trim().toLowerCase()==='clear'){
-      clearPortfolioBucket();
-    }
-  },true);
   // Clicking a Client ID cell in the desktop portfolio table opens its analytics drawer.
   document.addEventListener('click',function(ev){
     if(ev.target.closest('button,a,input,select,textarea'))return;
@@ -1805,9 +1838,9 @@ def admin_portfolio():
 """
         if "</body>" in admin_html.lower():
             body_close = admin_html.lower().rfind("</body>")
-            admin_html = admin_html[:body_close] + selection_limit_script + desktop_analytics_script + admin_html[body_close:]
+            admin_html = admin_html[:body_close] + precomputed_recency_script + selection_limit_script + desktop_analytics_script + admin_html[body_close:]
         else:
-            admin_html += selection_limit_script + desktop_analytics_script
+            admin_html += precomputed_recency_script + selection_limit_script + desktop_analytics_script
 
         return Response(admin_html, mimetype="text/html")
     except Exception as exc:
