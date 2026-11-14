@@ -200,6 +200,140 @@
   .logbook-layout { grid-template-columns: minmax(0,1fr) !important; }
 }
 </style>
+
+<style id="lms-7-improvements-style">
+/* Improvement 3: 7 Metric Boxes in One Single Line & Compact Size */
+.logbook-metrics-7{
+  display:grid;
+  grid-template-columns:repeat(7,minmax(0,1fr));
+  gap:7px;
+  margin-bottom:12px;
+  align-items:stretch;
+}
+.logbook-metrics-7 .logbook-kpi{
+  background:#fff;
+  border:1px solid #d8e4f0;
+  border-radius:8px;
+  padding:6px 8px;
+  min-width:0;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+}
+.logbook-metrics-7 .logbook-kpi small{
+  display:block;
+  color:#60748a;
+  font-size:9px;
+  font-weight:800;
+  letter-spacing:.2px;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.logbook-metrics-7 .logbook-kpi strong{
+  display:block;
+  margin-top:3px;
+  color:#052d70;
+  font-size:13px;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+@media(max-width:1180px){.logbook-metrics-7{grid-template-columns:repeat(4,minmax(0,1fr));}}
+@media(max-width:680px){.logbook-metrics-7{grid-template-columns:repeat(2,minmax(0,1fr));}}
+
+/* Improvement 2: Client search input + button inside Matching Clients */
+.logbook-client-search-row{
+  display:flex;
+  gap:6px;
+  margin-top:8px;
+}
+.logbook-client-search-row input{
+  flex:1;
+  min-width:0;
+  padding:7px 9px;
+  border:1px solid #cbd9e8;
+  border-radius:7px;
+  font-size:12px;
+}
+.logbook-client-search-row button{
+  padding:7px 11px;
+  font-size:11px;
+  font-weight:800;
+  border-radius:7px;
+  white-space:nowrap;
+}
+
+/* Improvements 4, 5, 6: Clean SVG Donut Charts with Outside Labels & Explicit Cap Colors */
+.logbook-svg-wrap{
+  width:100%;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  min-height:205px;
+  transition:opacity .18s ease;
+}
+.logbook-svg-wrap svg{
+  width:100%;
+  max-width:310px;
+  height:205px;
+  overflow:visible;
+}
+.cap-badge-dot{
+  width:10px;
+  height:10px;
+  border-radius:3px;
+  display:inline-block;
+  flex-shrink:0;
+}
+
+/* Improvement 7: Screener.in Split-Screen Desktop View */
+@media(min-width:1024px){
+  body.screener-split-open .container{
+    max-width:calc(100vw - 445px) !important;
+    margin-left:14px !important;
+    margin-right:430px !important;
+    transition:all .2s ease;
+  }
+}
+#screenerSplitDrawer{
+  position:fixed;
+  top:0;
+  right:0;
+  width:420px;
+  max-width:100vw;
+  height:100vh;
+  background:#fff;
+  border-left:2px solid #052d70;
+  box-shadow:-8px 0 28px rgba(5,45,112,.16);
+  z-index:100000;
+  display:none;
+  flex-direction:column;
+}
+body.screener-split-open #screenerSplitDrawer{display:flex;}
+.screener-ratios-grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:8px;
+  margin-top:10px;
+}
+.screener-ratio-item{
+  background:#f6faff;
+  border:1px solid #d8e4f0;
+  border-radius:7px;
+  padding:7px 9px;
+}
+.screener-ratio-item small{display:block;color:#5a718a;font-size:10px;font-weight:700;}
+.screener-ratio-item strong{display:block;color:#052d70;font-size:13px;margin-top:2px;}
+.portfolio-symbol-link{
+  color:#052d70;
+  font-weight:800;
+  text-decoration:underline dotted;
+  cursor:pointer;
+}
+.portfolio-symbol-link:hover{color:#0b55b5;background:#eef5ff;}
+</style>
+
 </head>
 <body>
 <header class="top"><div class="header-overlay"><div class="header-subtitle">ADMIN / SUPERVISOR PORTFOLIO &amp; DAILY CONTROL PANEL</div><div class="header-login">Logged in: {{ supervisor_name }} ({{ supervisor_id }}){% if not can_manage %} · VIEW ONLY{% endif %}</div></div></header>
@@ -263,7 +397,7 @@
     data-client="{{ h.client_id|lower }}" data-symbol="{{ h.symbol|lower }}"
     data-product="{{ h.product|lower }}" data-exchange="{{ h.exchange|lower }}" data-industry="{{ (h.get('industry') or h.get('sector') or h.get('industry_name') or 'Unclassified')|e|lower }}">
 <td><input class="row-check check" type="checkbox" onchange="updateRowCount()"></td>
-<td>{{ h.client_id }}</td><td>{{ h.symbol }}</td><td><b>{{ h.product }}</b></td><td>{{ h.exchange }}</td>
+<td>{{ h.client_id }}</td><td class="portfolio-symbol-link" data-symbol="{{ h.symbol }}" title="Hover or click for Screener.in view">{{ h.symbol }}</td><td><b>{{ h.product }}</b></td><td>{{ h.exchange }}</td>
 <td class="{{ 'profit' if h.mtm >= 0 else 'loss' }}" data-mtm="{{ h.mtm }}">{{ '%.2f'|format(h.mtm) }}</td>
 <td>{{ '%.2f'|format(h.ltp) }}</td><td>{{ '%.2f'|format(h.qty) }}</td><td>{{ '%.2f'|format(h.buy_price) }}</td>
 <td>{{ '%.2f'|format(h.ltp-h.buy_price) }}</td><td>{{ h.get('trade_date') or '-' }}</td><td>{{ h.get('id',h.get('portfolio_id','-')) }}</td>
@@ -275,15 +409,17 @@
 <div class="card logbook-desktop-card" id="tradeLogbookCard">
   <div class="logbook-summary"><div><div class="title" style="margin:0 0 3px">Trade Logbook &amp; Client Analytics</div><div class="sub" id="logbookFilterDescription">Choose one of the four recency filters above to list matching clients.</div></div><span class="pill" id="logbookClientCount">0 clients</span></div>
   <div class="logbook-layout">
-    <div class="logbook-client-panel"><b style="color:#052d70;font-size:13px">Matching Clients</b><div class="sub" style="margin-top:4px">Search or select a client code to view portfolio analytics.</div><div class="logbook-client-list" id="logbookClientList"><div class="logbook-empty">Select a trade-recency filter above.</div></div></div>
+    <div class="logbook-client-panel"><b style="color:#052d70;font-size:13px">Matching Clients</b><div class="sub" style="margin-top:4px">Search or select a client code to view portfolio analytics.</div><div class="logbook-client-search-row"><input id="logbookClientSearchInput" type="text" placeholder="Client ID or name..." onkeydown="if(event.key==='Enter'){event.preventDefault();window.searchLogbookClients();}"><button type="button" class="btn" id="logbookClientSearchBtn" onclick="window.searchLogbookClients()">SEARCH</button></div><div class="logbook-client-list" id="logbookClientList"><div class="logbook-empty">Select a trade-recency filter above.</div></div></div>
     <div class="logbook-chart-panel">
       <div class="logbook-summary"><strong id="logbookSelectedClient">No client selected</strong><span class="pill" id="logbookLastTrade">Last trade: —</span></div>
-      <div class="logbook-kpis"><div class="logbook-kpi"><small>TOTAL INVESTMENT</small><strong id="logbookInvestment">—</strong></div><div class="logbook-kpi"><small>UNREALIZED PROFIT / LOSS</small><strong id="logbookPnl">—</strong></div><div class="logbook-kpi"><small>COMPANIES HELD</small><strong id="logbookCompanyCount">—</strong></div></div>
-      <div class="logbook-trading-days" id="logbookTradingDays">
-        <div><small>TRADING DAYS · THIS WEEK</small><b id="daysWeek">—</b></div>
-        <div><small>TRADING DAYS · THIS MONTH</small><b id="daysMonth">—</b></div>
-        <div><small>TRADING DAYS · THIS QUARTER</small><b id="daysQuarter">—</b></div>
-        <div><small>TRADING DAYS · THIS FINANCIAL YEAR</small><b id="daysFY">—</b></div>
+      <div class="logbook-metrics-7" id="logbookTradingDays">
+        <div class="logbook-kpi"><small>TOTAL INVESTMENT</small><strong id="logbookInvestment">—</strong></div>
+        <div class="logbook-kpi"><small>UNREALIZED PROFIT / LOSS</small><strong id="logbookPnl">—</strong></div>
+        <div class="logbook-kpi"><small>COMPANIES HELD</small><strong id="logbookCompanyCount">—</strong></div>
+        <div class="logbook-kpi"><small>THIS WEEK</small><strong id="daysWeek">—</strong></div>
+        <div class="logbook-kpi"><small>THIS MONTH</small><strong id="daysMonth">—</strong></div>
+        <div class="logbook-kpi"><small>THIS QUARTER</small><strong id="daysQuarter">—</strong></div>
+        <div class="logbook-kpi"><small>FINANCIAL YEAR</small><strong id="daysFY">—</strong></div>
       </div>
       <div class="logbook-charts">
         <section class="logbook-chart"><h4>1. Investment by Company</h4><div class="logbook-donut-wrap"><div class="logbook-donut" id="logbookInvestmentDonut"><div class="logbook-donut-center"><b>—</b><small>Investment</small></div></div></div><div class="logbook-legend" id="logbookInvestmentLegend"><div class="logbook-empty">Select a client.</div></div></section>
@@ -874,17 +1010,26 @@ async function setSelectedPasswords(){
 // ===== ADDITIVE DESKTOP TRADE LOGBOOK + CLIENT CHARTS =====
 (function(){
  const logbookColors=['#0b55b5','#16a05a','#e0a400','#8b5cf6','#e05d44','#0891b2','#64748b','#db2777','#65a30d','#7c3aed','#b45309','#0f766e'];
- let currentLogbookFilter=null;
+ const CAP_META={
+   'Large Cap':{color:'#0b55b5',label:'Large Cap'},
+   'Mid Cap':{color:'#0d9488',label:'Mid Cap'},
+   'Small Cap':{color:'#ea580c',label:'Small Cap'},
+   'Unclassified':{color:'#64748b',label:'Unclassified'}
+ };
+ let currentLogbookFilter='all';
  let selectedLogbookClient=null;
+ let serverRecencyCache=null;
+
  const logbookRows=()=>[...document.querySelectorAll('#portfolioTable tbody tr')];
  const parseLogbookDate=value=>{
    if(!value||value==='-') return null;
    const raw=String(value).trim();
-   let d=new Date(raw);
-   if(!Number.isNaN(d.getTime())) return d;
-   const m=raw.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})$/);
-   if(m) return new Date(Number(m[3]),Number(m[2])-1,Number(m[1]));
-   return null;
+   const dmy=raw.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})$/);
+   if(dmy) return new Date(Number(dmy[3]),Number(dmy[2])-1,Number(dmy[1]));
+   const ymd=raw.match(/^(\d{4})[\/.-](\d{1,2})[\/.-](\d{1,2})/);
+   if(ymd) return new Date(Number(ymd[1]),Number(ymd[2])-1,Number(ymd[3]));
+   const d=new Date(raw);
+   return Number.isNaN(d.getTime())?null:d;
  };
  const daysSinceTrade=row=>{
    const d=parseLogbookDate(row.cells[10]?.textContent);
@@ -893,100 +1038,404 @@ async function setSelectedPasswords(){
    return Math.max(0,Math.floor((today-d)/86400000));
  };
  const num=value=>{const n=Number(String(value??'').replace(/[,₹\s]/g,''));return Number.isFinite(n)?n:0};
- const money=value=>'₹ '+Math.abs(value).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
+ const money=value=>'₹'+Math.abs(value).toLocaleString('en-IN',{minimumFractionDigits:0,maximumFractionDigits:0});
+ const moneyExact=value=>'₹'+Math.abs(value).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
  const safeText=value=>String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
- function visiblePortfolioRows(){return logbookRows().filter(r=>r.style.display!=='none');}
+
+ function allPortfolioRows(){return logbookRows();}
+
+ async function ensureServerRecency(){
+   if(serverRecencyCache) return serverRecencyCache;
+   try{
+     const res=await fetch('/api/admin/trade-recency',{credentials:'same-origin',cache:'no-store'});
+     const data=await res.json();
+     if(res.ok && data.success){
+       const m=new Map();
+       (data.clients||[]).forEach(c=>{
+         const cid=String(c.client_id||'').trim().toUpperCase();
+         if(cid) m.set(cid,c);
+       });
+       serverRecencyCache=m;
+     }
+   }catch(e){}
+   return serverRecencyCache;
+ }
+
  function clientMap(){
    const map=new Map();
-   visiblePortfolioRows().forEach(r=>{
-     const id=(r.dataset.client||r.cells[1]?.textContent||'').trim(); if(!id)return;
-     if(!map.has(id)) map.set(id,{id,rows:[],lastDays:null,lastDate:null});
-     const item=map.get(id); item.rows.push(r);
+   allPortfolioRows().forEach(r=>{
+     const id=(r.dataset.client||r.cells[1]?.textContent||'').trim();
+     if(!id) return;
+     const key=id.toUpperCase();
+     if(!map.has(key)) map.set(key,{id,rows:[],lastDays:null,lastDate:null,clientName:''});
+     const item=map.get(key);
+     item.rows.push(r);
      const days=daysSinceTrade(r);
-     if(days!==null&&(item.lastDays===null||days<item.lastDays)){item.lastDays=days;item.lastDate=r.cells[10]?.textContent.trim()||'-';}
+     if(days!==null&&(item.lastDays===null||days<item.lastDays)){
+       item.lastDays=days;
+       item.lastDate=r.cells[10]?.textContent.trim()||'-';
+     }
    });
+   if(serverRecencyCache){
+     serverRecencyCache.forEach((srv,key)=>{
+       if(map.has(key)){
+         const item=map.get(key);
+         item.clientName=srv.client_name||'';
+         if(item.lastDays===null && srv.days_since_trade!==null && srv.days_since_trade!==undefined){
+           item.lastDays=Number(srv.days_since_trade);
+           item.lastDate=srv.last_trade_date||'-';
+         }
+       }
+     });
+   }
    return map;
  }
- window.setLogbookFilter=function(filter,button){
-   currentLogbookFilter=filter;
-   document.querySelectorAll('[data-logbook-filter]').forEach(b=>b.classList.toggle('active',b.dataset.logbookFilter===filter));
-   const descriptions={'0-9':'Clients with a portfolio trade date within the last 0–9 days.','10-29':'Clients whose most recent portfolio trade date is 10–29 days old.','30-59':'Clients whose most recent portfolio trade date is 30–59 days old.','60+':'Clients whose most recent portfolio trade date is 60 days old or more.'};
-   const desc=document.getElementById('logbookFilterDescription');if(desc)desc.textContent=descriptions[filter]||'';
+
+ function matchesRecencyBucket(days,filter){
+   if(!filter || filter==='all') return true;
+   if(days===null || days===undefined || !Number.isFinite(Number(days))) return false;
+   const d=Number(days);
+   if(filter==='0-9' || filter==='recent') return d>=0 && d<=10;
+   if(filter==='10-29' || filter==='10-30') return d>10 && d<=30;
+   if(filter==='30-59' || filter==='30-60') return d>30 && d<=60;
+   if(filter==='60+') return d>60;
+   return true;
+ }
+
+ window.setLogbookFilter=async function(filter,button){
+   currentLogbookFilter=(currentLogbookFilter===filter)?'all':filter;
+   document.querySelectorAll('[data-logbook-filter]').forEach(b=>{
+     b.classList.toggle('active',b.dataset.logbookFilter===currentLogbookFilter);
+   });
+   const descriptions={
+     'all':'Showing all active clients. Click any recency button to narrow by last trade date.',
+     '0-9':'Clients traded in the last 10 days (0–10 days).',
+     '10-29':'Clients whose last trade was 10–30 days ago.',
+     '30-59':'Clients whose last trade was 30–60 days ago.',
+     '60+':'Clients whose last trade was above 60 days ago.'
+   };
+   const desc=document.getElementById('logbookFilterDescription');
+   if(desc) desc.textContent=descriptions[currentLogbookFilter]||'';
+   await ensureServerRecency();
    renderLogbookClients();
  };
+
+ window.searchLogbookClients=function(){
+   renderLogbookClients();
+ };
+
  function renderLogbookClients(){
-   const list=document.getElementById('logbookClientList'); if(!list)return;
+   const list=document.getElementById('logbookClientList');
+   if(!list) return;
+   const query=(document.getElementById('logbookClientSearchInput')?.value||'').trim().toLowerCase();
    const all=clientMap();
    const matches=[...all.values()].filter(c=>{
-     if(c.lastDays===null)return false;
-     if(currentLogbookFilter==='0-9')return c.lastDays<10;
-     if(currentLogbookFilter==='10-29')return c.lastDays>=10&&c.lastDays<30;
-     if(currentLogbookFilter==='30-59')return c.lastDays>=30&&c.lastDays<60;
-     if(currentLogbookFilter==='60+')return c.lastDays>=60;
-     return false;
-   }).sort((a,b)=>a.lastDays-b.lastDays||a.id.localeCompare(b.id,undefined,{numeric:true}));
+     if(!matchesRecencyBucket(c.lastDays,currentLogbookFilter)) return false;
+     if(query){
+       const hay=(c.id+' '+(c.clientName||'')).toLowerCase();
+       if(!hay.includes(query)) return false;
+     }
+     return true;
+   }).sort((a,b)=>{
+     const da=a.lastDays===null?999999:a.lastDays;
+     const db=b.lastDays===null?999999:b.lastDays;
+     return da-db || a.id.localeCompare(b.id,undefined,{numeric:true});
+   });
+
    document.getElementById('logbookClientCount').textContent=matches.length+' clients';
-   if(!matches.length){list.innerHTML='<div class="logbook-empty">No clients found in this date range. Check that Trade Date is populated on the portfolio rows.</div>';selectedLogbookClient=null;clearLogbookCharts();return;}
-   list.innerHTML=matches.map(c=>'<button type="button" class="logbook-client-btn '+(selectedLogbookClient===c.id?'active':'')+'" data-logbook-client="'+safeText(c.id)+'"><span>'+safeText(c.id)+'</span><small>'+c.lastDays+' days ago</small></button>').join('');
+   if(!matches.length){
+     list.innerHTML='<div class="logbook-empty">No matching clients found for this filter/search.</div>';
+     selectedLogbookClient=null;
+     clearLogbookCharts();
+     return;
+   }
+   list.innerHTML=matches.map(c=>{
+     const badge=c.lastDays===null?'No date':(c.lastDays+'d ago');
+     return '<button type="button" class="logbook-client-btn '+(selectedLogbookClient===c.id?'active':'')+'" data-logbook-client="'+safeText(c.id)+'"><span>'+safeText(c.id)+'</span><small>'+badge+'</small></button>';
+   }).join('');
    list.querySelectorAll('[data-logbook-client]').forEach(b=>b.addEventListener('click',()=>selectLogbookClient(b.dataset.logbookClient)));
-   if(selectedLogbookClient&&matches.some(c=>c.id===selectedLogbookClient))selectLogbookClient(selectedLogbookClient);
+   if(selectedLogbookClient && matches.some(c=>c.id===selectedLogbookClient)) selectLogbookClient(selectedLogbookClient);
    else selectLogbookClient(matches[0].id);
  }
+
  function clearLogbookCharts(){
-   ['logbookSelectedClient','logbookLastTrade','logbookInvestment','logbookPnl','logbookCompanyCount'].forEach((id,i)=>{const e=document.getElementById(id);if(e)e.textContent=['No client selected','Last trade: —','—','—','—'][i]});
-   ['logbookInvestmentLegend','logbookPnlLegend','logbookIndustryLegend','logbookMarketCapLegend'].forEach(id=>{const e=document.getElementById(id);if(e)e.innerHTML='<div class="logbook-empty">Select a client.</div>'});
-   ['daysWeek','daysMonth','daysQuarter','daysFY'].forEach(id=>{const e=document.getElementById(id);if(e)e.textContent='—'});
-   ['logbookInvestmentDonut','logbookPnlDonut','logbookIndustryDonut','logbookMarketCapDonut'].forEach(id=>{const e=document.getElementById(id);if(e){e.style.background='#e8eef5';e.querySelector('.logbook-donut-center b').textContent='—'}});
+   ['logbookSelectedClient','logbookLastTrade','logbookInvestment','logbookPnl','logbookCompanyCount'].forEach((id,i)=>{
+     const e=document.getElementById(id);
+     if(e) e.textContent=['No client selected','Last trade: —','—','—','—'][i];
+   });
+   ['logbookInvestmentLegend','logbookPnlLegend','logbookIndustryLegend','logbookMarketCapLegend'].forEach(id=>{
+     const e=document.getElementById(id);
+     if(e) e.innerHTML='<div class="logbook-empty">Select a client.</div>';
+   });
+   ['daysWeek','daysMonth','daysQuarter','daysFY'].forEach(id=>{
+     const e=document.getElementById(id);
+     if(e) e.textContent='—';
+   });
+   ['logbookInvestmentDonut','logbookPnlDonut','logbookIndustryDonut','logbookMarketCapDonut'].forEach(id=>{
+     const e=document.getElementById(id);
+     if(e) e.innerHTML='<div class="logbook-empty">No chart data</div>';
+   });
  }
+
  function renderDonut(donutId,legendId,items,total,kind){
-   const donut=document.getElementById(donutId),legend=document.getElementById(legendId);if(!donut||!legend)return;
-   const center=donut.querySelector('.logbook-donut-center b');
-   if(!items.length||!total){donut.style.background='#e8eef5';center.textContent='₹0';legend.innerHTML='<div class="logbook-empty">No data available.</div>';return;}
-   let cursor=0;const stops=[];
-   items.forEach((item,i)=>{const share=Math.abs(item.value)/total*100;const color=kind==='pnl'?(item.value>=0?'#16a05a':'#d62828'):logbookColors[i%logbookColors.length];stops.push(color+' '+cursor.toFixed(2)+'% '+(cursor+share).toFixed(2)+'%');cursor+=share;});
-   donut.style.background='conic-gradient('+stops.join(',')+')';
-   center.textContent=kind==='pnl'?(items.reduce((a,x)=>a+x.value,0)>=0?'+':'−')+money(Math.abs(items.reduce((a,x)=>a+x.value,0))):money(total);
-   legend.innerHTML=items.map((item,i)=>{const color=kind==='pnl'?(item.value>=0?'#16a05a':'#d62828'):logbookColors[i%logbookColors.length];const sign=kind==='pnl'?(item.value>=0?'+':'−'):'';return '<div class="logbook-legend-row"><span class="logbook-legend-dot" style="background:'+color+'"></span><span class="logbook-legend-name" title="'+safeText(item.name)+'">'+safeText(item.name)+'</span><span class="logbook-legend-value">'+sign+money(item.value)+'</span></div>';}).join('');
+   const donutHost=document.getElementById(donutId);
+   const legend=document.getElementById(legendId);
+   if(!donutHost||!legend) return;
+
+   const wrap=donutHost.closest('.logbook-donut-wrap')||donutHost.parentElement;
+   if(wrap) wrap.classList.add('logbook-svg-wrap');
+
+   const clean=(items||[]).filter(x=>Math.abs(Number(x.value||0))>0);
+   const absTotal=clean.reduce((a,x)=>a+Math.abs(Number(x.value||0)),0);
+
+   if(!clean.length || absTotal<=0){
+     donutHost.outerHTML='<div id="'+donutId+'" class="logbook-empty" style="width:100%">No data available.</div>';
+     legend.innerHTML='<div class="logbook-empty">No data available.</div>';
+     return;
+   }
+
+   const W=300,H=200,cx=150,cy=100,rOut=60,rIn=36;
+   let start=-Math.PI/2;
+   let slices='';
+   let outsideLabels='';
+
+   clean.forEach((item,i)=>{
+     const rawVal=Number(item.value||0);
+     const absVal=Math.abs(rawVal);
+     const pct=(absVal/absTotal)*100;
+     const sweep=(absVal/absTotal)*Math.PI*2;
+     const end=start+sweep;
+     const mid=start+sweep/2;
+
+     let color=logbookColors[i%logbookColors.length];
+     if(kind==='cap' && CAP_META[item.name]) color=CAP_META[item.name].color;
+     else if(kind==='pnl') color=rawVal>=0?'#16a05a':'#d62828';
+
+     const x1=cx+rOut*Math.cos(start), y1=cy+rOut*Math.sin(start);
+     const x2=cx+rOut*Math.cos(end),   y2=cy+rOut*Math.sin(end);
+     const x3=cx+rIn*Math.cos(end),    y3=cy+rIn*Math.sin(end);
+     const x4=cx+rIn*Math.cos(start),  y4=cy+rIn*Math.sin(start);
+     const large=sweep>Math.PI?1:0;
+
+     const d=clean.length===1
+       ? `M ${cx} ${cy-rOut} A ${rOut} ${rOut} 0 1 1 ${cx-0.01} ${cy-rOut} L ${cx-0.01} ${cy-rIn} A ${rIn} ${rIn} 0 1 0 ${cx} ${cy-rIn} Z`
+       : `M ${x1.toFixed(2)} ${y1.toFixed(2)} A ${rOut} ${rOut} 0 ${large} 1 ${x2.toFixed(2)} ${y2.toFixed(2)} L ${x3.toFixed(2)} ${y3.toFixed(2)} A ${rIn} ${rIn} 0 ${large} 0 ${x4.toFixed(2)} ${y4.toFixed(2)} Z`;
+
+     const sign=kind==='pnl'?(rawVal>=0?'+':'−'):'';
+     slices+=`<path d="${d}" fill="${color}" stroke="#ffffff" stroke-width="1.5"><title>${safeText(item.name)}: ${sign}${moneyExact(rawVal)} (${pct.toFixed(1)}%)</title></path>`;
+
+     if(pct>=4.5){
+       const lx1=cx+(rOut+2)*Math.cos(mid), ly1=cy+(rOut+2)*Math.sin(mid);
+       const lx2=cx+(rOut+13)*Math.cos(mid), ly2=cy+(rOut+13)*Math.sin(mid);
+       const isRight=Math.cos(mid)>=0;
+       const lx3=lx2+(isRight?12:-12);
+       const anchor=isRight?'start':'end';
+       const tx=lx3+(isRight?3:-3);
+       outsideLabels+=`
+         <polyline points="${lx1.toFixed(1)},${ly1.toFixed(1)} ${lx2.toFixed(1)},${ly2.toFixed(1)} ${lx3.toFixed(1)},${ly2.toFixed(1)}" fill="none" stroke="${color}" stroke-width="1.2"/>
+         <text x="${tx.toFixed(1)}" y="${(ly2-1).toFixed(1)}" text-anchor="${anchor}" font-size="9.5" font-weight="800" fill="#0f172a">${pct.toFixed(1)}%</text>
+         <text x="${tx.toFixed(1)}" y="${(ly2+9).toFixed(1)}" text-anchor="${anchor}" font-size="8.5" font-weight="700" fill="#475569">${sign}${money(rawVal)}</text>`;
+     }
+     start=end;
+   });
+
+   const netVal=kind==='pnl'?clean.reduce((a,x)=>a+Number(x.value||0),0):absTotal;
+   const centerSign=kind==='pnl'?(netVal>=0?'+':'−'):'';
+   const centerLabel=kind==='pnl'?'Net P/L':(kind==='cap'?'Cap Total':'Total');
+
+   donutHost.outerHTML=`<div id="${donutId}" style="width:100%">
+     <svg viewBox="0 0 ${W} ${H}">
+       ${slices}
+       ${outsideLabels}
+       <text x="${cx}" y="${cy-3}" text-anchor="middle" font-size="9" font-weight="700" fill="#64748b">${centerLabel}</text>
+       <text x="${cx}" y="${cy+11}" text-anchor="middle" font-size="10.5" font-weight="800" fill="#052d70">${centerSign}${money(netVal)}</text>
+     </svg>
+   </div>`;
+
+   legend.innerHTML=clean.map((item,i)=>{
+     const rawVal=Number(item.value||0);
+     const pct=((Math.abs(rawVal)/absTotal)*100).toFixed(1);
+     let color=logbookColors[i%logbookColors.length];
+     if(kind==='cap' && CAP_META[item.name]) color=CAP_META[item.name].color;
+     else if(kind==='pnl') color=rawVal>=0?'#16a05a':'#d62828';
+     const sign=kind==='pnl'?(rawVal>=0?'+':'−'):'';
+     return `<div class="logbook-legend-row" style="grid-template-columns:11px minmax(0,1fr) auto">
+       <span class="cap-badge-dot" style="background:${color}"></span>
+       <span class="logbook-legend-name" title="${safeText(item.name)}" style="font-weight:700">${safeText(item.name)}</span>
+       <span class="logbook-legend-value">${sign}${moneyExact(rawVal)} (${pct}%)</span>
+     </div>`;
+   }).join('');
  }
+
  function selectLogbookClient(clientId){
    selectedLogbookClient=clientId;
    document.querySelectorAll('[data-logbook-client]').forEach(b=>b.classList.toggle('active',b.dataset.logbookClient===clientId));
-   const rows=visiblePortfolioRows().filter(r=>(r.dataset.client||r.cells[1]?.textContent.trim())===clientId);
+   const rows=allPortfolioRows().filter(r=>(r.dataset.client||r.cells[1]?.textContent.trim()).toUpperCase()===clientId.toUpperCase());
    if(!rows.length){clearLogbookCharts();return;}
-   const companies=new Map(),industries=new Map();let investment=0,pnl=0,lastDays=null,lastDate='—';
+
+   const companies=new Map(),industries=new Map();
+   let investment=0,pnl=0,lastDays=null,lastDate='—';
    rows.forEach(r=>{
      const symbol=(r.cells[2]?.textContent||'Unknown').trim();
      const qty=num(r.cells[7]?.textContent),buy=num(r.cells[8]?.textContent),mtm=num(r.cells[5]?.textContent);
      const invested=qty*buy;investment+=invested;pnl+=mtm;
      const c=companies.get(symbol)||{name:symbol,investment:0,pnl:0};c.investment+=invested;c.pnl+=mtm;companies.set(symbol,c);
-     const industry=(r.dataset.industry||'unclassified').trim().replace(/\b\w/g,x=>x.toUpperCase())||'Unclassified';industries.set(industry,(industries.get(industry)||0)+invested);
-     const days=daysSinceTrade(r);if(days!==null&&(lastDays===null||days<lastDays)){lastDays=days;lastDate=r.cells[10]?.textContent.trim()||'—';}
+     const industry=(r.dataset.industry||'unclassified').trim().replace(/\b\w/g,x=>x.toUpperCase())||'Unclassified';
+     industries.set(industry,(industries.get(industry)||0)+invested);
+     const days=daysSinceTrade(r);
+     if(days!==null&&(lastDays===null||days<lastDays)){lastDays=days;lastDate=r.cells[10]?.textContent.trim()||'—';}
    });
+
    document.getElementById('logbookSelectedClient').textContent='Client: '+clientId;
    document.getElementById('logbookLastTrade').textContent='Last trade: '+lastDate+(lastDays===null?'':' ('+lastDays+' days ago)');
-   document.getElementById('logbookInvestment').textContent=money(investment);
-   const pnlEl=document.getElementById('logbookPnl');pnlEl.textContent=(pnl>=0?'+':'−')+money(pnl);pnlEl.style.color=pnl>=0?'#128a43':'#d62828';
+   document.getElementById('logbookInvestment').textContent=moneyExact(investment);
+   const pnlEl=document.getElementById('logbookPnl');
+   pnlEl.textContent=(pnl>=0?'+':'−')+moneyExact(pnl);
+   pnlEl.style.color=pnl>=0?'#128a43':'#d62828';
    document.getElementById('logbookCompanyCount').textContent=companies.size;
+
    const byInvestment=[...companies.values()].sort((a,b)=>b.investment-a.investment).map(x=>({name:x.name,value:x.investment}));
    const byPnl=[...companies.values()].filter(x=>x.pnl!==0).sort((a,b)=>Math.abs(b.pnl)-Math.abs(a.pnl)).map(x=>({name:x.name,value:x.pnl}));
    const byIndustry=[...industries.entries()].sort((a,b)=>b[1]-a[1]).map(([name,value])=>({name,value}));
+
    renderDonut('logbookInvestmentDonut','logbookInvestmentLegend',byInvestment,byInvestment.reduce((a,x)=>a+Math.abs(x.value),0),'investment');
    renderDonut('logbookPnlDonut','logbookPnlLegend',byPnl,byPnl.reduce((a,x)=>a+Math.abs(x.value),0),'pnl');
    renderDonut('logbookIndustryDonut','logbookIndustryLegend',byIndustry,byIndustry.reduce((a,x)=>a+Math.abs(x.value),0),'industry');
-   // Fetch server-authoritative classification and trading-day counts.
-   fetch('/api/admin/client-analytics/'+encodeURIComponent(clientId)).then(r=>r.json()).then(data=>{
-     if(!data.success || selectedLogbookClient!==clientId)return;
-     const td=data.trading_days||{};
-     [['daysWeek',td.week],['daysMonth',td.month],['daysQuarter',td.quarter],['daysFY',td.financial_year]].forEach(([id,v])=>{const el=document.getElementById(id);if(el)el.textContent=(v??0)+' days'});
-     const caps=(data.market_caps||[]).map(x=>({name:x.name,value:Number(x.invested)||0}));
-     renderDonut('logbookMarketCapDonut','logbookMarketCapLegend',caps,caps.reduce((a,x)=>a+Math.abs(x.value),0),'investment');
-     const industriesFromServer=(data.industries||[]).map(x=>({name:x.name,value:Number(x.invested)||0}));
-     renderDonut('logbookIndustryDonut','logbookIndustryLegend',industriesFromServer,industriesFromServer.reduce((a,x)=>a+Math.abs(x.value),0),'industry');
-   }).catch(()=>{});
+
+   fetch('/api/admin/client-analytics/'+encodeURIComponent(clientId),{credentials:'same-origin',cache:'no-store'})
+     .then(r=>r.json())
+     .then(data=>{
+       if(!data.success || selectedLogbookClient!==clientId) return;
+       const td=data.trading_days||{};
+       [['daysWeek',td.week],['daysMonth',td.month],['daysQuarter',td.quarter],['daysFY',td.financial_year]].forEach(([id,v])=>{
+         const el=document.getElementById(id);
+         if(el) el.textContent=(v??0)+' days';
+       });
+       const capOrder=['Large Cap','Mid Cap','Small Cap','Unclassified'];
+       const rawCaps=new Map((data.market_caps||[]).map(x=>[x.name,Number(x.invested)||0]));
+       const caps=capOrder.map(name=>({name,value:rawCaps.get(name)||0})).filter(x=>x.value>0 || ['Large Cap','Mid Cap','Small Cap'].includes(x.name));
+       renderDonut('logbookMarketCapDonut','logbookMarketCapLegend',caps,caps.reduce((a,x)=>a+Math.abs(x.value),0),'cap');
+
+       const industriesFromServer=(data.industries||[]).map(x=>({name:x.name,value:Number(x.invested)||0}));
+       renderDonut('logbookIndustryDonut','logbookIndustryLegend',industriesFromServer,industriesFromServer.reduce((a,x)=>a+Math.abs(x.value),0),'industry');
+     }).catch(()=>{});
  }
- // Expose a refresh hook for callers that alter visible portfolio rows.
+
  window.refreshTradeLogbook=renderLogbookClients;
+ ensureServerRecency().then(()=>renderLogbookClients());
 })();
+
+// ===== IMPROVEMENT 7: SCREENER.IN SPLIT-SCREEN DESKTOP DRAWER =====
+(function(){
+  if(document.getElementById('screenerSplitDrawer')) return;
+  const drawer=document.createElement('aside');
+  drawer.id='screenerSplitDrawer';
+  drawer.innerHTML=`
+    <div style="background:#052d70;color:#fff;padding:12px 14px;display:flex;align-items:center;justify-content:space-between;gap:8px">
+      <div style="min-width:0">
+        <div style="font-size:10px;letter-spacing:.6px;opacity:.85;font-weight:800">SCREENER.IN LIVE FUNDAMENTALS</div>
+        <strong id="scrDrawerTitle" style="font-size:15px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">—</strong>
+      </div>
+      <div style="display:flex;gap:6px;flex-shrink:0">
+        <a id="scrDrawerExtLink" href="https://www.screener.in/" target="_blank" rel="noopener noreferrer"
+           style="background:#fff;color:#052d70;padding:5px 9px;border-radius:6px;font-size:11px;font-weight:800;text-decoration:none">Open Full ↗</a>
+        <button type="button" onclick="window.closeScreenerSplit()"
+                style="background:rgba(255,255,255,.18);color:#fff;border:0;border-radius:6px;padding:5px 9px;font-weight:800;cursor:pointer">✕</button>
+      </div>
+    </div>
+    <div id="scrDrawerBody" style="padding:14px;overflow-y:auto;flex:1;font-size:12px;color:#0f172a">
+      Hover or click any stock symbol in the portfolio table to view Screener.in data.
+    </div>`;
+  document.body.appendChild(drawer);
+
+  const cache={};
+  let activeSym='';
+  let hoverTimeout=null;
+
+  window.closeScreenerSplit=function(){
+    document.body.classList.remove('screener-split-open');
+    activeSym='';
+  };
+
+  window.openScreenerSplit=async function(rawSym){
+    const sym=String(rawSym||'').trim().toUpperCase().replace(/[^A-Z0-9]/g,'');
+    if(!sym) return;
+    document.body.classList.add('screener-split-open');
+    const titleEl=document.getElementById('scrDrawerTitle');
+    const linkEl=document.getElementById('scrDrawerExtLink');
+    const bodyEl=document.getElementById('scrDrawerBody');
+    const fallbackUrl=`https://www.screener.in/company/${sym}/consolidated/`;
+    titleEl.textContent=sym;
+    linkEl.href=fallbackUrl;
+
+    if(activeSym===sym && cache[sym]) return;
+    activeSym=sym;
+
+    if(cache[sym]){
+      renderScreener(cache[sym]);
+      return;
+    }
+    bodyEl.innerHTML=`<div style="padding:20px;text-align:center;color:#5a718a">Fetching live Screener.in fundamentals for <b>${sym}</b>…</div>`;
+    try{
+      const res=await fetch('/api/screener/'+encodeURIComponent(sym),{credentials:'same-origin'});
+      const data=await res.json();
+      cache[sym]=data;
+      if(activeSym===sym) renderScreener(data);
+    }catch(err){
+      bodyEl.innerHTML=`<div style="padding:12px;color:#b91c1c">Could not load inline preview. <a href="${fallbackUrl}" target="_blank" rel="noopener">Open ${sym} on Screener.in ↗</a></div>`;
+    }
+  };
+
+  function renderScreener(data){
+    const titleEl=document.getElementById('scrDrawerTitle');
+    const linkEl=document.getElementById('scrDrawerExtLink');
+    const bodyEl=document.getElementById('scrDrawerBody');
+    titleEl.textContent=data.company_name||data.symbol;
+    if(data.url) linkEl.href=data.url;
+
+    const grid=(data.ratios&&data.ratios.length)
+      ? `<div class="screener-ratios-grid">${data.ratios.map(r=>`
+          <div class="screener-ratio-item"><small>${r.label}</small><strong>${r.value}</strong></div>`).join('')}</div>`
+      : `<div style="margin-top:10px;padding:10px;background:#f8fafc;border:1px solid #d8e4f0;border-radius:7px;color:#475569">
+           Summary ratios unavailable for this code. Click <b>Open Full ↗</b> above to view the complete Screener.in page.
+         </div>`;
+
+    const about=data.about
+      ? `<div style="margin-top:12px;padding:10px;background:#fbfdff;border:1px solid #d8e4f0;border-radius:7px;line-height:1.45">
+           <b style="color:#052d70;display:block;margin-bottom:4px">Company Profile</b>${data.about}
+         </div>`
+      : '';
+
+    bodyEl.innerHTML=`
+      <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:8px;border-bottom:1px solid #e2e8f0">
+        <strong style="color:#052d70">Symbol: ${data.symbol}</strong>
+        <a href="${data.url}" target="_blank" rel="noopener" style="color:#0b55b5;font-weight:700">Peers, Quarterly &amp; P&amp;L ↗</a>
+      </div>
+      ${grid}
+      ${about}
+    `;
+  }
+
+  document.addEventListener('mouseover',function(e){
+    if(window.innerWidth<1024) return;
+    const td=e.target.closest('#portfolioTable tbody td');
+    if(!td || td.cellIndex!==2) return;
+    const sym=td.dataset.symbol||td.textContent.trim();
+    clearTimeout(hoverTimeout);
+    hoverTimeout=setTimeout(()=>window.openScreenerSplit(sym),350);
+  });
+  document.addEventListener('mouseout',function(e){
+    const td=e.target.closest('#portfolioTable tbody td');
+    if(td && td.cellIndex===2) clearTimeout(hoverTimeout);
+  });
+  document.addEventListener('click',function(e){
+    const td=e.target.closest('#portfolioTable tbody td');
+    if(!td || td.cellIndex!==2) return;
+    const sym=td.dataset.symbol||td.textContent.trim();
+    window.openScreenerSplit(sym);
+  });
+})();
+
 
 
 // Responsive mobile client analytics panel; reuses the supervisor-scoped API.
