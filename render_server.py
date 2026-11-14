@@ -20,7 +20,482 @@ from pathlib import Path
 # Optional symbol metadata. Keep company_classifications.json beside this file.
 # The bundled JSON contains symbol-level industry and AMFI market-cap metadata.
 # Symbols absent from the file remain explicitly Unclassified.
+
+# Built-in Indian Equities Classification (AMFI Market Cap & NSE/BSE Sector/Industry)
+# Covers Nifty 50, Nifty Next 50, Nifty Midcap 150, Nifty Smallcap 250, and active BSE/NSE stocks.
+_BUILTIN_CLASSIFICATIONS = {
+    # --- LARGE CAP (AMFI Top 100) ---
+    "RELIANCE": {"industry": "Oil, Gas & Consumable Fuels", "market_cap": "Large Cap"},
+    "TCS": {"industry": "Information Technology", "market_cap": "Large Cap"},
+    "HDFCBANK": {"industry": "Financial Services", "market_cap": "Large Cap"},
+    "ICICIBANK": {"industry": "Financial Services", "market_cap": "Large Cap"},
+    "BHARTIARTL": {"industry": "Telecommunication", "market_cap": "Large Cap"},
+    "SBIN": {"industry": "Financial Services", "market_cap": "Large Cap"},
+    "INFY": {"industry": "Information Technology", "market_cap": "Large Cap"},
+    "LICI": {"industry": "Financial Services", "market_cap": "Large Cap"},
+    "ITC": {"industry": "FMCG", "market_cap": "Large Cap"},
+    "HINDUNILVR": {"industry": "FMCG", "market_cap": "Large Cap"},
+    "LT": {"industry": "Construction & Engineering", "market_cap": "Large Cap"},
+    "BAJFINANCE": {"industry": "Financial Services", "market_cap": "Large Cap"},
+    "HCLTECH": {"industry": "Information Technology", "market_cap": "Large Cap"},
+    "MARUTI": {"industry": "Automobile & Auto Components", "market_cap": "Large Cap"},
+    "SUNPHARMA": {"industry": "Healthcare & Pharma", "market_cap": "Large Cap"},
+    "ADANIENT": {"industry": "Metals & Mining", "market_cap": "Large Cap"},
+    "KOTAKBANK": {"industry": "Financial Services", "market_cap": "Large Cap"},
+    "TITAN": {"industry": "Consumer Durables", "market_cap": "Large Cap"},
+    "ONGC": {"industry": "Oil, Gas & Consumable Fuels", "market_cap": "Large Cap"},
+    "TATAMOTORS": {"industry": "Automobile & Auto Components", "market_cap": "Large Cap"},
+    "NTPC": {"industry": "Power & Utilities", "market_cap": "Large Cap"},
+    "AXISBANK": {"industry": "Financial Services", "market_cap": "Large Cap"},
+    "DMART": {"industry": "Consumer Services & Retail", "market_cap": "Large Cap"},
+    "ADANIPORTS": {"industry": "Logistics & Ports", "market_cap": "Large Cap"},
+    "ULTRACEMCO": {"industry": "Construction Materials", "market_cap": "Large Cap"},
+    "ASIANPAINT": {"industry": "Consumer Durables", "market_cap": "Large Cap"},
+    "COALINDIA": {"industry": "Oil, Gas & Consumable Fuels", "market_cap": "Large Cap"},
+    "BAJAJFINSV": {"industry": "Financial Services", "market_cap": "Large Cap"},
+    "BAJAJ-AUTO": {"industry": "Automobile & Auto Components", "market_cap": "Large Cap"},
+    "POWERGRID": {"industry": "Power & Utilities", "market_cap": "Large Cap"},
+    "NESTLEIND": {"industry": "FMCG", "market_cap": "Large Cap"},
+    "WIPRO": {"industry": "Information Technology", "market_cap": "Large Cap"},
+    "M&M": {"industry": "Automobile & Auto Components", "market_cap": "Large Cap"},
+    "IOC": {"industry": "Oil, Gas & Consumable Fuels", "market_cap": "Large Cap"},
+    "JIOFIN": {"industry": "Financial Services", "market_cap": "Large Cap"},
+    "HAL": {"industry": "Capital Goods & Defence", "market_cap": "Large Cap"},
+    "DLF": {"industry": "Realty", "market_cap": "Large Cap"},
+    "ADANIPOWER": {"industry": "Power & Utilities", "market_cap": "Large Cap"},
+    "JSWSTEEL": {"industry": "Metals & Mining", "market_cap": "Large Cap"},
+    "TATASTEEL": {"industry": "Metals & Mining", "market_cap": "Large Cap"},
+    "VBL": {"industry": "FMCG", "market_cap": "Large Cap"},
+    "SIEMENS": {"industry": "Capital Goods & Defence", "market_cap": "Large Cap"},
+    "IRFC": {"industry": "Financial Services", "market_cap": "Large Cap"},
+    "ZOMATO": {"industry": "Consumer Services & Retail", "market_cap": "Large Cap"},
+    "ETERNAL": {"industry": "Consumer Services & Retail", "market_cap": "Large Cap"},
+    "PIDILITIND": {"industry": "Chemicals", "market_cap": "Large Cap"},
+    "GRASIM": {"industry": "Construction Materials", "market_cap": "Large Cap"},
+    "SBILIFE": {"industry": "Financial Services", "market_cap": "Large Cap"},
+    "HDFCLIFE": {"industry": "Financial Services", "market_cap": "Large Cap"},
+    "BEL": {"industry": "Capital Goods & Defence", "market_cap": "Large Cap"},
+    "LTIM": {"industry": "Information Technology", "market_cap": "Large Cap"},
+    "TRENT": {"industry": "Consumer Services & Retail", "market_cap": "Large Cap"},
+    "INDIGO": {"industry": "Aviation & Transport", "market_cap": "Large Cap"},
+    "PFC": {"industry": "Financial Services", "market_cap": "Large Cap"},
+    "RECLTD": {"industry": "Financial Services", "market_cap": "Large Cap"},
+    "BANKBARODA": {"industry": "Financial Services", "market_cap": "Large Cap"},
+    "PNB": {"industry": "Financial Services", "market_cap": "Large Cap"},
+    "GAIL": {"industry": "Oil, Gas & Consumable Fuels", "market_cap": "Large Cap"},
+    "BPCL": {"industry": "Oil, Gas & Consumable Fuels", "market_cap": "Large Cap"},
+    "TATAPOWER": {"industry": "Power & Utilities", "market_cap": "Large Cap"},
+    "ABB": {"industry": "Capital Goods & Defence", "market_cap": "Large Cap"},
+    "ADANIGREEN": {"industry": "Power & Utilities", "market_cap": "Large Cap"},
+    "ADANIENSOL": {"industry": "Power & Utilities", "market_cap": "Large Cap"},
+    "ATGL": {"industry": "Oil, Gas & Consumable Fuels", "market_cap": "Large Cap"},
+    "AMBUJACEM": {"industry": "Construction Materials", "market_cap": "Large Cap"},
+    "TECHM": {"industry": "Information Technology", "market_cap": "Large Cap"},
+    "HINDALCO": {"industry": "Metals & Mining", "market_cap": "Large Cap"},
+    "DIVISLAB": {"industry": "Healthcare & Pharma", "market_cap": "Large Cap"},
+    "CIPLA": {"industry": "Healthcare & Pharma", "market_cap": "Large Cap"},
+    "DRREDDY": {"industry": "Healthcare & Pharma", "market_cap": "Large Cap"},
+    "EICHERMOT": {"industry": "Automobile & Auto Components", "market_cap": "Large Cap"},
+    "BRITANNIA": {"industry": "FMCG", "market_cap": "Large Cap"},
+    "APOLLOHOSP": {"industry": "Healthcare & Pharma", "market_cap": "Large Cap"},
+    "TATACONSUM": {"industry": "FMCG", "market_cap": "Large Cap"},
+    "HEROMOTOCO": {"industry": "Automobile & Auto Components", "market_cap": "Large Cap"},
+    "BAJAJHLDNG": {"industry": "Financial Services", "market_cap": "Large Cap"},
+    "CHOLAFIN": {"industry": "Financial Services", "market_cap": "Large Cap"},
+    "TVSMOTOR": {"industry": "Automobile & Auto Components", "market_cap": "Large Cap"},
+    "HAVELLS": {"industry": "Consumer Durables", "market_cap": "Large Cap"},
+    "DABUR": {"industry": "FMCG", "market_cap": "Large Cap"},
+    "GODREJCP": {"industry": "FMCG", "market_cap": "Large Cap"},
+    "SHREECEM": {"industry": "Construction Materials", "market_cap": "Large Cap"},
+    "VEDL": {"industry": "Metals & Mining", "market_cap": "Large Cap"},
+    "ZYDUSLIFE": {"industry": "Healthcare & Pharma", "market_cap": "Large Cap"},
+    "MANKIND": {"industry": "Healthcare & Pharma", "market_cap": "Large Cap"},
+    "TORNTPHARM": {"industry": "Healthcare & Pharma", "market_cap": "Large Cap"},
+    "ICICIGI": {"industry": "Financial Services", "market_cap": "Large Cap"},
+    "ICICIPRULI": {"industry": "Financial Services", "market_cap": "Large Cap"},
+    "SBICARD": {"industry": "Financial Services", "market_cap": "Large Cap"},
+    "NAUKRI": {"industry": "Consumer Services & Retail", "market_cap": "Large Cap"},
+    "MOTHERSON": {"industry": "Automobile & Auto Components", "market_cap": "Large Cap"},
+    "CGPOWER": {"industry": "Capital Goods & Defence", "market_cap": "Large Cap"},
+    "LODHA": {"industry": "Realty", "market_cap": "Large Cap"},
+    "MACROTECH": {"industry": "Realty", "market_cap": "Large Cap"},
+    "JSWENERGY": {"industry": "Power & Utilities", "market_cap": "Large Cap"},
+    "NHPC": {"industry": "Power & Utilities", "market_cap": "Large Cap"},
+    "UNIONBANK": {"industry": "Financial Services", "market_cap": "Large Cap"},
+    "CANBK": {"industry": "Financial Services", "market_cap": "Large Cap"},
+    "IOB": {"industry": "Financial Services", "market_cap": "Large Cap"},
+    "IDBI": {"industry": "Financial Services", "market_cap": "Large Cap"},
+    "BHEL": {"industry": "Capital Goods & Defence", "market_cap": "Large Cap"},
+    "JINDALSTEL": {"industry": "Metals & Mining", "market_cap": "Large Cap"},
+    "BOSCHLTD": {"industry": "Automobile & Auto Components", "market_cap": "Large Cap"},
+    "SOLARINDS": {"industry": "Chemicals", "market_cap": "Large Cap"},
+    "INDHOTEL": {"industry": "Hotels & Hospitality", "market_cap": "Large Cap"},
+    "MAXHEALTH": {"industry": "Healthcare & Pharma", "market_cap": "Large Cap"},
+    "SWIGGY": {"industry": "Consumer Services & Retail", "market_cap": "Large Cap"},
+    "HYUNDAI": {"industry": "Automobile & Auto Components", "market_cap": "Large Cap"},
+    "NTPCGREEN": {"industry": "Power & Utilities", "market_cap": "Large Cap"},
+    "WAAREEENER": {"industry": "Capital Goods & Defence", "market_cap": "Large Cap"},
+
+    # --- MID CAP (AMFI Rank 101-250) ---
+    "SUZLON": {"industry": "Capital Goods & Defence", "market_cap": "Mid Cap"},
+    "SJVN": {"industry": "Power & Utilities", "market_cap": "Mid Cap"},
+    "IRCTC": {"industry": "Consumer Services & Retail", "market_cap": "Mid Cap"},
+    "RVNL": {"industry": "Construction & Engineering", "market_cap": "Mid Cap"},
+    "MAZDOCK": {"industry": "Capital Goods & Defence", "market_cap": "Mid Cap"},
+    "COCHINSHIP": {"industry": "Capital Goods & Defence", "market_cap": "Mid Cap"},
+    "HUDCO": {"industry": "Financial Services", "market_cap": "Mid Cap"},
+    "IREDA": {"industry": "Financial Services", "market_cap": "Mid Cap"},
+    "NBCC": {"industry": "Construction & Engineering", "market_cap": "Mid Cap"},
+    "NLCINDIA": {"industry": "Power & Utilities", "market_cap": "Mid Cap"},
+    "MRPL": {"industry": "Oil, Gas & Consumable Fuels", "market_cap": "Mid Cap"},
+    "OIL": {"industry": "Oil, Gas & Consumable Fuels", "market_cap": "Mid Cap"},
+    "HINDPETRO": {"industry": "Oil, Gas & Consumable Fuels", "market_cap": "Mid Cap"},
+    "PETRONET": {"industry": "Oil, Gas & Consumable Fuels", "market_cap": "Mid Cap"},
+    "IGL": {"industry": "Oil, Gas & Consumable Fuels", "market_cap": "Mid Cap"},
+    "MGL": {"industry": "Oil, Gas & Consumable Fuels", "market_cap": "Mid Cap"},
+    "GUJGASLTD": {"industry": "Oil, Gas & Consumable Fuels", "market_cap": "Mid Cap"},
+    "GSPL": {"industry": "Oil, Gas & Consumable Fuels", "market_cap": "Mid Cap"},
+    "TORNTPOWER": {"industry": "Power & Utilities", "market_cap": "Mid Cap"},
+    "CESC": {"industry": "Power & Utilities", "market_cap": "Mid Cap"},
+    "KPITTECH": {"industry": "Information Technology", "market_cap": "Mid Cap"},
+    "TATAELXSI": {"industry": "Information Technology", "market_cap": "Mid Cap"},
+    "PERSISTENT": {"industry": "Information Technology", "market_cap": "Mid Cap"},
+    "COFORGE": {"industry": "Information Technology", "market_cap": "Mid Cap"},
+    "MPHASIS": {"industry": "Information Technology", "market_cap": "Mid Cap"},
+    "LTTS": {"industry": "Information Technology", "market_cap": "Mid Cap"},
+    "OFSS": {"industry": "Information Technology", "market_cap": "Mid Cap"},
+    "DIXON": {"industry": "Consumer Durables", "market_cap": "Mid Cap"},
+    "POLYCAB": {"industry": "Capital Goods & Defence", "market_cap": "Mid Cap"},
+    "KEI": {"industry": "Capital Goods & Defence", "market_cap": "Mid Cap"},
+    "CUMMINSIND": {"industry": "Capital Goods & Defence", "market_cap": "Mid Cap"},
+    "THERMAX": {"industry": "Capital Goods & Defence", "market_cap": "Mid Cap"},
+    "BHARATFORG": {"industry": "Automobile & Auto Components", "market_cap": "Mid Cap"},
+    "ASHOKLEY": {"industry": "Automobile & Auto Components", "market_cap": "Mid Cap"},
+    "ESCORTS": {"industry": "Automobile & Auto Components", "market_cap": "Mid Cap"},
+    "APOLLOTYRE": {"industry": "Automobile & Auto Components", "market_cap": "Mid Cap"},
+    "BALKRISIND": {"industry": "Automobile & Auto Components", "market_cap": "Mid Cap"},
+    "MRF": {"industry": "Automobile & Auto Components", "market_cap": "Mid Cap"},
+    "EXIDEIND": {"industry": "Automobile & Auto Components", "market_cap": "Mid Cap"},
+    "ARE&M": {"industry": "Automobile & Auto Components", "market_cap": "Mid Cap"},
+    "SONACOMS": {"industry": "Automobile & Auto Components", "market_cap": "Mid Cap"},
+    "TIINDIA": {"industry": "Automobile & Auto Components", "market_cap": "Mid Cap"},
+    "UNO-MINDA": {"industry": "Automobile & Auto Components", "market_cap": "Mid Cap"},
+    "UNOMINDA": {"industry": "Automobile & Auto Components", "market_cap": "Mid Cap"},
+    "FEDERALBNK": {"industry": "Financial Services", "market_cap": "Mid Cap"},
+    "IDFCFIRSTB": {"industry": "Financial Services", "market_cap": "Mid Cap"},
+    "INDUSINDBK": {"industry": "Financial Services", "market_cap": "Mid Cap"},
+    "BANDHANBNK": {"industry": "Financial Services", "market_cap": "Mid Cap"},
+    "AUBANK": {"industry": "Financial Services", "market_cap": "Mid Cap"},
+    "INDIANB": {"industry": "Financial Services", "market_cap": "Mid Cap"},
+    "BANKINDIA": {"industry": "Financial Services", "market_cap": "Mid Cap"},
+    "MAHABANK": {"industry": "Financial Services", "market_cap": "Mid Cap"},
+    "UCOBANK": {"industry": "Financial Services", "market_cap": "Mid Cap"},
+    "CENTRALBK": {"industry": "Financial Services", "market_cap": "Mid Cap"},
+    "YESBANK": {"industry": "Financial Services", "market_cap": "Mid Cap"},
+    "MUTHOOTFIN": {"industry": "Financial Services", "market_cap": "Mid Cap"},
+    "MANAPPURAM": {"industry": "Financial Services", "market_cap": "Mid Cap"},
+    "SHRIRAMFIN": {"industry": "Financial Services", "market_cap": "Large Cap"},
+    "LICHSGFIN": {"industry": "Financial Services", "market_cap": "Mid Cap"},
+    "M&MFIN": {"industry": "Financial Services", "market_cap": "Mid Cap"},
+    "LTF": {"industry": "Financial Services", "market_cap": "Mid Cap"},
+    "POONAWALLA": {"industry": "Financial Services", "market_cap": "Mid Cap"},
+    "ABCAPITAL": {"industry": "Financial Services", "market_cap": "Mid Cap"},
+    "SUNDARMFIN": {"industry": "Financial Services", "market_cap": "Mid Cap"},
+    "MFSL": {"industry": "Financial Services", "market_cap": "Mid Cap"},
+    "HDFCAMC": {"industry": "Financial Services", "market_cap": "Large Cap"},
+    "NAM-INDIA": {"industry": "Financial Services", "market_cap": "Mid Cap"},
+    "MOTILALOFS": {"industry": "Financial Services", "market_cap": "Mid Cap"},
+    "BSE": {"industry": "Financial Services", "market_cap": "Mid Cap"},
+    "MCX": {"industry": "Financial Services", "market_cap": "Mid Cap"},
+    "CDSL": {"industry": "Financial Services", "market_cap": "Mid Cap"},
+    "ANGELONE": {"industry": "Financial Services", "market_cap": "Mid Cap"},
+    "360ONE": {"industry": "Financial Services", "market_cap": "Mid Cap"},
+    "NUVAMA": {"industry": "Financial Services", "market_cap": "Mid Cap"},
+    "KFINTECH": {"industry": "Financial Services", "market_cap": "Mid Cap"},
+    "CAMS": {"industry": "Financial Services", "market_cap": "Mid Cap"},
+    "POLICYBZR": {"industry": "Financial Services", "market_cap": "Mid Cap"},
+    "PAYTM": {"industry": "Financial Services", "market_cap": "Mid Cap"},
+    "TATACAP": {"industry": "Financial Services", "market_cap": "Large Cap"},
+    "GODREJPROP": {"industry": "Realty", "market_cap": "Mid Cap"},
+    "OBEROIRLTY": {"industry": "Realty", "market_cap": "Mid Cap"},
+    "PHOENIXLTD": {"industry": "Realty", "market_cap": "Mid Cap"},
+    "PRESTIGE": {"industry": "Realty", "market_cap": "Mid Cap"},
+    "BRIGADE": {"industry": "Realty", "market_cap": "Mid Cap"},
+    "SOBHA": {"industry": "Realty", "market_cap": "Small Cap"},
+    "GODREJAGRO": {"industry": "FMCG", "market_cap": "Mid Cap"},
+    "GODREJIND": {"industry": "Chemicals", "market_cap": "Mid Cap"},
+    "MARICO": {"industry": "FMCG", "market_cap": "Large Cap"},
+    "COLPAL": {"industry": "FMCG", "market_cap": "Mid Cap"},
+    "PGHH": {"industry": "FMCG", "market_cap": "Mid Cap"},
+    "UBL": {"industry": "FMCG", "market_cap": "Mid Cap"},
+    "UNITDSPR": {"industry": "FMCG", "market_cap": "Large Cap"},
+    "RADICO": {"industry": "FMCG", "market_cap": "Mid Cap"},
+    "EMAMILTD": {"industry": "FMCG", "market_cap": "Mid Cap"},
+    "JUBLFOOD": {"industry": "Consumer Services & Retail", "market_cap": "Mid Cap"},
+    "DEVYANI": {"industry": "Consumer Services & Retail", "market_cap": "Mid Cap"},
+    "KALYANKJIL": {"industry": "Consumer Durables", "market_cap": "Mid Cap"},
+    "VOLTAS": {"industry": "Consumer Durables", "market_cap": "Mid Cap"},
+    "BLUESTARCO": {"industry": "Consumer Durables", "market_cap": "Mid Cap"},
+    "CROMPTON": {"industry": "Consumer Durables", "market_cap": "Mid Cap"},
+    "WHIRLPOOL": {"industry": "Consumer Durables", "market_cap": "Mid Cap"},
+    "BATAINDIA": {"industry": "Consumer Durables", "market_cap": "Mid Cap"},
+    "METROBRAND": {"industry": "Consumer Durables", "market_cap": "Mid Cap"},
+    "PAGEIND": {"industry": "Textiles & Apparel", "market_cap": "Mid Cap"},
+    "KPRMILL": {"industry": "Textiles & Apparel", "market_cap": "Mid Cap"},
+    "TRIDENT": {"industry": "Textiles & Apparel", "market_cap": "Small Cap"},
+    "AUROPHARMA": {"industry": "Healthcare & Pharma", "market_cap": "Mid Cap"},
+    "LUPIN": {"industry": "Healthcare & Pharma", "market_cap": "Mid Cap"},
+    "ALKEM": {"industry": "Healthcare & Pharma", "market_cap": "Mid Cap"},
+    "BIOCON": {"industry": "Healthcare & Pharma", "market_cap": "Mid Cap"},
+    "GLENMARK": {"industry": "Healthcare & Pharma", "market_cap": "Mid Cap"},
+    "IPCALAB": {"industry": "Healthcare & Pharma", "market_cap": "Mid Cap"},
+    "LAURUSLABS": {"industry": "Healthcare & Pharma", "market_cap": "Mid Cap"},
+    "GRANULES": {"industry": "Healthcare & Pharma", "market_cap": "Small Cap"},
+    "SYNGENE": {"industry": "Healthcare & Pharma", "market_cap": "Mid Cap"},
+    "FORTIS": {"industry": "Healthcare & Pharma", "market_cap": "Mid Cap"},
+    "MEDANTA": {"industry": "Healthcare & Pharma", "market_cap": "Mid Cap"},
+    "NH": {"industry": "Healthcare & Pharma", "market_cap": "Mid Cap"},
+    "LALPATHLAB": {"industry": "Healthcare & Pharma", "market_cap": "Mid Cap"},
+    "METROPOLIS": {"industry": "Healthcare & Pharma", "market_cap": "Small Cap"},
+    "PIIND": {"industry": "Chemicals", "market_cap": "Mid Cap"},
+    "UPL": {"industry": "Chemicals", "market_cap": "Mid Cap"},
+    "SRF": {"industry": "Chemicals", "market_cap": "Mid Cap"},
+    "DEEPAKNTR": {"industry": "Chemicals", "market_cap": "Mid Cap"},
+    "ATUL": {"industry": "Chemicals", "market_cap": "Mid Cap"},
+    "NAVINFLUOR": {"industry": "Chemicals", "market_cap": "Mid Cap"},
+    "FLUOROCHEM": {"industry": "Chemicals", "market_cap": "Mid Cap"},
+    "TATACHEM": {"industry": "Chemicals", "market_cap": "Mid Cap"},
+    "AARTIIND": {"industry": "Chemicals", "market_cap": "Mid Cap"},
+    "CLEAN": {"industry": "Chemicals", "market_cap": "Mid Cap"},
+    "COROMANDEL": {"industry": "Chemicals & Fertilizers", "market_cap": "Mid Cap"},
+    "CHAMBLFERT": {"industry": "Chemicals & Fertilizers", "market_cap": "Mid Cap"},
+    "FACT": {"industry": "Chemicals & Fertilizers", "market_cap": "Mid Cap"},
+    "SAIL": {"industry": "Metals & Mining", "market_cap": "Mid Cap"},
+    "NMDC": {"industry": "Metals & Mining", "market_cap": "Mid Cap"},
+    "NATIONALUM": {"industry": "Metals & Mining", "market_cap": "Mid Cap"},
+    "HINDCOPPER": {"industry": "Metals & Mining", "market_cap": "Mid Cap"},
+    "APLAPOLLO": {"industry": "Metals & Mining", "market_cap": "Mid Cap"},
+    "JINDALSAW": {"industry": "Metals & Mining", "market_cap": "Small Cap"},
+    "ACC": {"industry": "Construction Materials", "market_cap": "Mid Cap"},
+    "DALBHARAT": {"industry": "Construction Materials", "market_cap": "Mid Cap"},
+    "JKCEMENT": {"industry": "Construction Materials", "market_cap": "Mid Cap"},
+    "RAMCOCEM": {"industry": "Construction Materials", "market_cap": "Mid Cap"},
+    "ASTRAL": {"industry": "Capital Goods & Defence", "market_cap": "Mid Cap"},
+    "SUPREMEIND": {"industry": "Capital Goods & Defence", "market_cap": "Mid Cap"},
+    "CONCOR": {"industry": "Logistics & Ports", "market_cap": "Mid Cap"},
+    "DELHIVERY": {"industry": "Logistics & Ports", "market_cap": "Mid Cap"},
+    "GMRINFRA": {"industry": "Infrastructure & Airports", "market_cap": "Mid Cap"},
+    "GMRAIRPORT": {"industry": "Infrastructure & Airports", "market_cap": "Mid Cap"},
+    "IRB": {"industry": "Construction & Engineering", "market_cap": "Mid Cap"},
+    "KPIL": {"industry": "Construction & Engineering", "market_cap": "Mid Cap"},
+    "KEC": {"industry": "Construction & Engineering", "market_cap": "Mid Cap"},
+    "IDEA": {"industry": "Telecommunication", "market_cap": "Mid Cap"},
+    "INDUSTOWER": {"industry": "Telecommunication", "market_cap": "Large Cap"},
+    "TATACOMM": {"industry": "Telecommunication", "market_cap": "Mid Cap"},
+    "SUNTV": {"industry": "Media & Entertainment", "market_cap": "Mid Cap"},
+    "ZEEL": {"industry": "Media & Entertainment", "market_cap": "Small Cap"},
+    "PVRINOX": {"industry": "Media & Entertainment", "market_cap": "Small Cap"},
+    "PREMIERENE": {"industry": "Capital Goods & Defence", "market_cap": "Mid Cap"},
+    "OLAELEC": {"industry": "Automobile & Auto Components", "market_cap": "Mid Cap"},
+    "FIRSTCRY": {"industry": "Consumer Services & Retail", "market_cap": "Mid Cap"},
+    "BRAINBEES": {"industry": "Consumer Services & Retail", "market_cap": "Mid Cap"},
+    "KAYNES": {"industry": "Capital Goods & Defence", "market_cap": "Mid Cap"},
+    "SYRMA": {"industry": "Capital Goods & Defence", "market_cap": "Small Cap"},
+
+    # --- SMALL CAP & ACTIVE PORTFOLIO STOCKS (AMFI Rank 251+) ---
+    "TEXRAIL": {"industry": "Capital Goods & Defence", "market_cap": "Small Cap"},
+    "TEXRAIL-EQ": {"industry": "Capital Goods & Defence", "market_cap": "Small Cap"},
+    "TEXRAIL EQ": {"industry": "Capital Goods & Defence", "market_cap": "Small Cap"},
+    "TITAGARH": {"industry": "Capital Goods & Defence", "market_cap": "Mid Cap"},
+    "JWL": {"industry": "Capital Goods & Defence", "market_cap": "Small Cap"},
+    "BEML": {"industry": "Capital Goods & Defence", "market_cap": "Small Cap"},
+    "GRSE": {"industry": "Capital Goods & Defence", "market_cap": "Mid Cap"},
+    "BDL": {"industry": "Capital Goods & Defence", "market_cap": "Mid Cap"},
+    "DATAPATTNS": {"industry": "Capital Goods & Defence", "market_cap": "Small Cap"},
+    "PARAS": {"industry": "Capital Goods & Defence", "market_cap": "Small Cap"},
+    "MTARTECH": {"industry": "Capital Goods & Defence", "market_cap": "Small Cap"},
+    "KERNEX": {"industry": "Capital Goods & Defence", "market_cap": "Small Cap"},
+    "HBLENGINE": {"industry": "Capital Goods & Defence", "market_cap": "Small Cap"},
+    "HBLPOWER": {"industry": "Capital Goods & Defence", "market_cap": "Small Cap"},
+    "IEX": {"industry": "Financial Services", "market_cap": "Small Cap"},
+    "JAINREC": {"industry": "Metals & Mining", "market_cap": "Small Cap"},
+    "VASCONEQ": {"industry": "Construction & Engineering", "market_cap": "Small Cap"},
+    "SULA": {"industry": "FMCG", "market_cap": "Small Cap"},
+    "ALUFLUOR": {"industry": "Chemicals", "market_cap": "Small Cap"},
+    "ADROITINFO": {"industry": "Information Technology", "market_cap": "Small Cap"},
+    "DHAMPURSUG": {"industry": "FMCG & Sugar", "market_cap": "Small Cap"},
+    "DBOL": {"industry": "FMCG & Sugar", "market_cap": "Small Cap"},
+    "BALRAMCHIN": {"industry": "FMCG & Sugar", "market_cap": "Small Cap"},
+    "RENUKA": {"industry": "FMCG & Sugar", "market_cap": "Small Cap"},
+    "TRIVENI": {"industry": "FMCG & Sugar", "market_cap": "Small Cap"},
+    "EIDPARRY": {"industry": "FMCG & Sugar", "market_cap": "Small Cap"},
+    "PRAJIND": {"industry": "Capital Goods & Defence", "market_cap": "Small Cap"},
+    "BCG": {"industry": "Information Technology", "market_cap": "Small Cap"},
+    "VIMTALABS": {"industry": "Healthcare & Pharma", "market_cap": "Small Cap"},
+    "HFCL": {"industry": "Telecommunication", "market_cap": "Small Cap"},
+    "STLTECH": {"industry": "Telecommunication", "market_cap": "Small Cap"},
+    "TEJASNET": {"industry": "Telecommunication", "market_cap": "Mid Cap"},
+    "ITI": {"industry": "Telecommunication", "market_cap": "Mid Cap"},
+    "TTML": {"industry": "Telecommunication", "market_cap": "Small Cap"},
+    "RCOM": {"industry": "Telecommunication", "market_cap": "Small Cap"},
+    "RPOWER": {"industry": "Power & Utilities", "market_cap": "Small Cap"},
+    "RELINFRA": {"industry": "Infrastructure & Airports", "market_cap": "Small Cap"},
+    "JPPOWER": {"industry": "Power & Utilities", "market_cap": "Small Cap"},
+    "JPASSOCIAT": {"industry": "Construction & Engineering", "market_cap": "Small Cap"},
+    "RTNPOWER": {"industry": "Power & Utilities", "market_cap": "Small Cap"},
+    "RTNINDIA": {"industry": "Consumer Services & Retail", "market_cap": "Small Cap"},
+    "ORIENTGREEN": {"industry": "Power & Utilities", "market_cap": "Small Cap"},
+    "INOXWIND": {"industry": "Capital Goods & Defence", "market_cap": "Mid Cap"},
+    "INOXGREEN": {"industry": "Power & Utilities", "market_cap": "Small Cap"},
+    "SWARAJENG": {"industry": "Automobile & Auto Components", "market_cap": "Small Cap"},
+    "OLECTRA": {"industry": "Automobile & Auto Components", "market_cap": "Small Cap"},
+    "JBMA": {"industry": "Automobile & Auto Components", "market_cap": "Small Cap"},
+    "GREAVESCOT": {"industry": "Automobile & Auto Components", "market_cap": "Small Cap"},
+    "HCC": {"industry": "Construction & Engineering", "market_cap": "Small Cap"},
+    "NCC": {"industry": "Construction & Engineering", "market_cap": "Small Cap"},
+    "PNCINFRA": {"industry": "Construction & Engineering", "market_cap": "Small Cap"},
+    "ENGINERSIN": {"industry": "Construction & Engineering", "market_cap": "Small Cap"},
+    "RITES": {"industry": "Construction & Engineering", "market_cap": "Small Cap"},
+    "IRCON": {"industry": "Construction & Engineering", "market_cap": "Mid Cap"},
+    "RAILTEL": {"industry": "Telecommunication", "market_cap": "Small Cap"},
+    "MMTC": {"industry": "Metals & Mining", "market_cap": "Small Cap"},
+    "MSTCLTD": {"industry": "Consumer Services & Retail", "market_cap": "Small Cap"},
+    "MOIL": {"industry": "Metals & Mining", "market_cap": "Small Cap"},
+    "KIOCL": {"industry": "Metals & Mining", "market_cap": "Small Cap"},
+    "GMDCLTD": {"industry": "Metals & Mining", "market_cap": "Small Cap"},
+    "GRAPHITE": {"industry": "Capital Goods & Defence", "market_cap": "Small Cap"},
+    "HEG": {"industry": "Capital Goods & Defence", "market_cap": "Small Cap"},
+    "RCF": {"industry": "Chemicals & Fertilizers", "market_cap": "Small Cap"},
+    "NFL": {"industry": "Chemicals & Fertilizers", "market_cap": "Small Cap"},
+    "GNFC": {"industry": "Chemicals & Fertilizers", "market_cap": "Small Cap"},
+    "GSFC": {"industry": "Chemicals & Fertilizers", "market_cap": "Small Cap"},
+    "DEEPAKFERT": {"industry": "Chemicals & Fertilizers", "market_cap": "Small Cap"},
+    "PARADEEP": {"industry": "Chemicals & Fertilizers", "market_cap": "Small Cap"},
+    "BECTORFOOD": {"industry": "FMCG", "market_cap": "Small Cap"},
+    "LTFOODS": {"industry": "FMCG", "market_cap": "Small Cap"},
+    "KRBL": {"industry": "FMCG", "market_cap": "Small Cap"},
+    "AVANTIFEED": {"industry": "FMCG", "market_cap": "Small Cap"},
+    "APEX": {"industry": "FMCG", "market_cap": "Small Cap"},
+    "WATERBASE": {"industry": "FMCG", "market_cap": "Small Cap"},
+    "HATSUN": {"industry": "FMCG", "market_cap": "Mid Cap"},
+    "DODLA": {"industry": "FMCG", "market_cap": "Small Cap"},
+    "HERITGFOOD": {"industry": "FMCG", "market_cap": "Small Cap"},
+    "ZYDUSWELL": {"industry": "FMCG", "market_cap": "Small Cap"},
+    "BAJAJCON": {"industry": "FMCG", "market_cap": "Small Cap"},
+    "JYOTHYLAB": {"industry": "FMCG", "market_cap": "Small Cap"},
+    "KARURVYSYA": {"industry": "Financial Services", "market_cap": "Small Cap"},
+    "CUB": {"industry": "Financial Services", "market_cap": "Small Cap"},
+    "RBLBANK": {"industry": "Financial Services", "market_cap": "Small Cap"},
+    "SOUTHBANK": {"industry": "Financial Services", "market_cap": "Small Cap"},
+    "J&KBANK": {"industry": "Financial Services", "market_cap": "Small Cap"},
+    "KTKBANK": {"industry": "Financial Services", "market_cap": "Small Cap"},
+    "DCBBANK": {"industry": "Financial Services", "market_cap": "Small Cap"},
+    "CSBBANK": {"industry": "Financial Services", "market_cap": "Small Cap"},
+    "EQUITASBNK": {"industry": "Financial Services", "market_cap": "Small Cap"},
+    "UJJIVANSFB": {"industry": "Financial Services", "market_cap": "Small Cap"},
+    "IDFC": {"industry": "Financial Services", "market_cap": "Small Cap"},
+    "IFCI": {"industry": "Financial Services", "market_cap": "Small Cap"},
+    "PNBHOUSING": {"industry": "Financial Services", "market_cap": "Mid Cap"},
+    "CANFINHOME": {"industry": "Financial Services", "market_cap": "Small Cap"},
+    "AAVAS": {"industry": "Financial Services", "market_cap": "Small Cap"},
+    "HOMEFIRST": {"industry": "Financial Services", "market_cap": "Small Cap"},
+    "APTUS": {"industry": "Financial Services", "market_cap": "Small Cap"},
+    "CREDITACC": {"industry": "Financial Services", "market_cap": "Small Cap"},
+    "CHOLAHLDNG": {"industry": "Financial Services", "market_cap": "Mid Cap"},
+    "JMFINANCIL": {"industry": "Financial Services", "market_cap": "Small Cap"},
+    "EDELWEISS": {"industry": "Financial Services", "market_cap": "Small Cap"},
+    "IIFL": {"industry": "Financial Services", "market_cap": "Small Cap"},
+    "GEOJITFSL": {"industry": "Financial Services", "market_cap": "Small Cap"},
+    "SHAREINDIA": {"industry": "Financial Services", "market_cap": "Small Cap"},
+    "CHOICEIN": {"industry": "Financial Services", "market_cap": "Small Cap"},
+    "TANLA": {"industry": "Information Technology", "market_cap": "Small Cap"},
+    "ROUTE": {"industry": "Information Technology", "market_cap": "Small Cap"},
+    "HAPPSTMNDS": {"industry": "Information Technology", "market_cap": "Small Cap"},
+    "BSOFT": {"industry": "Information Technology", "market_cap": "Small Cap"},
+    "CYIENT": {"industry": "Information Technology", "market_cap": "Mid Cap"},
+    "ZENSARTECH": {"industry": "Information Technology", "market_cap": "Small Cap"},
+    "SONATSOFTW": {"industry": "Information Technology", "market_cap": "Small Cap"},
+    "INTELLECT": {"industry": "Information Technology", "market_cap": "Small Cap"},
+    "NEWGEN": {"industry": "Information Technology", "market_cap": "Small Cap"},
+    "LATENTVIEW": {"industry": "Information Technology", "market_cap": "Small Cap"},
+    "NETWEB": {"industry": "Information Technology", "market_cap": "Small Cap"},
+    "SUBEXLTD": {"industry": "Information Technology", "market_cap": "Small Cap"},
+    "VAKRANGEE": {"industry": "Information Technology", "market_cap": "Small Cap"},
+    "TRITURBINE": {"industry": "Capital Goods & Defence", "market_cap": "Mid Cap"},
+    "ELECON": {"industry": "Capital Goods & Defence", "market_cap": "Small Cap"},
+    "ELGIEQUIP": {"industry": "Capital Goods & Defence", "market_cap": "Mid Cap"},
+    "GRINDWELL": {"industry": "Capital Goods & Defence", "market_cap": "Mid Cap"},
+    "CARBORUNIV": {"industry": "Capital Goods & Defence", "market_cap": "Mid Cap"},
+    "FINCABLES": {"industry": "Capital Goods & Defence", "market_cap": "Small Cap"},
+    "FINPIPE": {"industry": "Capital Goods & Defence", "market_cap": "Small Cap"},
+    "PRINCEPIPE": {"industry": "Capital Goods & Defence", "market_cap": "Small Cap"},
+    "CERA": {"industry": "Consumer Durables", "market_cap": "Small Cap"},
+    "KAJARIACER": {"industry": "Consumer Durables", "market_cap": "Mid Cap"},
+    "CENTURYPLY": {"industry": "Consumer Durables", "market_cap": "Small Cap"},
+    "GREENPANEL": {"industry": "Consumer Durables", "market_cap": "Small Cap"},
+    "AMBER": {"industry": "Consumer Durables", "market_cap": "Mid Cap"},
+    "PGEL": {"industry": "Consumer Durables", "market_cap": "Mid Cap"},
+    "EPL": {"industry": "Packaging", "market_cap": "Small Cap"},
+    "UFLEX": {"industry": "Packaging", "market_cap": "Small Cap"},
+    "JINDALPOLY": {"industry": "Packaging", "market_cap": "Small Cap"},
+    "POLYMED": {"industry": "Healthcare & Pharma", "market_cap": "Mid Cap"},
+    "ASTERDM": {"industry": "Healthcare & Pharma", "market_cap": "Mid Cap"},
+    "KIMS": {"industry": "Healthcare & Pharma", "market_cap": "Mid Cap"},
+    "RAINBOW": {"industry": "Healthcare & Pharma", "market_cap": "Small Cap"},
+    "THYROCARE": {"industry": "Healthcare & Pharma", "market_cap": "Small Cap"},
+    "NEULANDLAB": {"industry": "Healthcare & Pharma", "market_cap": "Small Cap"},
+    "SUVENPHAR": {"industry": "Healthcare & Pharma", "market_cap": "Mid Cap"},
+    "NATCOPHARM": {"industry": "Healthcare & Pharma", "market_cap": "Mid Cap"},
+    "GLAND": {"industry": "Healthcare & Pharma", "market_cap": "Mid Cap"},
+    "JBCHEPHARM": {"industry": "Healthcare & Pharma", "market_cap": "Mid Cap"},
+    "ERIS": {"industry": "Healthcare & Pharma", "market_cap": "Small Cap"},
+    "ALEMBICLTD": {"industry": "Healthcare & Pharma", "market_cap": "Small Cap"},
+    "APLLTD": {"industry": "Healthcare & Pharma", "market_cap": "Mid Cap"},
+    "WOCKPHARMA": {"industry": "Healthcare & Pharma", "market_cap": "Small Cap"},
+    "STRIDES": {"industry": "Healthcare & Pharma", "market_cap": "Small Cap"},
+    "STAR": {"industry": "Healthcare & Pharma", "market_cap": "Small Cap"},
+    "MARKSANS": {"industry": "Healthcare & Pharma", "market_cap": "Small Cap"},
+    "MOREPENLAB": {"industry": "Healthcare & Pharma", "market_cap": "Small Cap"},
+    "WELSPUNLIV": {"industry": "Textiles & Apparel", "market_cap": "Small Cap"},
+    "VARDHMAN": {"industry": "Textiles & Apparel", "market_cap": "Small Cap"},
+    "VTL": {"industry": "Textiles & Apparel", "market_cap": "Small Cap"},
+    "ARVIND": {"industry": "Textiles & Apparel", "market_cap": "Small Cap"},
+    "RAYMOND": {"industry": "Textiles & Apparel", "market_cap": "Small Cap"},
+    "ABFRL": {"industry": "Consumer Services & Retail", "market_cap": "Mid Cap"},
+    "MANYAVAR": {"industry": "Consumer Services & Retail", "market_cap": "Mid Cap"},
+    "VMART": {"industry": "Consumer Services & Retail", "market_cap": "Small Cap"},
+    "SHOPPERS": {"industry": "Consumer Services & Retail", "market_cap": "Small Cap"},
+    "EASEMYTRIP": {"industry": "Consumer Services & Retail", "market_cap": "Small Cap"},
+    "IXIGO": {"industry": "Consumer Services & Retail", "market_cap": "Small Cap"},
+    "LEMONTREE": {"industry": "Hotels & Hospitality", "market_cap": "Small Cap"},
+    "CHALET": {"industry": "Hotels & Hospitality", "market_cap": "Mid Cap"},
+    "EIHOTEL": {"industry": "Hotels & Hospitality", "market_cap": "Mid Cap"},
+    "TAJGVK": {"industry": "Hotels & Hospitality", "market_cap": "Small Cap"},
+    "DELTACORP": {"industry": "Hotels & Hospitality", "market_cap": "Small Cap"},
+    "HDL": {"industry": "Consumer Services & Retail", "market_cap": "Small Cap"},
+    "IRD": {"industry": "Financial Services", "market_cap": "Mid Cap"},
+    "MOS": {"industry": "Logistics & Ports", "market_cap": "Small Cap"},
+    "RCG": {"industry": "Financial Services", "market_cap": "Small Cap"},
+    "ADROITIND": {"industry": "Information Technology", "market_cap": "Small Cap"},
+    "GOLDBEES": {"industry": "ETFs & Index Funds", "market_cap": "Large Cap"},
+    "NIFTYBEES": {"industry": "ETFs & Index Funds", "market_cap": "Large Cap"},
+    "BANKBEES": {"industry": "ETFs & Index Funds", "market_cap": "Large Cap"},
+    "SILVERBEES": {"industry": "ETFs & Index Funds", "market_cap": "Large Cap"},
+    "ITBEES": {"industry": "ETFs & Index Funds", "market_cap": "Large Cap"},
+    "JUNIORBEES": {"industry": "ETFs & Index Funds", "market_cap": "Large Cap"},
+    "MID150BEES": {"industry": "ETFs & Index Funds", "market_cap": "Mid Cap"},
+    "LIQUIDBEES": {"industry": "ETFs & Index Funds", "market_cap": "Large Cap"},
+}
+
+def _normalize_symbol_key(symbol):
+    """Strip series/exchange suffixes like -EQ, .NS, .BO, BE, BZ to match canonical symbol."""
+    s = str(symbol or "").strip().upper()
+    s = re.sub(r"\.(NS|BO)$", "", s)
+    s = re.sub(r"[\s\-_]+(EQ|BE|BZ|SM|ST|BL|IL)$", "", s)
+    return s.strip()
+
 def _load_company_classifications():
+    merged = dict(_BUILTIN_CLASSIFICATIONS)
     candidates = [
         Path(__file__).with_name("company_classifications.json"),
         Path(os.environ.get("COMPANY_CLASSIFICATIONS_FILE", "")) if os.environ.get("COMPANY_CLASSIFICATIONS_FILE") else None,
@@ -31,65 +506,143 @@ def _load_company_classifications():
         try:
             payload = json.loads(candidate.read_text(encoding="utf-8"))
             if isinstance(payload, dict):
-                return {str(k).strip().upper(): v for k, v in payload.items()
-                        if isinstance(v, dict) and not str(k).startswith("_")}
+                for k, v in payload.items():
+                    if isinstance(v, dict) and not str(k).startswith("_"):
+                        key = str(k).strip().upper()
+                        base = dict(merged.get(key, {}))
+                        base.update({ik: iv for ik, iv in v.items() if iv not in (None, "", "Unclassified")})
+                        merged[key] = base
         except Exception:
             pass
-    return {}
+    return merged
 
 COMPANY_CLASSIFICATIONS = _load_company_classifications()
 
-# Yahoo Finance fallback metadata for symbols not present in local classification JSON.
-# Market-cap thresholds are approximate (AMFI rank-based categories are authoritative).
 _YF_META_CACHE = {}
 _YF_META_LOCK = threading.Lock()
+
+def _cap_from_crore(crore):
+    # AMFI-aligned thresholds (in ₹ Crores): Large Cap >= 28,000 Cr, Mid Cap >= 8,500 Cr, else Small Cap
+    if crore >= 28000:
+        return "Large Cap"
+    if crore >= 8500:
+        return "Mid Cap"
+    return "Small Cap"
+
+def _screener_symbol_metadata(symbol):
+    """Fetch Sector/Industry and Market Cap (in ₹ Cr) from Screener.in for any unlisted/small-cap NSE/BSE stock."""
+    clean_sym = re.sub(r"[^A-Za-z0-9]", "", _normalize_symbol_key(symbol))
+    if not clean_sym:
+        return {}
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    }
+    res = {}
+    for url in (
+        f"https://www.screener.in/company/{clean_sym}/consolidated/",
+        f"https://www.screener.in/company/{clean_sym}/",
+    ):
+        try:
+            resp = requests.get(url, headers=headers, timeout=6)
+            if resp.status_code != 200 or "<h1" not in resp.text:
+                continue
+            html = resp.text
+            # 1. Extract Market Cap in ₹ Cr from top ratios
+            mc_m = re.search(
+                r'Market Cap.*?<span class="number">([\d,\.]+)</span>',
+                html,
+                re.S | re.I,
+            )
+            if mc_m:
+                mc_cr = float(mc_m.group(1).replace(",", ""))
+                if mc_cr > 0:
+                    res["market_cap"] = _cap_from_crore(mc_cr)
+            # 2. Extract Sector / Industry from Peers breadcrumb links
+            peers_m = re.search(r'id="peers"[^>]*>.*?</section>', html, re.S | re.I)
+            search_block = peers_m.group(0) if peers_m else html
+            sector_links = re.findall(
+                r'<a[^>]+href="/market/[^"]+"[^>]*>([^<]+)</a>',
+                search_block,
+                re.I,
+            )
+            cleaned_sectors = [
+                re.sub(r"\s+", " ", s).strip()
+                for s in sector_links
+                if s and not re.search(r"BSE|NSE|Sensex|Nifty", s, re.I)
+            ]
+            if cleaned_sectors:
+                res["industry"] = cleaned_sectors[0]
+            if res.get("industry") and res.get("market_cap"):
+                break
+        except Exception:
+            continue
+    return res
+
 def _yahoo_symbol_metadata(symbol):
-    """Resolve NSE/BSE metadata with Yahoo quoteSummary + quote endpoint fallback."""
-    symbol = str(symbol or '').strip().upper()
-    if not symbol or symbol in ('-', 'UNKNOWN', 'N/A'):
+    """Resolve NSE/BSE industry & market-cap metadata via Screener.in and Yahoo Finance."""
+    raw_sym = str(symbol or '').strip().upper()
+    norm_sym = _normalize_symbol_key(raw_sym)
+    if not norm_sym or norm_sym in ('-', 'UNKNOWN', 'N/A'):
         return {}
     with _YF_META_LOCK:
-        if symbol in _YF_META_CACHE:
-            return _YF_META_CACHE[symbol]
-    tickers = [symbol] if symbol.endswith(('.NS', '.BO')) else [symbol + '.NS', symbol + '.BO']
+        if norm_sym in _YF_META_CACHE:
+            return _YF_META_CACHE[norm_sym]
+
     result = {}
-    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36'}
-    for ticker in tickers:
-        try:
-            url = 'https://query1.finance.yahoo.com/v10/finance/quoteSummary/' + quote(ticker, safe='')
-            response = requests.get(url, params={'modules':'assetProfile,price'}, headers=headers, timeout=7)
-            if response.ok:
-                data = response.json().get('quoteSummary',{}).get('result') or []
-                if data:
-                    profile=data[0].get('assetProfile') or {}
-                    price=data[0].get('price') or {}
-                    sector=profile.get('sector') or profile.get('industry')
-                    if sector: result['industry']=sector
-                    mc=(price.get('marketCap') or {}).get('raw')
-                    if mc is None:
-                        mc=(price.get('marketCap') or {}).get('fmt')
-                    if isinstance(mc,(int,float)):
-                        crore=float(mc)/10000000
-                        result['market_cap']='Large Cap' if crore>=20000 else ('Mid Cap' if crore>=5000 else 'Small Cap')
-                    if result: break
-        except Exception:
-            pass
-        # Fallback quote API can still return market cap when quoteSummary is unavailable.
-        try:
-            response=requests.get('https://query1.finance.yahoo.com/v7/finance/quote',
-                params={'symbols':ticker},headers=headers,timeout=7)
-            if response.ok:
-                q=(response.json().get('quoteResponse',{}).get('result') or [])
-                if q:
-                    mc=q[0].get('marketCap')
-                    if isinstance(mc,(int,float)):
-                        crore=float(mc)/10000000
-                        result.setdefault('market_cap','Large Cap' if crore>=20000 else ('Mid Cap' if crore>=5000 else 'Small Cap'))
-        except Exception:
-            pass
-    with _YF_META_LOCK:
-        _YF_META_CACHE[symbol]=result
+    # 1. Try Screener.in first (most accurate for Indian NSE/BSE stocks, including small caps & BSE-only scrips)
+    scr = _screener_symbol_metadata(norm_sym)
+    if scr.get('industry'):
+        result['industry'] = scr['industry']
+    if scr.get('market_cap'):
+        result['market_cap'] = scr['market_cap']
+
+    # 2. If either field is still missing, try Yahoo Finance quoteSummary + quote fallback
+    if not result.get('industry') or not result.get('market_cap'):
+        tickers = [raw_sym] if raw_sym.endswith(('.NS', '.BO')) else [norm_sym + '.NS', norm_sym + '.BO']
+        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124.0 Safari/537.36'}
+        for ticker in tickers:
+            try:
+                url = 'https://query1.finance.yahoo.com/v10/finance/quoteSummary/' + quote(ticker, safe='')
+                response = requests.get(url, params={'modules': 'assetProfile,price'}, headers=headers, timeout=6)
+                if response.ok:
+                    data = response.json().get('quoteSummary', {}).get('result') or []
+                    if data:
+                        profile = data[0].get('assetProfile') or {}
+                        price = data[0].get('price') or {}
+                        sector = profile.get('sector') or profile.get('industry')
+                        if sector and not result.get('industry'):
+                            result['industry'] = sector
+                        mc = (price.get('marketCap') or {}).get('raw')
+                        if isinstance(mc, (int, float)) and mc > 0 and not result.get('market_cap'):
+                            result['market_cap'] = _cap_from_crore(float(mc) / 10000000.0)
+                        if result.get('industry') and result.get('market_cap'):
+                            break
+            except Exception:
+                pass
+            if not result.get('market_cap'):
+                try:
+                    response = requests.get(
+                        'https://query1.finance.yahoo.com/v7/finance/quote',
+                        params={'symbols': ticker},
+                        headers=headers,
+                        timeout=6,
+                    )
+                    if response.ok:
+                        q = (response.json().get('quoteResponse', {}).get('result') or [])
+                        if q:
+                            mc = q[0].get('marketCap')
+                            if isinstance(mc, (int, float)) and mc > 0:
+                                result['market_cap'] = _cap_from_crore(float(mc) / 10000000.0)
+                except Exception:
+                    pass
+
+    # Only cache complete hits so transient network hiccups retry later
+    if result.get('industry') and result.get('market_cap'):
+        with _YF_META_LOCK:
+            _YF_META_CACHE[norm_sym] = result
     return result
+
 
 
 load_dotenv()
@@ -1219,14 +1772,20 @@ def admin_client_analytics(client_id):
             item["invested"] += invested
             item["pnl"] += pnl
 
-            meta = COMPANY_CLASSIFICATIONS.get(symbol, {})
-            # Enrich missing symbol metadata from Yahoo Finance (cached per worker).
-            yf_meta = _yahoo_symbol_metadata(symbol) if (not meta.get("industry") or not meta.get("market_cap")) else {}
+            norm_symbol = _normalize_symbol_key(symbol)
+            meta = COMPANY_CLASSIFICATIONS.get(symbol) or COMPANY_CLASSIFICATIONS.get(norm_symbol) or {}
+            # Enrich missing symbol metadata from Screener.in / Yahoo Finance (cached per worker).
+            yf_meta = _yahoo_symbol_metadata(norm_symbol) if (not meta.get("industry") or not meta.get("market_cap")) else {}
             sector = str(h.get("industry") or h.get("sector") or h.get("industry_name") or meta.get("industry") or yf_meta.get("industry") or "Unclassified").strip() or "Unclassified"
             industry[sector] = industry.get(sector, 0.0) + invested
-            cap = str(meta.get("market_cap") or yf_meta.get("market_cap") or "Unclassified").strip().title()
-            if cap not in ("Large Cap", "Mid Cap", "Small Cap"):
-                cap = "Unclassified"
+            raw_cap = str(h.get("market_cap") or meta.get("market_cap") or yf_meta.get("market_cap") or "Unclassified").strip().title()
+            if raw_cap in ("Large", "Largecap", "Large-Cap"):
+                raw_cap = "Large Cap"
+            elif raw_cap in ("Mid", "Midcap", "Mid-Cap"):
+                raw_cap = "Mid Cap"
+            elif raw_cap in ("Small", "Smallcap", "Small-Cap"):
+                raw_cap = "Small Cap"
+            cap = raw_cap if raw_cap in ("Large Cap", "Mid Cap", "Small Cap") else "Unclassified"
             market_cap[cap] = market_cap.get(cap, 0.0) + invested
 
             dt = _clean_trade_date(h.get("trade_date"))
