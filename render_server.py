@@ -882,9 +882,9 @@ def admin_portfolio():
   function bucketMatches(days, bucket){
     if(days === null || days === undefined || !Number.isFinite(Number(days))) return false;
     const n = Number(days);
-    if(bucket === 'recent') return n >= 0 && n <= 9;
-    if(bucket === '10-30') return n >= 10 && n <= 30;
-    if(bucket === '30-60') return n >= 30 && n <= 60;
+    if(bucket === 'recent' || bucket === '0-9') return n >= 0 && n <= 10;
+    if(bucket === '10-30' || bucket === '10-29') return n > 10 && n <= 30;
+    if(bucket === '30-60' || bucket === '30-59') return n > 30 && n <= 60;
     return n > 60;
   }
 
@@ -3703,6 +3703,64 @@ def get_portfolio(client_id):
         return jsonify({"success": True, "data": result.data or []})
     except Exception as exc:
         return jsonify({"success": False, "error": str(exc)}), 500
+
+
+
+@app.route("/api/screener/<path:symbol>", methods=["GET"])
+def api_screener_proxy(symbol):
+    """Fetch live Screener.in company fundamentals & URL for desktop split-screen."""
+    account, auth_error = _require_supervisor()
+    if auth_error:
+        return auth_error
+    clean_sym = re.sub(r"[^A-Za-z0-9]", "", (symbol or "").upper())
+    if not clean_sym:
+        return jsonify({"success": False, "message": "Invalid stock symbol."}), 400
+
+    urls = [
+        f"https://www.screener.in/company/{clean_sym}/consolidated/",
+        f"https://www.screener.in/company/{clean_sym}/",
+    ]
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                      "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+    }
+    html_body = ""
+    final_url = urls[0]
+    for candidate in urls:
+        try:
+            resp = requests.get(candidate, headers=headers, timeout=8)
+            if resp.status_code == 200 and "<h1" in resp.text:
+                html_body = resp.text
+                final_url = candidate
+                break
+        except Exception:
+            continue
+
+    title_m = re.search(r"<h1[^>]*>(.*?)</h1>", html_body, re.S | re.I)
+    company_name = re.sub(r"\s+", " ", re.sub(r"<[^>]+>", "", title_m.group(1))).strip() if title_m else clean_sym
+
+    ratios = []
+    for li_m in re.finditer(r'<li class="flex flex-space-between"[^>]*>(.*?)</li>', html_body, re.S):
+        block = li_m.group(1)
+        nm = re.search(r'<span class="name"[^>]*>(.*?)</span>', block, re.S)
+        vl = re.search(r'<span class="nowrap value"[^>]*>(.*?)</span>', block, re.S)
+        if nm and vl:
+            k = re.sub(r"\s+", " ", re.sub(r"<[^>]+>", "", nm.group(1))).strip()
+            v = re.sub(r"\s+", " ", re.sub(r"<[^>]+>", "", vl.group(1))).strip()
+            if k:
+                ratios.append({"label": k, "value": v})
+
+    about_m = re.search(r'<div class="sub show-more-box about"[^>]*>(.*?)</div>', html_body, re.S)
+    about_txt = re.sub(r"\s+", " ", re.sub(r"<[^>]+>", "", about_m.group(1))).strip() if about_m else ""
+
+    return jsonify({
+        "success": True,
+        "symbol": clean_sym,
+        "company_name": company_name,
+        "url": final_url,
+        "ratios": ratios[:12],
+        "about": about_txt[:420],
+    })
 
 
 if __name__ == "__main__":
