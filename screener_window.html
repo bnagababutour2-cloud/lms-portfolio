@@ -1391,9 +1391,12 @@
     }
 
     async function fetchYahooJson(url) {
-      // A standalone file:// page is not allowed by Yahoo's browser CORS policy.
-      // Try Yahoo directly, then public CORS relays. No demo/random values are used.
+      // Use the LMS same-origin server proxy first. This avoids browser CORS
+      // failures and supports every selected script, not only the default SUZLON.
+      const selectedSymbol = selectedNseSymbol();
+      const localProxy = `/api/screener-live/${encodeURIComponent(selectedSymbol)}`;
       const candidates = [
+        localProxy,
         url,
         `https://corsproxy.io/?url=${encodeURIComponent(url)}`,
         `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
@@ -1411,6 +1414,12 @@
           });
           if (!response.ok) throw new Error(`HTTP ${response.status}`);
           const payload = await response.json();
+          if (candidate === localProxy) {
+            if (!payload?.success || !payload?.chart?.result?.[0]) {
+              throw new Error(payload?.message || payload?.error || "Server market-data proxy returned no chart data");
+            }
+            return { chart: payload.chart };
+          }
           if (payload?.chart?.error) {
             throw new Error(payload.chart.error.description || "Yahoo Finance returned an error");
           }
