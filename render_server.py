@@ -4476,9 +4476,6 @@ def screener_window_page():
 @app.route("/api/screener-live/<path:symbol>", methods=["GET"])
 def api_screener_live(symbol):
     """Server-side live quote/history proxy for the selected stock screener symbol."""
-    account, auth_error = _require_supervisor()
-    if auth_error:
-        return auth_error
 
     raw_symbol = str(symbol or "").strip().upper()
     clean_symbol = re.sub(r"[^A-Z0-9&._-]", "", raw_symbol)
