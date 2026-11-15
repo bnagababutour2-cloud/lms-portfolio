@@ -909,6 +909,12 @@
         </div>
 
         <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+          <div class="symbol-selector" title="Switch NSE/BSE Ticker">
+            <span>SYMBOL:</span>
+            <input type="text" id="symbol-input" value="SUZLON" style="width:82px; border:none; background:transparent; font-weight:800; color:var(--primary); text-transform:uppercase; outline:none;" onkeydown="if(event.key==='Enter'){applySelectedSymbol(this.value);}" />
+            <button type="button" class="mini-btn" onclick="applySelectedSymbol(document.getElementById('symbol-input').value)" title="Load Symbol">&#10148;</button>
+          </div>
+          <button class="btn btn-outline" id="refresh-now-btn" onclick="updateLiveMetrics(true)" title="Fetch latest quote now">&#8635; REFRESH</button>
           <button class="btn btn-amber" id="toggle-arrange-btn" onclick="toggleArrangeMode()">&#9881; ARRANGE ORDER</button>
           <button class="btn btn-success" id="save-order-btn" onclick="saveOrder()" style="display:none;">&#128190; SAVE ORDER</button>
           <button class="btn btn-outline" id="reset-order-btn" onclick="resetOrder()" style="display:none;">&#8634; RESET DEFAULT</button>
@@ -1173,6 +1179,10 @@
       if (link) {
         link.textContent = `${symbol} ↗`;
         link.href = `https://www.screener.in/company/${encodeURIComponent(symbol)}/consolidated/`;
+      }
+      const symInput = document.getElementById("symbol-input");
+      if (symInput && symInput.value.toUpperCase() !== symbol) {
+        symInput.value = symbol;
       }
       currentPrice = currentVolume = currentRSI = liveMarketData = null;
       document.title = `${symbol} Stock Screener`;
@@ -1760,52 +1770,76 @@
       return "NEUTRAL";
     }
 
-    async function fetchYahooJson(url) {
-      // Use the LMS same-origin server proxy first. This avoids browser CORS
-      // failures and supports every selected script, not only the default SUZLON.
+    async function fetchWithTimeout(resource, options = {}, timeoutMs = 8000) {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), timeoutMs);
+      try {
+        return await fetch(resource, { ...options, signal: controller.signal });
+      } finally {
+        clearTimeout(timer);
+      }
+    }
+
+    function extractYahooChart(payload) {
+      if (!payload) return null;
+      // Handle allorigins /get wrapper if returned
+      if (typeof payload.contents === "string") {
+        try { payload = JSON.parse(payload.contents); } catch (e) { return null; }
+      }
+      if (payload?.success && payload?.chart?.result?.[0]) return payload.chart;
+      if (payload?.chart?.result?.[0]) return payload.chart;
+      return null;
+    }
+
+    async function fetchYahooJson(baseUrl) {
       const selectedSymbol = selectedNseSymbol();
-      const localProxy = `/api/screener-live/${encodeURIComponent(selectedSymbol)}`;
-      const candidates = [
-        localProxy,
-        url,
-        `https://corsproxy.io/?url=${encodeURIComponent(url)}`,
-        `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
-        `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`
-      ];
+      const bust = `_t=${Date.now()}`;
+      const yahooUrl = `${baseUrl}${baseUrl.includes("?") ? "&" : "?"}${bust}`;
+      const query2Url = yahooUrl.replace("query1.finance.yahoo.com", "query2.finance.yahoo.com");
+
+      const candidates = [];
+      // Only try same-origin /api proxy when hosted over http/https (avoids instant file:// failure)
+      if (window.location.protocol === "http:" || window.location.protocol === "https:") {
+        candidates.push(`/api/screener-live/${encodeURIComponent(selectedSymbol)}?${bust}`);
+      }
+      candidates.push(
+        `https://corsproxy.io/?${encodeURIComponent(yahooUrl)}`,
+        `https://api.allorigins.win/raw?url=${encodeURIComponent(yahooUrl)}`,
+        `https://api.allorigins.win/get?url=${encodeURIComponent(query2Url)}`,
+        `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(yahooUrl)}`,
+        `https://thingproxy.freeboard.io/fetch/${yahooUrl}`,
+        yahooUrl
+      );
+
       let lastError = null;
       for (const candidate of candidates) {
-        const controller = new AbortController();
-        const timer = setTimeout(() => controller.abort(), 12000);
         try {
-          const response = await fetch(candidate, {
+          const response = await fetchWithTimeout(candidate, {
             cache: "no-store",
-            signal: controller.signal,
-            headers: { "Accept": "application/json,text/plain,*/*" }
-          });
+            headers: { "Accept": "application/json, text/plain, */*" }
+          }, 8500);
           if (!response.ok) throw new Error(`HTTP ${response.status}`);
-          const payload = await response.json();
-          if (candidate === localProxy) {
-            if (!payload?.success || !payload?.chart?.result?.[0]) {
-              throw new Error(payload?.message || payload?.error || "Server market-data proxy returned no chart data");
-            }
-            return { chart: payload.chart };
+          const text = await response.text();
+          let payload;
+          try {
+            payload = JSON.parse(text);
+          } catch (e) {
+            throw new Error("Non-JSON response from relay");
           }
           if (payload?.chart?.error) {
-            throw new Error(payload.chart.error.description || "Yahoo Finance returned an error");
+            throw new Error(payload.chart.error.description || "Yahoo Finance symbol error");
           }
-          if (payload?.chart?.result?.[0]) return payload;
-          throw new Error("The data provider returned no chart data");
+          const chart = extractYahooChart(payload);
+          if (chart) return { chart };
+          throw new Error("Empty chart payload");
         } catch (err) {
           lastError = err;
-        } finally {
-          clearTimeout(timer);
         }
       }
-      throw lastError || new Error("Could not connect to Yahoo Finance or its data relays");
+      throw lastError || new Error("All market data relays unreachable");
     }
 
     function calculateRollingRsi(closes, period = 14) {
-      // Matches the rolling-average RSI calculation used by financial_health_scanner.py.
       if (closes.length <= period) return null;
       const changes = [];
       for (let i = 1; i < closes.length; i++) changes.push(closes[i] - closes[i - 1]);
@@ -1828,16 +1862,24 @@
       return ema;
     }
 
+    function flashPriceElement(el, newVal, prevVal) {
+      if (!el || prevVal === null || newVal === prevVal) return;
+      el.classList.remove("flash-up", "flash-down");
+      void el.offsetWidth;
+      el.classList.add(newVal > prevVal ? "flash-up" : "flash-down");
+      setTimeout(() => el.classList.remove("flash-up", "flash-down"), 1200);
+    }
+
     let liveRequestId = 0;
-    async function fetchLiveMarketData() {
-      if (!isLive) return;
+    async function fetchLiveMarketData(manual = false) {
+      if (!isLive && !manual) return;
       const requestId = ++liveRequestId;
       const symbol = selectedNseSymbol();
       const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?range=1y&interval=1d&events=div%2Csplits&includePrePost=false`;
-      setLiveStatus(`Fetching ${symbol} market data…`);
+      setLiveStatus(`Fetching ${symbol} live data…`);
       try {
         const payload = await fetchYahooJson(url);
-        if (!isLive || requestId !== liveRequestId || symbol !== selectedNseSymbol()) return;
+        if ((!isLive && !manual) || requestId !== liveRequestId || symbol !== selectedNseSymbol()) return;
         const result = payload.chart.result[0];
         const quote = result.indicators?.quote?.[0] || {};
         const closesRaw = quote.close || [];
@@ -1848,7 +1890,7 @@
         const validHighs = highsRaw.filter(v => Number.isFinite(v));
         const validLows = lowsRaw.filter(v => Number.isFinite(v));
         const validVolumes = volumesRaw.filter(v => Number.isFinite(v));
-        if (validCloses.length < 30) throw new Error("Not enough daily price history for technical indicators");
+        if (validCloses.length < 15) throw new Error("Insufficient historical bars returned");
 
         const meta = result.meta || {};
         const lastClose = validCloses[validCloses.length - 1];
@@ -1870,7 +1912,6 @@
         const volume = Number(meta.regularMarketVolume) ||
           validVolumes[validVolumes.length - 1] || 0;
 
-        // Trend follows the Python scanner's 50 EMA + 200 SMA method.
         const above50Ema = ema50 !== null && ltp > ema50;
         const above200Sma = sma200 !== null && ltp > sma200;
         const trend = above50Ema && above200Sma ? "STRONG BULLISH" :
@@ -1887,6 +1928,7 @@
         const pct = n => n === null || !Number.isFinite(n)
           ? "Unavailable" : `${n >= 0 ? "+" : ""}${n.toFixed(2)}%`;
 
+        const prevLtp = currentPrice;
         currentPrice = ltp;
         currentVolume = volume;
         currentRSI = rsi;
@@ -1899,19 +1941,21 @@
         const changeText = pct(dayChange);
         const priceEl = document.getElementById("header-price");
         const changeEl = document.getElementById("header-change");
-        if (priceEl) priceEl.textContent = priceText;
+        if (priceEl) {
+          priceEl.textContent = priceText;
+          flashPriceElement(priceEl, ltp, prevLtp);
+        }
         if (changeEl) {
           changeEl.textContent = changeText;
           changeEl.className = `live-badge ${dayChange !== null && dayChange < 0 ? "down" : ""}`;
         }
 
-        // Refresh every quote/technical field in the one-line LTP → Momentum strip.
+        // Refresh every quote/technical field in the one-line LTP -> Momentum strip
         setSnapshotValue("ltp", priceText);
         setSnapshotValue("change", changeText);
         setSnapshotValue("volume", volume ? formatIndian(volume) : "Unavailable");
         setSnapshotValue("rsi", rsi === null ? "Unavailable" : rsi.toFixed(2));
         setSnapshotValue("sma20", money(sma20));
-        // The Python reference scanner calculates 50 EMA and 200 SMA.
         setSnapshotValue("sma50", money(ema50));
         setSnapshotValue("sma200", money(sma200));
         setSnapshotValue("high", money(high52));
@@ -1919,19 +1963,29 @@
         setSnapshotValue("trend", trend);
         setSnapshotValue("momentum", momentum);
 
-        // Yahoo chart metadata often omits fundamentals. Update only when genuinely supplied.
+        // Update optional fundamentals if returned
         const mcap = Number(meta.marketCap);
         const pe = Number(meta.trailingPE || meta.forwardPE);
         const eps = Number(meta.epsTrailingTwelveMonths || meta.trailingEps);
         const roe = Number(meta.returnOnEquity);
         const debtEquity = Number(meta.debtToEquity);
-        if (Number.isFinite(mcap) && mcap > 0) setSnapshotValue("mcap", `₹ ${formatIndian(mcap / 1e7, 2)} Cr.`);
-        if (Number.isFinite(pe) && pe > 0) setSnapshotValue("pe", pe.toFixed(2));
-        if (Number.isFinite(eps)) setSnapshotValue("eps", `₹ ${formatIndian(eps, 2)}`);
+        if (Number.isFinite(mcap) && mcap > 0) {
+          const mcapStr = `₹ ${formatIndian(mcap / 1e7, 2)} Cr.`;
+          setSnapshotValue("mcap", mcapStr);
+          setMetricValue(["Market Cap", "Market Capitalization"], mcapStr);
+        }
+        if (Number.isFinite(pe) && pe > 0) {
+          setSnapshotValue("pe", pe.toFixed(2));
+          setMetricValue(["Stock P/E", "Price to Earning"], pe.toFixed(2));
+        }
+        if (Number.isFinite(eps)) {
+          setSnapshotValue("eps", `₹ ${formatIndian(eps, 2)}`);
+          setMetricValue(["EPS"], `₹ ${formatIndian(eps, 2)}`);
+        }
         if (Number.isFinite(roe)) setSnapshotValue("roe", `${(roe * 100).toFixed(2)}%`);
         if (Number.isFinite(debtEquity)) setSnapshotValue("de", debtEquity.toFixed(2));
 
-        // Keep the corresponding entries in the main ratio list synchronized.
+        // Keep the corresponding entries in the main ratio list synchronized
         setMetricValue(["Current Price"], priceText);
         setMetricValue(["High / Low"], `${money(high52)} / ${money(low52)}`);
         setMetricValue(["Return over 1day"], dayChange === null ? "Unavailable" : `${dayChange >= 0 ? "+" : ""}${dayChange.toFixed(2)} %`);
@@ -1941,15 +1995,18 @@
         setMetricValue(["SMA 200", "200 Day Moving Average", "DMA 200", "DMA 200 current day"], money(sma200));
         setMetricValue(["Volume"], formatIndian(volume));
 
+        // Also re-render workspace overview if currently open so live values appear there too
+        if (activeView === "overview") renderWorkspace();
+
         const stamp = meta.regularMarketTime
           ? new Date(meta.regularMarketTime * 1000) : new Date();
         const stampText = stamp.toLocaleString("en-IN", { dateStyle: "short", timeStyle: "medium" });
-        setLiveStatus(`Yahoo Finance • ${stampText}${meta.exchangeName ? ` • ${meta.exchangeName}` : ""} • refreshes every 60s`);
+        setLiveStatus(`Live • ${stampText}${meta.exchangeName ? ` (${meta.exchangeName})` : ""} • auto-refreshes every 15s`);
+        if (manual) showToast(`Updated ${symbol} live prices`);
       } catch (error) {
-        if (!isLive || requestId !== liveRequestId) return;
+        if ((!isLive && !manual) || requestId !== liveRequestId) return;
         console.error("Live market-data refresh failed:", error);
-        setLiveStatus(`Feed unavailable • ${error.message}`, false);
-        // Do not replace existing valid figures with fake or zero values.
+        setLiveStatus(`Feed unavailable (${error.message}) — click Refresh to retry`, false);
         ["ltp","change","volume","rsi","sma20","sma50","sma200","high","low","trend","momentum"].forEach(key => {
           const el = document.querySelector(`.market-snapshot-item[data-market-key="${key}"] .market-snapshot-value`);
           if (el && (el.textContent === "Loading…" || el.textContent === "Not supplied")) {
@@ -1959,8 +2016,8 @@
       }
     }
 
-    function updateLiveMetrics() {
-      return fetchLiveMarketData();
+    function updateLiveMetrics(manual = false) {
+      return fetchLiveMarketData(manual);
     }
 
     function toggleLiveFeed() {
@@ -2014,7 +2071,7 @@
       renderGrid();
       renderWorkspace();
       updateLiveMetrics();
-      liveRefreshTimer = setInterval(() => { if (isLive) updateLiveMetrics(); }, 60000);
+      liveRefreshTimer = setInterval(() => { if (isLive) updateLiveMetrics(false); }, 15000);
     });
   </script>
 </body>
