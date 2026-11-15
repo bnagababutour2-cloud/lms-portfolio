@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify, redirect, url_for, session, Response
+from flask import Flask, render_template, request, jsonify, redirect, url_for, session, Response, send_file
 from urllib.parse import quote
 from dotenv import load_dotenv
 from supabase import create_client
@@ -4459,6 +4459,17 @@ def get_portfolio(client_id):
     except Exception as exc:
         return jsonify({"success": False, "error": str(exc)}), 500
 
+
+
+
+
+@app.route("/screener-window")
+def screener_window_page():
+    """Serve the standalone screener UI; selected symbol is passed in the query string."""
+    screener_file = Path(__file__).with_name("screener_window.html")
+    if not screener_file.is_file():
+        return "screener_window.html is missing beside render_server.py", 404
+    return send_file(str(screener_file), mimetype="text/html")
 
 
 @app.route("/api/screener/<path:symbol>", methods=["GET"])
