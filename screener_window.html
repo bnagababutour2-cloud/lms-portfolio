@@ -1814,8 +1814,10 @@
       let lastError = null;
       for (const candidate of candidates) {
         try {
+          const isSameOriginApi = candidate.startsWith("/api/");
           const response = await fetchWithTimeout(candidate, {
             cache: "no-store",
+            credentials: isSameOriginApi ? "same-origin" : "omit",
             headers: { "Accept": "application/json, text/plain, */*" }
           }, 8500);
           if (!response.ok) throw new Error(`HTTP ${response.status}`);
