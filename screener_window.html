@@ -633,7 +633,168 @@
       .workspace-heading h2 { font-size:17px; }
     }
 
-  </style>
+  
+    /* Added feature only: Moneycontrol-style forecast panels */
+    .mc-top-forecast {
+      width: min(100%, 760px);
+      margin: 0 0 14px auto;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      align-items: stretch;
+    }
+    .mc-top-forecast .mc-panel {
+      min-width: 0;
+      padding: 12px 14px;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    .mc-top-forecast .mc-panel-heading {
+      margin: 0 0 10px;
+      padding: 0 0 8px;
+      border-bottom: 1px solid var(--border);
+      color: var(--ink-900);
+      text-align: center;
+      text-transform: uppercase;
+      font-size: 11px;
+      line-height: 1.35;
+      font-weight: 800;
+    }
+    .mc-top-forecast .mc-price-chart {
+      display: block;
+      width: 100%;
+      height: 135px;
+    }
+    .mc-top-forecast .mc-price-legend {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 7px 13px;
+      margin-top: 3px;
+      color: var(--ink-600);
+      font-size: 9px;
+      font-weight: 700;
+    }
+    .mc-top-forecast .mc-dot {
+      display: inline-block;
+      width: 7px;
+      height: 7px;
+      margin-right: 4px;
+      border-radius: 50%;
+      vertical-align: 1px;
+    }
+    .mc-top-forecast .mc-targets {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 5px;
+      margin-top: 9px;
+    }
+    .mc-top-forecast .mc-target {
+      padding: 6px 3px;
+      border-radius: 5px;
+      background: var(--bg-subtle);
+      text-align: center;
+    }
+    .mc-top-forecast .mc-target span {
+      display: block;
+      color: var(--ink-500);
+      font-size: 9px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+    .mc-top-forecast .mc-target strong {
+      display: block;
+      margin-top: 2px;
+      color: var(--ink-900);
+      font-size: 12px;
+      font-weight: 800;
+      font-variant-numeric: tabular-nums;
+    }
+    .mc-top-forecast .mc-rating-layout {
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      min-height: 142px;
+    }
+    .mc-top-forecast .mc-consensus-circle {
+      flex: 0 0 78px;
+      width: 78px;
+      height: 78px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      background: #b8d4c3;
+      color: #187443;
+      font-size: 11px;
+      font-weight: 800;
+    }
+    .mc-top-forecast .mc-consensus-circle strong {
+      font-size: 17px;
+      line-height: 1.1;
+    }
+    .mc-top-forecast .mc-rating-bars {
+      flex: 1;
+      min-width: 0;
+      display: grid;
+      gap: 9px;
+    }
+    .mc-top-forecast .mc-rating-row {
+      display: grid;
+      grid-template-columns: 82px minmax(28px, 1fr) 31px;
+      align-items: center;
+      gap: 6px;
+      font-size: 9px;
+    }
+    .mc-top-forecast .mc-rating-name {
+      color: var(--ink-700);
+      white-space: nowrap;
+    }
+    .mc-top-forecast .mc-rating-track {
+      height: 7px;
+      overflow: hidden;
+      border-radius: 99px;
+      background: #e5e7eb;
+    }
+    .mc-top-forecast .mc-rating-fill {
+      height: 100%;
+      border-radius: inherit;
+    }
+    .mc-top-forecast .mc-rating-percent {
+      color: var(--ink-700);
+      text-align: right;
+      font-weight: 800;
+      font-variant-numeric: tabular-nums;
+    }
+    .mc-top-forecast .mc-panel-source {
+      display: block;
+      margin-top: 8px;
+      color: var(--primary);
+      text-align: right;
+      text-decoration: none;
+      font-size: 9px;
+      font-weight: 700;
+    }
+    .mc-top-forecast .mc-panel-source:hover { text-decoration: underline; }
+    .mc-top-forecast .mc-data-note {
+      margin-top: 6px;
+      color: var(--ink-500);
+      font-size: 8px;
+      line-height: 1.35;
+      text-align: center;
+    }
+    @media (max-width: 760px) {
+      .mc-top-forecast {
+        width: 100%;
+        grid-template-columns: 1fr;
+      }
+    }
+
+</style>
 </head>
 <body>
 
@@ -687,6 +848,91 @@
         <a class="market-snapshot-item" data-market-key="momentum" href="https://www.screener.in/company/SUZLON/consolidated/" target="_blank" rel="noopener noreferrer"><span class="market-snapshot-label">Momentum</span><strong class="market-snapshot-value">Loading…</strong><span class="market-snapshot-hint">Screener ↗</span></a>
       </div>
       <div class="market-snapshot-note">The 11 quote and technical metrics are shown in one horizontal line. Click any metric to open the selected company on Screener.in. Quote and technical values are refreshed from Yahoo Finance daily candles and quote metadata (may be delayed). Trend uses 50 EMA and 200 SMA; Momentum uses RSI(14), following the Python scanner. If Yahoo or its browser-access relay is unavailable, the dashboard will show Unavailable rather than fabricated values.</div>
+    </section>
+
+
+    <!-- Added feature only: Moneycontrol-style Share Price Forecast and Analyst Rating panels -->
+    <section class="mc-top-forecast" aria-label="Share price forecast and analyst rating">
+      <article class="mc-panel">
+        <h3 class="mc-panel-heading">Share Price Forecast</h3>
+        <svg class="mc-price-chart" viewBox="0 0 340 135" role="img" aria-label="Suzlon analyst price targets: low 40 rupees, average 54.58 rupees, high 68 rupees">
+          <g stroke="#e5e7eb" stroke-width="1">
+            <line x1="30" y1="17" x2="319" y2="17"/>
+            <line x1="30" y1="48" x2="319" y2="48"/>
+            <line x1="30" y1="79" x2="319" y2="79"/>
+            <line x1="30" y1="108" x2="319" y2="108"/>
+          </g>
+          <g fill="#6b7280" font-size="9" font-family="Inter,Arial,sans-serif">
+            <text x="2" y="20">₹70</text>
+            <text x="2" y="51">₹60</text>
+            <text x="2" y="82">₹50</text>
+            <text x="2" y="111">₹40</text>
+          </g>
+          <line x1="30" y1="108" x2="319" y2="108" stroke="#9ca3af" stroke-width="1"/>
+          <path d="M42 113 L170 67 L306 23 L306 108 L170 67 L42 113 Z" fill="#16a36a" opacity=".12"/>
+          <path d="M42 113 L306 23" fill="none" stroke="#16a36a" stroke-width="2.2" stroke-dasharray="4 3"/>
+          <path d="M42 113 L306 108" fill="none" stroke="#ef4444" stroke-width="2" stroke-dasharray="3 3"/>
+          <path d="M42 113 L170 67 L306 23" fill="none" stroke="#64748b" stroke-width="1.2" opacity=".7"/>
+          <circle cx="42" cy="113" r="4" fill="#64748b"/>
+          <circle cx="170" cy="67" r="4" fill="#2563eb"/>
+          <circle cx="306" cy="23" r="4" fill="#16a36a"/>
+          <circle cx="306" cy="108" r="4" fill="#ef4444"/>
+          <g font-family="Inter,Arial,sans-serif" font-size="9" font-weight="800">
+            <text x="28" y="128" fill="#475569">Current ₹38.25</text>
+            <text x="145" y="57" fill="#2563eb">Avg ₹54.58</text>
+            <text x="269" y="14" fill="#16a36a">High</text>
+            <text x="270" y="98" fill="#ef4444">Low</text>
+          </g>
+        </svg>
+        <div class="mc-price-legend">
+          <span><i class="mc-dot" style="background:#16a36a"></i>High target</span>
+          <span><i class="mc-dot" style="background:#2563eb"></i>Average target</span>
+          <span><i class="mc-dot" style="background:#ef4444"></i>Low target</span>
+        </div>
+        <div class="mc-targets">
+          <div class="mc-target"><span>Low</span><strong>₹40.00</strong></div>
+          <div class="mc-target"><span>Average</span><strong>₹54.58</strong></div>
+          <div class="mc-target"><span>High</span><strong>₹68.00</strong></div>
+        </div>
+        <div class="mc-data-note">12-month analyst target snapshot · Last quoted price ₹38.25</div>
+        <a class="mc-panel-source" href="https://www.moneycontrol.com/india/stockpricequote/power-generationdistribution/suzlonenergy/SE17" target="_blank" rel="noopener noreferrer">Moneycontrol ↗</a>
+      </article>
+
+      <article class="mc-panel">
+        <h3 class="mc-panel-heading">Analyst Rating Based on 12 Analysts</h3>
+        <div class="mc-rating-layout">
+          <div class="mc-consensus-circle"><strong>BUY</strong>Consensus</div>
+          <div class="mc-rating-bars">
+            <div class="mc-rating-row">
+              <span class="mc-rating-name">Buy</span>
+              <div class="mc-rating-track"><div class="mc-rating-fill" style="width:67%;background:#27834c"></div></div>
+              <strong class="mc-rating-percent">67%</strong>
+            </div>
+            <div class="mc-rating-row">
+              <span class="mc-rating-name">Outperform</span>
+              <div class="mc-rating-track"><div class="mc-rating-fill" style="width:25%;background:#55b978"></div></div>
+              <strong class="mc-rating-percent">25%</strong>
+            </div>
+            <div class="mc-rating-row">
+              <span class="mc-rating-name">Hold</span>
+              <div class="mc-rating-track"><div class="mc-rating-fill" style="width:8%;background:#9ca3af"></div></div>
+              <strong class="mc-rating-percent">8%</strong>
+            </div>
+            <div class="mc-rating-row">
+              <span class="mc-rating-name">Underperform</span>
+              <div class="mc-rating-track"><div class="mc-rating-fill" style="width:0%;background:#ef7777"></div></div>
+              <strong class="mc-rating-percent">0%</strong>
+            </div>
+            <div class="mc-rating-row">
+              <span class="mc-rating-name">Sell</span>
+              <div class="mc-rating-track"><div class="mc-rating-fill" style="width:0%;background:#b91c1c"></div></div>
+              <strong class="mc-rating-percent">0%</strong>
+            </div>
+          </div>
+        </div>
+        <div class="mc-data-note">Distribution shown as in the supplied Moneycontrol reference screenshot</div>
+        <a class="mc-panel-source" href="https://www.moneycontrol.com/india/stockpricequote/power-generationdistribution/suzlonenergy/SE17" target="_blank" rel="noopener noreferrer">Moneycontrol ↗</a>
+      </article>
     </section>
 
     <!-- Selected four Screener summary cards moved to the top of the dashboard -->
