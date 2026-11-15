@@ -1840,8 +1840,8 @@ window.setLogbookFilter=async function(filter,button){
                 style="background:rgba(255,255,255,.18);color:#fff;border:0;border-radius:6px;padding:5px 9px;font-weight:800;cursor:pointer">✕</button>
       </div>
     </div>
-    <div id="scrDrawerBody" style="padding:14px;overflow-y:auto;flex:1;font-size:12px;color:#0f172a">
-      Click any stock symbol in the portfolio table to view Screener.in data.
+    <div id="scrDrawerBody" style="padding:0;overflow:hidden;flex:1;font-size:12px;color:#0f172a">
+      <iframe id="scrDrawerFrame" title="Stock screener" style="width:100%;height:100%;border:0;display:block" src="about:blank"></iframe>
     </div>`;
   document.body.appendChild(drawer);
 
@@ -1854,63 +1854,22 @@ window.setLogbookFilter=async function(filter,button){
   };
 
   window.openScreenerSplit=async function(rawSym){
-    const sym=String(rawSym||'').trim().toUpperCase().replace(/[^A-Z0-9]/g,'');
-    if(!sym) return;
+    const sym=String(rawSym||'').trim().toUpperCase().replace(/\.(NS|BO)$/i,'');
+    if(!/^[A-Z0-9&._-]{1,20}$/.test(sym)) return;
     document.body.classList.add('screener-split-open');
     const titleEl=document.getElementById('scrDrawerTitle');
     const linkEl=document.getElementById('scrDrawerExtLink');
-    const bodyEl=document.getElementById('scrDrawerBody');
+    const frame=document.getElementById('scrDrawerFrame');
     const fallbackUrl=`https://www.screener.in/company/${sym}/consolidated/`;
     titleEl.textContent=sym;
     linkEl.href=fallbackUrl;
-
-    if(activeSym===sym && cache[sym]) return;
+    if(activeSym===sym && frame && frame.dataset.symbol===sym) return;
     activeSym=sym;
-
-    if(cache[sym]){
-      renderScreener(cache[sym]);
-      return;
-    }
-    bodyEl.innerHTML=`<div style="padding:20px;text-align:center;color:#5a718a">Fetching live Screener.in fundamentals for <b>${sym}</b>…</div>`;
-    try{
-      const res=await fetch('/api/screener/'+encodeURIComponent(sym),{credentials:'same-origin'});
-      const data=await res.json();
-      cache[sym]=data;
-      if(activeSym===sym) renderScreener(data);
-    }catch(err){
-      bodyEl.innerHTML=`<div style="padding:12px;color:#b91c1c">Could not load inline preview. <a href="${fallbackUrl}" target="_blank" rel="noopener">Open ${sym} on Screener.in ↗</a></div>`;
+    if(frame){
+      frame.dataset.symbol=sym;
+      frame.src=`/screener-window?symbol=${encodeURIComponent(sym)}`;
     }
   };
-
-  function renderScreener(data){
-    const titleEl=document.getElementById('scrDrawerTitle');
-    const linkEl=document.getElementById('scrDrawerExtLink');
-    const bodyEl=document.getElementById('scrDrawerBody');
-    titleEl.textContent=data.company_name||data.symbol;
-    if(data.url) linkEl.href=data.url;
-
-    const grid=(data.ratios&&data.ratios.length)
-      ? `<div class="screener-ratios-grid">${data.ratios.map(r=>`
-          <div class="screener-ratio-item"><small>${r.label}</small><strong>${r.value}</strong></div>`).join('')}</div>`
-      : `<div style="margin-top:10px;padding:10px;background:#f8fafc;border:1px solid #d8e4f0;border-radius:7px;color:#475569">
-           Summary ratios unavailable for this code. Click <b>Open Full ↗</b> above to view the complete Screener.in page.
-         </div>`;
-
-    const about=data.about
-      ? `<div style="margin-top:12px;padding:10px;background:#fbfdff;border:1px solid #d8e4f0;border-radius:7px;line-height:1.45">
-           <b style="color:#052d70;display:block;margin-bottom:4px">Company Profile</b>${data.about}
-         </div>`
-      : '';
-
-    bodyEl.innerHTML=`
-      <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:8px;border-bottom:1px solid #e2e8f0">
-        <strong style="color:#052d70">Symbol: ${data.symbol}</strong>
-        <a href="${data.url}" target="_blank" rel="noopener" style="color:#0b55b5;font-weight:700">Peers, Quarterly &amp; P&amp;L ↗</a>
-      </div>
-      ${grid}
-      ${about}
-    `;
-  }
 
   document.addEventListener('click',function(e){
     const td=e.target.closest('#portfolioTable tbody td');
