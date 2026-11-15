@@ -1,0 +1,1647 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Custom Single-Page Stock Ratio Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-page: #f4f6f9;
+      --bg-card: #ffffff;
+      --bg-subtle: #f8fafc;
+      --bg-stripe: #f9fafb;
+      --ink-900: #111827;
+      --ink-700: #374151;
+      --ink-600: #4b5563;
+      --ink-500: #6b7280;
+      --border: #e5e7eb;
+      --primary: #4f46e5;
+      --primary-hover: #4338ca;
+      --navy-header: #1e293b;
+      --up: #15803d;
+      --up-bg: #dcfce7;
+      --down: #b91c1c;
+      --down-bg: #fee2e2;
+      --radius: 10px;
+      --shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: var(--bg-page);
+      color: var(--ink-900);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .container {
+      max-width: 1440px;
+      margin: 14px auto;
+      padding: 0 16px 40px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 11.5px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      cursor: pointer;
+      border: 1px solid transparent;
+      text-decoration: none;
+      transition: all 0.15s ease;
+      white-space: nowrap;
+    }
+
+    .btn-outline { background: #fff; color: var(--ink-700); border-color: var(--border); }
+    .btn-outline:hover { background: var(--bg-subtle); }
+    .btn-primary { background: var(--primary); color: #fff; }
+    .btn-primary:hover { background: var(--primary-hover); }
+    .btn-amber { background: #f59e0b; color: #111827; }
+    .btn-amber:hover { background: #d97706; }
+    .btn-success { background: #16a34a; color: #fff; }
+    .btn-success:hover { background: #15803d; }
+    .btn-tradingview { background: #131722; color: #fff; border-color: #131722; }
+    .btn-tradingview:hover { background: #2a2e39; border-color: #2a2e39; }
+
+    /* Top Header Card */
+    .header-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px 20px 16px;
+      box-shadow: var(--shadow);
+      position: sticky;
+      top: 10px;
+      z-index: 50;
+    }
+
+    /* First Line: Screener Direct Section Links Bar */
+    .screener-links-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding-bottom: 12px;
+      margin-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .screener-links-list {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+
+    .screener-links-list a {
+      text-decoration: none;
+      color: var(--ink-600);
+      font-weight: 600;
+      font-size: 12.5px;
+      padding: 5px 10px;
+      border-radius: 6px;
+      border-bottom: 2px solid transparent;
+      transition: all 0.15s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .screener-links-list a:hover {
+      background: #eef2ff;
+      color: var(--primary);
+      border-bottom-color: var(--primary);
+    }
+
+    .screener-links-list a.active-link {
+      background: #eef2ff;
+      color: var(--primary);
+      border-bottom: 2px solid var(--primary);
+      font-weight: 700;
+    }
+
+    .symbol-selector {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11.5px;
+      font-weight: 700;
+      color: var(--ink-600);
+      background: var(--bg-subtle);
+      border: 1px solid var(--border);
+      padding: 4px 10px;
+      border-radius: 6px;
+    }
+
+    .symbol-selector select {
+      border: none;
+      background: transparent;
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 800;
+      color: var(--primary);
+      cursor: pointer;
+      outline: none;
+    }
+
+    .header-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .script-identity {
+      display: flex;
+      align-items: baseline;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .script-link {
+      font-size: 24px;
+      font-weight: 800;
+      color: var(--primary);
+      text-decoration: none;
+      letter-spacing: -0.02em;
+    }
+
+    .script-link:hover {
+      text-decoration: underline;
+    }
+
+    .live-price {
+      font-size: 21px;
+      font-weight: 800;
+      color: var(--ink-900);
+      font-variant-numeric: tabular-nums;
+      transition: color 0.2s ease;
+    }
+
+    .live-badge {
+      font-size: 12.5px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 6px;
+      background: var(--up-bg);
+      color: var(--up);
+    }
+
+    .live-badge.down {
+      background: var(--down-bg);
+      color: var(--down);
+    }
+
+    .live-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11.5px;
+      font-weight: 600;
+      color: var(--ink-500);
+    }
+
+    .pulse-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #16a34a;
+      display: inline-block;
+      animation: pulse 1.6s infinite;
+    }
+
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.6); }
+      70% { box-shadow: 0 0 0 6px rgba(22, 163, 74, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(22, 163, 74, 0); }
+    }
+
+    .controls-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      padding-top: 12px;
+      border-top: 1px solid var(--border);
+    }
+
+    .search-input {
+      padding: 7px 12px;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      font-size: 12.5px;
+      width: 300px;
+      max-width: 100%;
+      outline: none;
+    }
+
+    .search-input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.12);
+    }
+
+    .category-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+    }
+
+    .cat-pill {
+      padding: 4px 10px;
+      border-radius: 99px;
+      border: 1px solid var(--border);
+      background: var(--bg-subtle);
+      color: var(--ink-700);
+      font-size: 11.5px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .cat-pill.active {
+      background: var(--navy-header);
+      color: #fff;
+      border-color: var(--navy-header);
+    }
+
+
+
+    /* One-line market snapshot strip: horizontally scrollable on narrow screens */
+    .market-snapshot-wrap {
+      width:100%;
+      overflow-x:auto;
+      margin:0 0 12px;
+      border:1px solid var(--border);
+      border-radius:9px;
+      background:#fff;
+      box-shadow:var(--shadow);
+      scrollbar-width:thin;
+    }
+    .market-snapshot {
+      display:flex;
+      flex-wrap:nowrap;
+      width:max-content;
+      min-width:100%;
+      align-items:stretch;
+    }
+    .market-snapshot-item {
+      display:flex;
+      flex-direction:column;
+      justify-content:center;
+      gap:4px;
+      min-width:92px;
+      padding:9px 11px;
+      border-right:1px solid var(--border);
+      color:inherit;
+      text-decoration:none;
+      white-space:nowrap;
+      transition:background .15s ease;
+    }
+    .market-snapshot-item:last-child { border-right:0; }
+    .market-snapshot-item:hover { background:#eff6ff; }
+    .market-snapshot-label {
+      color:var(--ink-500);
+      font-size:9px;
+      font-weight:800;
+      letter-spacing:.035em;
+      text-transform:uppercase;
+    }
+    .market-snapshot-value {
+      color:var(--ink-900);
+      font-size:11px;
+      font-weight:800;
+      font-variant-numeric:tabular-nums;
+    }
+    .market-snapshot-hint {
+      color:var(--primary);
+      font-size:8px;
+      font-weight:700;
+    }
+    .market-snapshot-note {
+      padding:5px 10px;
+      border-top:1px solid var(--border);
+      color:var(--ink-500);
+      font-size:9px;
+      white-space:nowrap;
+    }
+
+    /* Four selected growth/return summary cards */
+    .screener-summary-grid {
+      display:grid;
+      grid-template-columns:repeat(4,minmax(0,1fr));
+      gap:12px;
+      margin:0;
+    }
+    .screener-summary-card {
+      display:block;
+      min-width:0;
+      padding:13px 14px;
+      background:#fff;
+      border:1px solid var(--border);
+      border-radius:9px;
+      box-shadow:var(--shadow);
+      color:inherit;
+      text-decoration:none;
+      transition:border-color .15s ease, transform .15s ease, box-shadow .15s ease;
+    }
+    .screener-summary-card:hover {
+      border-color:var(--primary);
+      transform:translateY(-1px);
+      box-shadow:0 4px 12px rgba(15,23,42,.08);
+    }
+    .screener-summary-title {
+      color:var(--primary);
+      font-weight:800;
+      font-size:12px;
+      line-height:1.35;
+      padding-bottom:8px;
+      margin-bottom:8px;
+      border-bottom:1px solid var(--border);
+    }
+    .screener-summary-lines { display:grid; gap:5px; }
+    .screener-summary-line {
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-start;
+      gap:8px;
+      font-size:11.5px;
+      line-height:1.35;
+    }
+    .screener-summary-line span:first-child { color:var(--ink-600); }
+    .screener-summary-line strong {
+      color:var(--ink-900);
+      text-align:right;
+      white-space:nowrap;
+      font-variant-numeric:tabular-nums;
+    }
+    .screener-summary-source {
+      display:block;
+      margin-top:9px;
+      color:var(--primary);
+      font-size:10px;
+      font-weight:700;
+    }
+    @media (max-width:1050px) {
+      .screener-summary-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+    }
+    @media (max-width:560px) {
+      .screener-summary-grid { grid-template-columns:1fr; }
+    }
+
+    /* Single-Page All Ratios Card */
+    .ratios-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px 18px;
+      box-shadow: var(--shadow);
+    }
+
+    .ratios-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px 16px;
+      list-style: none;
+    }
+
+    @media (max-width: 1150px) {
+      .ratios-grid { grid-template-columns: repeat(3, 1fr); }
+    }
+    @media (max-width: 820px) {
+      .ratios-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 520px) {
+      .ratios-grid { grid-template-columns: 1fr; }
+    }
+
+    .ratio-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 7px 10px;
+      border-radius: 6px;
+      border: 1px solid transparent;
+      font-size: 12.5px;
+      gap: 8px;
+      transition: background 0.15s, border-color 0.15s;
+    }
+
+    .ratio-item:nth-child(odd) {
+      background: var(--bg-stripe);
+    }
+
+    .ratio-item.arrange-active {
+      cursor: grab;
+      border: 1px dashed #cbd5e1;
+      background: #fff;
+    }
+
+    .ratio-item.arrange-active:hover {
+      background: #eef2ff;
+      border-color: var(--primary);
+    }
+
+    .ratio-item.dragging {
+      opacity: 0.45;
+      border: 1px solid var(--primary);
+    }
+
+    .ratio-left {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      min-width: 0;
+    }
+
+    .drag-handle {
+      color: #94a3b8;
+      font-weight: 800;
+      cursor: grab;
+      user-select: none;
+    }
+
+    .ratio-idx {
+      font-size: 10.5px;
+      font-weight: 700;
+      color: var(--ink-500);
+      min-width: 24px;
+    }
+
+    .ratio-name {
+      color: var(--ink-700);
+      font-weight: 500;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .ratio-right {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+
+    .ratio-val {
+      font-weight: 700;
+      color: var(--ink-900);
+      white-space: nowrap;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .flash-up { color: var(--up) !important; }
+    .flash-down { color: var(--down) !important; }
+
+    .order-btns {
+      display: inline-flex;
+      gap: 2px;
+    }
+
+    .mini-btn {
+      width: 20px;
+      height: 20px;
+      border: 1px solid var(--border);
+      background: #fff;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--ink-700);
+    }
+
+    .mini-btn:hover {
+      background: var(--primary);
+      color: #fff;
+      border-color: var(--primary);
+    }
+
+    .arrange-banner {
+      background: #fffbeb;
+      border: 1px solid #fde68a;
+      color: #92400e;
+      padding: 10px 14px;
+      border-radius: 8px;
+      margin-bottom: 12px;
+      display: none;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      font-size: 12.5px;
+      font-weight: 600;
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: #1e293b;
+      color: #fff;
+      padding: 10px 16px;
+      border-radius: 8px;
+      font-size: 12.5px;
+      font-weight: 600;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+      z-index: 999;
+      opacity: 0;
+      transform: translateY(15px);
+      pointer-events: none;
+      transition: all 0.25s ease;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* In-page workspace sections */
+    .screener-links-list button {
+      appearance: none; border: 0; background: transparent; cursor: pointer;
+      text-decoration: none; color: var(--ink-600); font: inherit;
+      font-weight: 600; font-size: 12.5px; padding: 5px 10px;
+      border-radius: 6px; border-bottom: 2px solid transparent;
+      transition: all .15s ease; white-space: nowrap;
+    }
+    .screener-links-list button:hover,
+    .screener-links-list button.active-link {
+      background: #eef2ff; color: var(--primary); border-bottom-color: var(--primary);
+    }
+    .workspace-card {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 18px 20px 22px; box-shadow: var(--shadow);
+      scroll-margin-top: 180px;
+    }
+    .workspace-heading {
+      display:flex; justify-content:space-between; align-items:center; gap:12px;
+      flex-wrap:wrap; padding-bottom:14px; margin-bottom:16px;
+      border-bottom:1px solid var(--border);
+    }
+    .workspace-eyebrow { color:var(--primary); font-size:10px; font-weight:800; letter-spacing:.12em; margin-bottom:4px; }
+    .workspace-heading h2 { font-size:19px; line-height:1.25; color:var(--ink-900); }
+    .workspace-heading p { color:var(--ink-500); margin-top:4px; font-size:12px; }
+    .workspace-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; }
+    .workspace-stat, .workspace-box {
+      background:#fff; border:1px solid var(--border); border-radius:9px; padding:13px 14px;
+      min-width:0;
+    }
+    .workspace-stat .stat-label { color:var(--ink-500); font-size:11px; font-weight:600; }
+    .workspace-stat .stat-value { color:var(--ink-900); font-size:19px; font-weight:800; margin-top:5px; overflow-wrap:anywhere; }
+    .workspace-stat .stat-note { color:var(--ink-500); font-size:10.5px; margin-top:4px; }
+    .workspace-layout { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; }
+    .workspace-box h3 { font-size:13px; margin-bottom:10px; }
+    .workspace-note { border:1px solid #bfdbfe; background:#eff6ff; color:#1e40af; border-radius:8px; padding:11px 13px; font-size:12px; margin-bottom:14px; }
+    .workspace-table-wrap { overflow-x:auto; border:1px solid var(--border); border-radius:8px; }
+    .workspace-table { border-collapse:collapse; width:100%; min-width:420px; font-size:12px; }
+    .workspace-table th { background:#f8fafc; color:var(--ink-600); text-align:left; font-size:11px; }
+    .workspace-table th,.workspace-table td { padding:9px 11px; border-bottom:1px solid var(--border); }
+    .workspace-table tr:last-child td { border-bottom:0; }
+    .workspace-table td:last-child { text-align:right; font-weight:700; color:var(--ink-900); }
+    .workspace-empty { border:1px dashed #cbd5e1; border-radius:9px; padding:28px 18px; text-align:center; color:var(--ink-600); background:#fafafa; }
+    .workspace-empty strong { display:block; color:var(--ink-900); margin-bottom:6px; }
+    .bar-list { display:grid; gap:12px; }
+    .bar-row { display:grid; grid-template-columns:150px 1fr 72px; align-items:center; gap:10px; font-size:12px; }
+    .bar-track { height:11px; background:#eef2ff; border-radius:20px; overflow:hidden; }
+    .bar-fill { height:100%; background:#6366f1; border-radius:20px; }
+    .bar-value { text-align:right; font-weight:700; font-variant-numeric:tabular-nums; }
+    .source-footnote { color:var(--ink-500); font-size:10.5px; margin-top:12px; }
+    @media (max-width:900px) { .workspace-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+    @media (max-width:600px) {
+      .workspace-card { padding:14px 12px; }
+      .workspace-grid,.workspace-layout { grid-template-columns:1fr; }
+      .bar-row { grid-template-columns:105px 1fr 62px; }
+      .workspace-heading h2 { font-size:17px; }
+    }
+
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <!-- Sticky Header & Controls -->
+    <header class="header-card">
+
+      <!-- SECOND LINE: Script Title, Live Price & Arrange/Save Controls -->
+      <div class="header-top">
+        <div class="script-identity">
+          <a class="script-link" id="main-script-link" href="https://www.screener.in/company/SUZLON/consolidated/" target="_blank" rel="noopener noreferrer" title="Open this company on Screener.in">SUZLON ↗</a>
+          <span class="live-price" id="header-price">₹ 38.24</span>
+          <span class="live-badge" id="header-change">+0.00%</span>
+          <span class="live-status">
+            <span class="pulse-dot" id="live-dot"></span>
+            <span id="live-status-text">Connecting to Yahoo Finance…</span>
+          </span>
+          <span style="font-size:12px; font-weight:700; color:var(--ink-600);" id="ratio-count-badge"></span>
+        </div>
+
+        <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+          <button class="btn btn-amber" id="toggle-arrange-btn" onclick="toggleArrangeMode()">&#9881; ARRANGE ORDER</button>
+          <button class="btn btn-success" id="save-order-btn" onclick="saveOrder()" style="display:none;">&#128190; SAVE ORDER</button>
+          <button class="btn btn-outline" id="reset-order-btn" onclick="resetOrder()" style="display:none;">&#8634; RESET DEFAULT</button>
+          <button class="btn btn-outline" id="live-toggle-btn" onclick="toggleLiveFeed()">&#9208; PAUSE LIVE FEED</button>
+          <button class="btn btn-primary" onclick="exportCSV()">&#11015; EXPORT CSV</button>
+          <a class="btn btn-tradingview" href="https://in.tradingview.com/screener/" target="_blank" rel="noopener noreferrer" title="Open TradingView Stock Screener">&#128202; TRADINGVIEW</a>
+        </div>
+      </div>
+
+      <!-- THIRD LINE: Category Filter Pills & Instant Search -->
+      <div class="controls-row">
+        <div class="category-pills" id="category-pills"></div>
+        <input type="text" id="search-input" class="search-input" placeholder="Search any ratio by name or value..." oninput="renderGrid()">
+      </div>
+    </header>
+
+    <!-- One-line market metrics from the supplied dashboard data; each item links to Screener.in -->
+    <section class="market-snapshot-wrap" aria-label="Market snapshot">
+      <div class="market-snapshot" id="market-snapshot">
+        <a class="market-snapshot-item" data-market-key="ltp" href="https://www.screener.in/company/SUZLON/consolidated/" target="_blank" rel="noopener noreferrer"><span class="market-snapshot-label">LTP</span><strong class="market-snapshot-value" id="snap-ltp">Loading…</strong><span class="market-snapshot-hint">Screener ↗</span></a>
+        <a class="market-snapshot-item" data-market-key="change" href="https://www.screener.in/company/SUZLON/consolidated/" target="_blank" rel="noopener noreferrer"><span class="market-snapshot-label">Change %</span><strong class="market-snapshot-value" id="snap-change">Loading…</strong><span class="market-snapshot-hint">Screener ↗</span></a>
+        <a class="market-snapshot-item" data-market-key="volume" href="https://www.screener.in/company/SUZLON/consolidated/" target="_blank" rel="noopener noreferrer"><span class="market-snapshot-label">Volume</span><strong class="market-snapshot-value" id="snap-volume">Loading…</strong><span class="market-snapshot-hint">Screener ↗</span></a>
+        <a class="market-snapshot-item" data-market-key="rsi" href="https://www.screener.in/company/SUZLON/consolidated/" target="_blank" rel="noopener noreferrer"><span class="market-snapshot-label">RSI 14</span><strong class="market-snapshot-value" id="snap-rsi">Loading…</strong><span class="market-snapshot-hint">Screener ↗</span></a>
+        <a class="market-snapshot-item" data-market-key="sma20" href="https://www.screener.in/company/SUZLON/consolidated/" target="_blank" rel="noopener noreferrer"><span class="market-snapshot-label">SMA 20</span><strong class="market-snapshot-value">Loading…</strong><span class="market-snapshot-hint">Screener ↗</span></a>
+        <a class="market-snapshot-item" data-market-key="sma50" href="https://www.screener.in/company/SUZLON/consolidated/" target="_blank" rel="noopener noreferrer"><span class="market-snapshot-label">SMA 50</span><strong class="market-snapshot-value">₹ 1,318.40*</strong><span class="market-snapshot-hint">Screener ↗</span></a>
+        <a class="market-snapshot-item" data-market-key="sma200" href="https://www.screener.in/company/SUZLON/consolidated/" target="_blank" rel="noopener noreferrer"><span class="market-snapshot-label">SMA 200</span><strong class="market-snapshot-value">₹ 1,364.20*</strong><span class="market-snapshot-hint">Screener ↗</span></a>
+        <a class="market-snapshot-item" data-market-key="high" href="https://www.screener.in/company/SUZLON/consolidated/" target="_blank" rel="noopener noreferrer"><span class="market-snapshot-label">52W High</span><strong class="market-snapshot-value">₹ 1,612</strong><span class="market-snapshot-hint">Screener ↗</span></a>
+        <a class="market-snapshot-item" data-market-key="low" href="https://www.screener.in/company/SUZLON/consolidated/" target="_blank" rel="noopener noreferrer"><span class="market-snapshot-label">52W Low</span><strong class="market-snapshot-value">₹ 1,152</strong><span class="market-snapshot-hint">Screener ↗</span></a>
+        <a class="market-snapshot-item" data-market-key="pe" href="https://www.screener.in/company/SUZLON/consolidated/" target="_blank" rel="noopener noreferrer"><span class="market-snapshot-label">P/E</span><strong class="market-snapshot-value" id="snap-pe">Reported data</strong><span class="market-snapshot-hint">Screener ↗</span></a>
+        <a class="market-snapshot-item" data-market-key="eps" href="https://www.screener.in/company/SUZLON/consolidated/" target="_blank" rel="noopener noreferrer"><span class="market-snapshot-label">EPS</span><strong class="market-snapshot-value">Reported data</strong><span class="market-snapshot-hint">Screener ↗</span></a>
+        <a class="market-snapshot-item" data-market-key="mcap" href="https://www.screener.in/company/SUZLON/consolidated/" target="_blank" rel="noopener noreferrer"><span class="market-snapshot-label">Market Cap</span><strong class="market-snapshot-value" id="snap-mcap">Reported data</strong><span class="market-snapshot-hint">Screener ↗</span></a>
+        <a class="market-snapshot-item" data-market-key="roe" href="https://www.screener.in/company/SUZLON/consolidated/" target="_blank" rel="noopener noreferrer"><span class="market-snapshot-label">ROE %</span><strong class="market-snapshot-value">Reported data</strong><span class="market-snapshot-hint">Screener ↗</span></a>
+        <a class="market-snapshot-item" data-market-key="de" href="https://www.screener.in/company/SUZLON/consolidated/" target="_blank" rel="noopener noreferrer"><span class="market-snapshot-label">Debt/Equity</span><strong class="market-snapshot-value">Reported data</strong><span class="market-snapshot-hint">Screener ↗</span></a>
+        <a class="market-snapshot-item" data-market-key="trend" href="https://www.screener.in/company/SUZLON/consolidated/" target="_blank" rel="noopener noreferrer"><span class="market-snapshot-label">Trend</span><strong class="market-snapshot-value">Loading…</strong><span class="market-snapshot-hint">Screener ↗</span></a>
+        <a class="market-snapshot-item" data-market-key="momentum" href="https://www.screener.in/company/SUZLON/consolidated/" target="_blank" rel="noopener noreferrer"><span class="market-snapshot-label">Momentum</span><strong class="market-snapshot-value">Loading…</strong><span class="market-snapshot-hint">Screener ↗</span></a>
+      </div>
+      <div class="market-snapshot-note">All 16 metrics are in one horizontal line. Click any metric to open the selected company on Screener.in. Quote and technical values are refreshed from Yahoo Finance daily candles and quote metadata (may be delayed). Trend uses 50 EMA and 200 SMA; Momentum uses RSI(14), following the Python scanner. P/E, EPS, ROE and Debt/Equity are reported fundamentals, not tick-by-tick prices. If Yahoo or its browser-access relay is unavailable, the dashboard will show Unavailable rather than fabricated values.</div>
+    </section>
+
+    <!-- Selected four Screener summary cards moved to the top of the dashboard -->
+    <section class="screener-summary-grid" aria-label="Selected growth and return metrics">
+      <a class="screener-summary-card" id="summary-sales-growth" href="https://www.screener.in/company/SUZLON/consolidated/" target="_blank" rel="noopener noreferrer">
+        <div class="screener-summary-title">Compounded Sales Growth</div>
+        <div class="screener-summary-lines">
+          <div class="screener-summary-line"><span>10 Years:</span><strong>11.8%</strong></div>
+          <div class="screener-summary-line"><span>7 Years:</span><strong>13.4%</strong></div>
+          <div class="screener-summary-line"><span>5 Years:</span><strong>12.9%</strong></div>
+          <div class="screener-summary-line"><span>3 Years:</span><strong>14.6%</strong></div>
+        </div>
+        <span class="screener-summary-source">Open latest Screener data ↗</span>
+      </a>
+
+      <a class="screener-summary-card" id="summary-profit-growth" href="https://www.screener.in/company/SUZLON/consolidated/" target="_blank" rel="noopener noreferrer">
+        <div class="screener-summary-title">Compounded Profit &amp; EBITDA Growth</div>
+        <div class="screener-summary-lines">
+          <div class="screener-summary-line"><span>Profit 5 Years:</span><strong>13.8%</strong></div>
+          <div class="screener-summary-line"><span>Profit 3 Years:</span><strong>15.1%</strong></div>
+          <div class="screener-summary-line"><span>EBITDA 5 Years:</span><strong>14.1%</strong></div>
+          <div class="screener-summary-line"><span>EBITDA 3 Years:</span><strong>15.2%</strong></div>
+        </div>
+        <span class="screener-summary-source">Open latest Screener data ↗</span>
+      </a>
+
+      <a class="screener-summary-card" id="summary-price-eps-cagr" href="https://www.screener.in/company/SUZLON/consolidated/" target="_blank" rel="noopener noreferrer">
+        <div class="screener-summary-title">Stock Price &amp; EPS CAGR</div>
+        <div class="screener-summary-lines">
+          <div class="screener-summary-line"><span>10Y / 7Y Price:</span><strong>22.8% / 24.1%</strong></div>
+          <div class="screener-summary-line"><span>5Y / 3Y Price:</span><strong>21.3% / 18.7%</strong></div>
+          <div class="screener-summary-line"><span>Price Return:</span><strong>12.4%</strong></div>
+          <div class="screener-summary-line"><span>EPS 5Y / 3Y:</span><strong>12.7% / 13.9%</strong></div>
+        </div>
+        <span class="screener-summary-source">Open latest Screener data ↗</span>
+      </a>
+
+      <a class="screener-summary-card" id="summary-roe-capital" href="https://www.screener.in/company/SUZLON/consolidated/" target="_blank" rel="noopener noreferrer">
+        <div class="screener-summary-title">Return on Equity &amp; Capital</div>
+        <div class="screener-summary-lines">
+          <div class="screener-summary-line"><span>ROE 5Yr Avg:</span><strong>9.45%</strong></div>
+          <div class="screener-summary-line"><span>ROE 3Yr Avg:</span><strong>9.12%</strong></div>
+          <div class="screener-summary-line"><span>ROCE 3Yr Avg:</span><strong>10.10%</strong></div>
+          <div class="screener-summary-line"><span>ROIC Current:</span><strong>11.40%</strong></div>
+        </div>
+        <span class="screener-summary-source">Open latest Screener data ↗</span>
+      </a>
+    </section>
+
+    <div class="workspace-note" style="margin:0 0 0 0">
+      <strong>Data note:</strong> The four summary cards retain the figures from your supplied dashboard screenshot. Click any card or the company name to open the latest figures on Screener.in. Quote/technical values are refreshed from Yahoo Finance; quarterly and annual fundamentals in this standalone file remain the supplied snapshot and are not live-updated.
+    </div>
+
+    <!-- Single-Page All Ratios Container -->
+    <main class="ratios-card">
+      <div class="arrange-banner" id="arrange-banner">
+        <span>&#9995; Arrange Mode Active: Drag &amp; drop any card or use <strong>▲ / ▼</strong> buttons to set your custom order, then click <strong>Save Order</strong>.</span>
+        <div style="display:flex; gap:8px;">
+          <button class="btn btn-success" onclick="saveOrder()">&#128190; SAVE ORDER</button>
+          <button class="btn btn-outline" onclick="toggleArrangeMode()">DONE</button>
+        </div>
+      </div>
+
+      <ul class="ratios-grid" id="ratios-grid"></ul>
+    </main>
+
+    <!-- Local in-page section workspace: no external website or iframe is loaded -->
+    <section class="workspace-card" id="workspace-card" aria-live="polite">
+      <div class="workspace-heading">
+        <div>
+          <div class="workspace-eyebrow">COMPANY WORKSPACE</div>
+          <h2 id="workspace-title">SUZLON Overview</h2>
+          <p id="workspace-subtitle">Company metrics available in this dashboard</p>
+        </div>
+        <a class="btn btn-outline" id="open-source-link" href="https://www.screener.in/company/SUZLON/consolidated/" target="_blank" rel="noopener noreferrer">Open original Screener page ↗</a>
+      </div>
+      <nav class="screener-links-list" aria-label="Company sections" style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:14px">
+        <button type="button" data-view="overview" class="active-link" onclick="setWorkspaceView('overview',this)">Overview</button>
+        <button type="button" data-view="chart" onclick="setWorkspaceView('chart',this)">Chart &amp; Returns</button>
+        <button type="button" data-view="analysis" onclick="setWorkspaceView('analysis',this)">Analysis</button>
+        <button type="button" data-view="peers" onclick="setWorkspaceView('peers',this)">Peers</button>
+        <button type="button" data-view="quarterly" onclick="setWorkspaceView('quarterly',this)">Quarterly</button>
+        <button type="button" data-view="profitloss" onclick="setWorkspaceView('profitloss',this)">Profit &amp; Loss</button>
+        <button type="button" data-view="balance" onclick="setWorkspaceView('balance',this)">Balance Sheet</button>
+        <button type="button" data-view="cashflow" onclick="setWorkspaceView('cashflow',this)">Cash Flow</button>
+        <button type="button" data-view="ratios" onclick="setWorkspaceView('ratios',this)">Ratios</button>
+        <button type="button" data-view="investors" onclick="setWorkspaceView('investors',this)">Shareholding</button>
+        <button type="button" data-view="documents" onclick="setWorkspaceView('documents',this)">Documents</button>
+      </nav>
+      <div id="workspace-content"></div>
+    </section>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    // ==========================================
+    // Dashboard workspace (fixed to the displayed SUZLON company)
+    // ==========================================
+    let activeView = "overview";
+
+    function getRequestedSymbol() {
+      const params = new URLSearchParams(window.location.search);
+      const fromQuery = params.get("symbol") || params.get("script");
+      const fromParent = window.name && /^[A-Z0-9&._-]{1,20}$/i.test(window.name) ? window.name : "";
+      const raw = (fromQuery || fromParent || "SUZLON").trim().toUpperCase().replace(/\.(NS|BO)$/i, "");
+      return /^[A-Z0-9&._-]{1,20}$/.test(raw) ? raw : "SUZLON";
+    }
+
+    function applySelectedSymbol(value) {
+      const symbol = String(value || "").trim().toUpperCase().replace(/\.(NS|BO)$/i, "");
+      if (!/^[A-Z0-9&._-]{1,20}$/.test(symbol)) return;
+      const link = document.getElementById("main-script-link");
+      if (link) {
+        link.textContent = `${symbol} ↗`;
+        link.href = `https://www.screener.in/company/${encodeURIComponent(symbol)}/consolidated/`;
+      }
+      currentPrice = currentVolume = currentRSI = liveMarketData = null;
+      document.title = `${symbol} Stock Screener`;
+      renderWorkspace();
+      if (isLive) updateLiveMetrics();
+    }
+
+    function setWorkspaceView(view, button) {
+      activeView = view;
+      document.querySelectorAll(".screener-links-list button").forEach(b => b.classList.toggle("active-link", b === button || b.dataset.view === view));
+      renderWorkspace();
+    }
+
+    window.addEventListener("message", event => {
+      // Accept a symbol from the LMS parent window; no cross-origin data is read.
+      const data = event.data;
+      if (data && typeof data === "object" && (data.type === "SET_SCREENER_SYMBOL" || data.action === "setScreenerSymbol")) {
+        applySelectedSymbol(data.symbol || data.script);
+      }
+    });
+
+    function metricRows(items) {
+      if (!items.length) return `<div class="workspace-empty"><strong>No matching values in this dashboard</strong>There is no supplied metric for this section yet.</div>`;
+      return `<div class="workspace-table-wrap"><table class="workspace-table"><thead><tr><th>Metric</th><th>Value</th></tr></thead><tbody>
+        ${items.map(m => `<tr><td>${escapeHTML(m.name)}</td><td>${escapeHTML(m.value)}</td></tr>`).join("")}
+      </tbody></table></div>`;
+    }
+
+    function escapeHTML(value) {
+      return String(value).replace(/[&<>"']/g, ch => ({
+        "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;"
+      }[ch]));
+    }
+
+    function findMetric(name) {
+      return metrics.find(m => m.name.toLowerCase() === name.toLowerCase());
+    }
+
+    function cardMetric(name, note="") {
+      const m = findMetric(name);
+      if (!m) return "";
+      return `<div class="workspace-stat"><div class="stat-label">${escapeHTML(m.name)}</div>
+        <div class="stat-value">${escapeHTML(m.value)}</div>${note ? `<div class="stat-note">${escapeHTML(note)}</div>` : ""}</div>`;
+    }
+
+    function renderReturnsChart() {
+      const returns = metrics.filter(m => /^Return over /.test(m.name));
+      const parsed = returns.map(m => {
+        const n = parseFloat(String(m.value).replace(/,/g,""));
+        return {...m, number: Number.isFinite(n) ? n : 0};
+      });
+      const maxAbs = Math.max(1, ...parsed.map(m => Math.abs(m.number)));
+      return `<div class="workspace-box"><h3>Returns by period</h3><div class="bar-list">
+        ${parsed.map(m => `<div class="bar-row"><span>${escapeHTML(m.name.replace("Return over ",""))}</span>
+          <div class="bar-track"><div class="bar-fill" style="width:${Math.max(2, Math.abs(m.number)/maxAbs*100)}%; background:${m.number < 0 ? "#dc2626" : "#6366f1"}"></div></div>
+          <span class="bar-value">${escapeHTML(m.value)}</span></div>`).join("")}
+      </div><p class="source-footnote">Bars visualize the return figures already present in this HTML file; they are not a live historical price chart.</p></div>`;
+    }
+
+    function renderWorkspace() {
+      const scriptLink = document.getElementById("main-script-link");
+      const symbol = (scriptLink?.textContent || getRequestedSymbol()).replace("↗", "").trim().toUpperCase();
+      const title = document.getElementById("workspace-title");
+      const subtitle = document.getElementById("workspace-subtitle");
+      const content = document.getElementById("workspace-content");
+      const sourceLink = document.getElementById("open-source-link");
+      const screenerUrl = `https://www.screener.in/company/${encodeURIComponent(symbol)}/consolidated/`;
+      sourceLink.href = screenerUrl;
+      if (scriptLink) {
+        scriptLink.href = screenerUrl;
+        scriptLink.title = `Open ${symbol} on Screener.in`;
+      }
+      document.querySelectorAll(".screener-summary-card").forEach(card => {
+        card.href = screenerUrl;
+        card.title = `Open the latest ${symbol} figures on Screener.in`;
+      });
+      document.querySelectorAll(".market-snapshot-item").forEach(item => {
+        item.href = screenerUrl;
+        item.title = `Open ${symbol} on Screener.in`;
+      });
+
+      const byCat = cat => metrics.filter(m => m.cat === cat);
+      const set = (heading, sub, body) => {
+        title.textContent = heading;
+        subtitle.textContent = sub;
+        content.innerHTML = body;
+      };
+
+      if (activeView === "overview") {
+        set(`${symbol} Overview`, "Company snapshot from the metrics currently stored in this dashboard",
+          `<div class="workspace-grid">
+            ${cardMetric("Current Price","Dashboard display value")}
+            ${cardMetric("Market Cap")}
+            ${cardMetric("Stock P/E")}
+            ${cardMetric("Book Value")}
+            ${cardMetric("ROCE")}
+            ${cardMetric("ROE")}
+            ${cardMetric("Promoter holding")}
+            ${cardMetric("Dividend Yield")}
+          </div><p class="source-footnote">Values are taken from the local HTML dataset. They are not fetched from Screener.in.</p>`);
+      } else if (activeView === "chart") {
+        set(`${symbol} Chart & Returns`, "Local visualization of the return metrics already included in the dashboard",
+          `${renderReturnsChart()}<div class="workspace-note" style="margin-top:14px">A historical daily price/volume series is not included in the source file. This view therefore charts the available period-return figures instead of inventing price history.</div>`);
+      } else if (activeView === "analysis") {
+        const analysisItems = ["Stock P/E","Industry PE","PEG Ratio","ROCE","ROE","Debt to equity","Interest Coverage Ratio","Piotroski score","Altman Z Score","Credit rating"];
+        set(`${symbol} Analysis`, "Key valuation, profitability, leverage and quality metrics from the local dataset",
+          `<div class="workspace-grid">
+            ${analysisItems.map(n => cardMetric(n)).join("")}
+          </div><p class="source-footnote">This is a metric summary, not an investment recommendation or an independently verified analysis.</p>`);
+      } else if (activeView === "peers") {
+        set(`${symbol} Peer Comparison`, "Peer-company data is not present in the supplied HTML file",
+          `<div class="workspace-empty"><strong>Peer data has not been loaded</strong>This page cannot show genuine peer names or comparisons yet. Add a peer dataset or connect a permitted market-data source to populate this section.</div>`);
+      } else if (activeView === "quarterly") {
+        set(`${symbol} Quarterly Results`, "Quarterly metrics available in the supplied dashboard",
+          metricRows(byCat("Quarterly")));
+      } else if (activeView === "profitloss") {
+        set(`${symbol} Profit & Loss`, "Annual P&L metrics available in the supplied dashboard",
+          metricRows(byCat("Annual P&L")));
+      } else if (activeView === "balance") {
+        set(`${symbol} Balance Sheet`, "Balance-sheet metrics available in the supplied dashboard",
+          metricRows(byCat("Balance Sheet")));
+      } else if (activeView === "cashflow") {
+        set(`${symbol} Cash Flow`, "Cash-flow metrics available in the supplied dashboard",
+          metricRows(byCat("Cash Flow")));
+      } else if (activeView === "ratios") {
+        set(`${symbol} Ratios`, "All profitability and valuation ratios in the local dashboard",
+          metricRows(metrics.filter(m => ["Valuation","Profitability"].includes(m.cat))));
+      } else if (activeView === "investors") {
+        set(`${symbol} Investors & Shareholding`, "Shareholding metrics available in the supplied dashboard",
+          metricRows(byCat("Shareholding")));
+      } else if (activeView === "documents") {
+        set(`${symbol} Documents`, "Document links are not included in the supplied HTML file",
+          `<div class="workspace-empty"><strong>No document links are available</strong>This local page has no annual-report, exchange-filing or investor-presentation URLs to display. Use the “Open original Screener page” link if you need Screener's document list.</div>`);
+      }
+    }
+
+    // ==========================================
+    // 2. COMPLETE RATIO DATASET (201 Ratios)
+    // ==========================================
+    const DEFAULT_METRICS = [
+      { id: "m1", name: "Market Cap", value: "₹ 18,12,954 Cr.", cat: "Valuation", liveType: "mcap" },
+      { id: "m2", name: "Current Price", value: "₹ 38.24", cat: "Technical", liveType: "price" },
+      { id: "m3", name: "High / Low", value: "₹ 1,612 / 1,152", cat: "Technical" },
+      { id: "m4", name: "Stock P/E", value: "22.1", cat: "Valuation", liveType: "pe" },
+      { id: "m5", name: "Book Value", value: "₹ 698", cat: "Valuation" },
+      { id: "m6", name: "Dividend Yield", value: "0.45 %", cat: "Valuation" },
+      { id: "m7", name: "ROCE", value: "10.3 %", cat: "Profitability" },
+      { id: "m8", name: "ROE", value: "8.91 %", cat: "Profitability" },
+      { id: "m9", name: "Face Value", value: "₹ 10.0", cat: "Balance Sheet" },
+      { id: "m10", name: "Promoter holding", value: "50.4 %", cat: "Shareholding" },
+      { id: "m11", name: "DII holding", value: "21.6 %", cat: "Shareholding" },
+      { id: "m12", name: "FII holding", value: "16.7 %", cat: "Shareholding" },
+      { id: "m13", name: "Public holding", value: "11.1 %", cat: "Shareholding" },
+      { id: "m14", name: "Change in promoter holding", value: "0.02 %", cat: "Shareholding" },
+      { id: "m15", name: "Number of equity shares preceding year", value: "1,353.2 Cr.", cat: "Shareholding" },
+      { id: "m16", name: "Market Capitalization", value: "₹ 18,12,954 Cr.", cat: "Valuation", liveType: "mcap" },
+      { id: "m17", name: "Price to Earning", value: "22.1", cat: "Valuation", liveType: "pe" },
+      { id: "m18", name: "Industry PE", value: "8.44", cat: "Valuation" },
+      { id: "m19", name: "PEG Ratio", value: "4.22", cat: "Valuation" },
+      { id: "m20", name: "Price to book value", value: "1.92", cat: "Valuation" },
+      { id: "m21", name: "Historical PE 3Years", value: "24.8", cat: "Valuation" },
+      { id: "m22", name: "Historical PE 5Years", value: "26.1", cat: "Valuation" },
+      { id: "m23", name: "Historical PBV 3Years", value: "2.15", cat: "Valuation" },
+      { id: "m24", name: "Enterprise Value", value: "₹ 21,21,051 Cr.", cat: "Valuation" },
+      { id: "m25", name: "EVEBITDA", value: "11.7", cat: "Valuation" },
+      { id: "m26", name: "Price to Sales", value: "1.67", cat: "Valuation" },
+      { id: "m27", name: "Price to Free Cash Flow", value: "68.5", cat: "Valuation" },
+      { id: "m28", name: "PB X PE", value: "42.43", cat: "Valuation" },
+      { id: "m29", name: "Graham Number", value: "₹ 976.50", cat: "Valuation" },
+      { id: "m30", name: "Intrinsic Value", value: "₹ 1,485", cat: "Valuation" },
+      { id: "m31", name: "NCAVPS", value: "₹ 142.50", cat: "Valuation" },
+      { id: "m32", name: "Piotroski score", value: "7.0 / 9", cat: "Valuation" },
+      { id: "m33", name: "G Factor", value: "6.0", cat: "Valuation" },
+      { id: "m34", name: "Altman Z Score", value: "3.42", cat: "Valuation" },
+      { id: "m35", name: "Credit rating", value: "CRISIL AAA", cat: "Valuation" },
+      { id: "m36", name: "Book value preceding year", value: "₹ 642", cat: "Valuation" },
+      { id: "m37", name: "Sales Qtr", value: "₹ 3,30,601 Cr.", cat: "Quarterly" },
+      { id: "m38", name: "Sales latest quarter", value: "₹ 3,30,601 Cr.", cat: "Quarterly" },
+      { id: "m39", name: "Sales Prev Qtr", value: "₹ 3,09,468 Cr.", cat: "Quarterly" },
+      { id: "m40", name: "Sales preceding quarter", value: "₹ 3,09,468 Cr.", cat: "Quarterly" },
+      { id: "m41", name: "Sales PY Qtr", value: "₹ 2,54,623 Cr.", cat: "Quarterly" },
+      { id: "m42", name: "Sales preceding year quarter", value: "₹ 2,54,623 Cr.", cat: "Quarterly" },
+      { id: "m43", name: "Sales 2quarters back", value: "₹ 2,98,110 Cr.", cat: "Quarterly" },
+      { id: "m44", name: "Sales 3quarters back", value: "₹ 2,84,900 Cr.", cat: "Quarterly" },
+      { id: "m45", name: "Expected quarterly sales", value: "₹ 3,42,000 Cr.", cat: "Quarterly" },
+      { id: "m46", name: "YOY Quarterly sales growth", value: "11.8 %", cat: "Quarterly" },
+      { id: "m47", name: "PAT Qtr", value: "₹ 25,548 Cr.", cat: "Quarterly" },
+      { id: "m48", name: "Profit after tax latest quarter", value: "₹ 25,548 Cr.", cat: "Quarterly" },
+      { id: "m49", name: "PAT Prev Qtr", value: "₹ 20,946 Cr.", cat: "Quarterly" },
+      { id: "m50", name: "Profit after tax preceding quarter", value: "₹ 20,946 Cr.", cat: "Quarterly" },
+      { id: "m51", name: "PAT PY Qtr", value: "₹ 18,165 Cr.", cat: "Quarterly" },
+      { id: "m52", name: "Profit after tax preceding year quarter", value: "₹ 18,165 Cr.", cat: "Quarterly" },
+      { id: "m53", name: "YOY Quarterly profit growth", value: "14.2 %", cat: "Quarterly" },
+      { id: "m54", name: "Operating profit latest quarter", value: "₹ 44,980 Cr.", cat: "Quarterly" },
+      { id: "m55", name: "Operating profit preceding quarter", value: "₹ 42,110 Cr.", cat: "Quarterly" },
+      { id: "m56", name: "Other income latest quarter", value: "₹ 4,120 Cr.", cat: "Quarterly" },
+      { id: "m57", name: "EBIDT latest quarter", value: "₹ 49,100 Cr.", cat: "Quarterly" },
+      { id: "m58", name: "Depreciation latest quarter", value: "₹ 13,200 Cr.", cat: "Quarterly" },
+      { id: "m59", name: "EBIT latest quarter", value: "₹ 35,900 Cr.", cat: "Quarterly" },
+      { id: "m60", name: "Interest latest quarter", value: "₹ 5,890 Cr.", cat: "Quarterly" },
+      { id: "m61", name: "GPM latest quarter", value: "34.8 %", cat: "Quarterly" },
+      { id: "m62", name: "OPM latest quarter", value: "13.6 %", cat: "Quarterly" },
+      { id: "m63", name: "NPM latest quarter", value: "8.94 %", cat: "Quarterly" },
+      { id: "m64", name: "NPM Prev Qtr", value: "7.50 %", cat: "Quarterly" },
+      { id: "m65", name: "NPM preceding quarter", value: "7.50 %", cat: "Quarterly" },
+      { id: "m66", name: "NPM PY Qtr", value: "8.68 %", cat: "Quarterly" },
+      { id: "m67", name: "NPM preceding year quarter", value: "8.68 %", cat: "Quarterly" },
+      { id: "m68", name: "EPS latest quarter", value: "₹ 18.88", cat: "Quarterly" },
+      { id: "m69", name: "EPS preceding quarter", value: "₹ 15.48", cat: "Quarterly" },
+      { id: "m70", name: "EPS preceding year quarter", value: "₹ 13.42", cat: "Quarterly" },
+      { id: "m71", name: "Expected quarterly EPS", value: "₹ 19.65", cat: "Quarterly" },
+      { id: "m72", name: "Sales", value: "₹ 10,84,210 Cr.", cat: "Annual P&L" },
+      { id: "m73", name: "OPM", value: "16.4 %", cat: "Annual P&L" },
+      { id: "m74", name: "Profit after tax", value: "₹ 79,020 Cr.", cat: "Annual P&L" },
+      { id: "m75", name: "EPS", value: "₹ 60.68", cat: "Annual P&L" },
+      { id: "m76", name: "Sales last year", value: "₹ 10,00,122 Cr.", cat: "Annual P&L" },
+      { id: "m77", name: "Operating profit last year", value: "₹ 1,64,890 Cr.", cat: "Annual P&L" },
+      { id: "m78", name: "Other income last year", value: "₹ 16,120 Cr.", cat: "Annual P&L" },
+      { id: "m79", name: "EBIDT last year", value: "₹ 1,81,010 Cr.", cat: "Annual P&L" },
+      { id: "m80", name: "Depreciation last year", value: "₹ 50,832 Cr.", cat: "Annual P&L" },
+      { id: "m81", name: "EBIT last year", value: "₹ 1,30,178 Cr.", cat: "Annual P&L" },
+      { id: "m82", name: "Interest last year", value: "₹ 23,118 Cr.", cat: "Annual P&L" },
+      { id: "m83", name: "Profit before tax last year", value: "₹ 1,07,060 Cr.", cat: "Annual P&L" },
+      { id: "m84", name: "Tax last year", value: "₹ 28,040 Cr.", cat: "Annual P&L" },
+      { id: "m85", name: "Net Profit last year", value: "₹ 79,020 Cr.", cat: "Annual P&L" },
+      { id: "m86", name: "Dividend last year", value: "₹ 6,766 Cr.", cat: "Annual P&L" },
+      { id: "m87", name: "Material cost last year", value: "64.2 %", cat: "Annual P&L" },
+      { id: "m88", name: "Employee cost last year", value: "3.1 %", cat: "Annual P&L" },
+      { id: "m89", name: "OPM last year", value: "16.5 %", cat: "Annual P&L" },
+      { id: "m90", name: "NPM last year", value: "7.90 %", cat: "Annual P&L" },
+      { id: "m91", name: "Sales preceding year", value: "₹ 9,85,120 Cr.", cat: "Annual P&L" },
+      { id: "m92", name: "Operating profit preceding year", value: "₹ 1,62,400 Cr.", cat: "Annual P&L" },
+      { id: "m93", name: "Other income preceding year", value: "₹ 14,890 Cr.", cat: "Annual P&L" },
+      { id: "m94", name: "EBIDT preceding year", value: "₹ 1,77,290 Cr.", cat: "Annual P&L" },
+      { id: "m95", name: "Depreciation preceding year", value: "₹ 48,110 Cr.", cat: "Annual P&L" },
+      { id: "m96", name: "EBIT preceding year", value: "₹ 1,29,180 Cr.", cat: "Annual P&L" },
+      { id: "m97", name: "Interest preceding year", value: "₹ 21,500 Cr.", cat: "Annual P&L" },
+      { id: "m98", name: "Profit before tax preceding year", value: "₹ 1,07,680 Cr.", cat: "Annual P&L" },
+      { id: "m99", name: "Net Profit preceding year", value: "₹ 69,621 Cr.", cat: "Annual P&L" },
+      { id: "m100", name: "Sales preceding 12months", value: "₹ 10,12,400 Cr.", cat: "Annual P&L" },
+      { id: "m101", name: "EPS preceding year", value: "₹ 51.45", cat: "Annual P&L" },
+      { id: "m102", name: "Average Earnings 5Year", value: "₹ 68,400 Cr.", cat: "Annual P&L" },
+      { id: "m103", name: "Average EBIT 5Year", value: "₹ 1,14,200 Cr.", cat: "Annual P&L" },
+      { id: "m104", name: "Sales growth 3Years", value: "14.6 %", cat: "Annual P&L" },
+      { id: "m105", name: "Sales growth 5Years", value: "12.9 %", cat: "Annual P&L" },
+      { id: "m106", name: "Sales growth 7Years", value: "13.4 %", cat: "Annual P&L" },
+      { id: "m107", name: "Sales growth 10Years", value: "11.8 %", cat: "Annual P&L" },
+      { id: "m108", name: "EBIDT growth 3Years", value: "15.2 %", cat: "Annual P&L" },
+      { id: "m109", name: "EBIDT growth 5Years", value: "14.1 %", cat: "Annual P&L" },
+      { id: "m110", name: "EPS growth 3Years", value: "13.9 %", cat: "Annual P&L" },
+      { id: "m111", name: "EPS growth 5Years", value: "12.7 %", cat: "Annual P&L" },
+      { id: "m112", name: "Profit growth 3Years", value: "15.1 %", cat: "Annual P&L" },
+      { id: "m113", name: "Profit growth 5Years", value: "13.8 %", cat: "Annual P&L" },
+      { id: "m114", name: "Return on capital employed", value: "10.3 %", cat: "Profitability" },
+      { id: "m115", name: "Return on assets", value: "5.42 %", cat: "Profitability" },
+      { id: "m116", name: "Return on equity", value: "8.91 %", cat: "Profitability" },
+      { id: "m117", name: "Return on invested capital", value: "11.4 %", cat: "Profitability" },
+      { id: "m118", name: "Average return on equity 5Years", value: "9.45 %", cat: "Profitability" },
+      { id: "m119", name: "Average return on equity 3Years", value: "9.12 %", cat: "Profitability" },
+      { id: "m120", name: "Return on capital employed preceding year", value: "9.85 %", cat: "Profitability" },
+      { id: "m121", name: "Return on equity preceding year", value: "8.42 %", cat: "Profitability" },
+      { id: "m122", name: "Median return on capital employed 5Years", value: "10.1 %", cat: "Profitability" },
+      { id: "m123", name: "ROCE3yr avg", value: "10.1 %", cat: "Profitability" },
+      { id: "m124", name: "Asset Turnover Ratio", value: "0.64", cat: "Profitability" },
+      { id: "m125", name: "Quick ratio", value: "0.75", cat: "Profitability" },
+      { id: "m126", name: "Current ratio", value: "1.18", cat: "Profitability" },
+      { id: "m127", name: "Interest Coverage Ratio", value: "5.63", cat: "Profitability" },
+      { id: "m128", name: "Inventory turnover ratio", value: "6.82", cat: "Profitability" },
+      { id: "m129", name: "Debtor days", value: "11.2 days", cat: "Profitability" },
+      { id: "m130", name: "Working Capital Days", value: "22.4 days", cat: "Profitability" },
+      { id: "m131", name: "Cash Conversion Cycle", value: "-18.5 days", cat: "Profitability" },
+      { id: "m132", name: "Reserves", value: "₹ 9,30,871 Cr.", cat: "Balance Sheet" },
+      { id: "m133", name: "Debt", value: "₹ 4,05,322 Cr.", cat: "Balance Sheet" },
+      { id: "m134", name: "Debt to equity", value: "0.43", cat: "Balance Sheet" },
+      { id: "m135", name: "Equity capital", value: "₹ 13,532 Cr.", cat: "Balance Sheet" },
+      { id: "m136", name: "Secured loan", value: "₹ 2,18,400 Cr.", cat: "Balance Sheet" },
+      { id: "m137", name: "Unsecured loan", value: "₹ 1,86,922 Cr.", cat: "Balance Sheet" },
+      { id: "m138", name: "Balance sheet total", value: "₹ 17,55,980 Cr.", cat: "Balance Sheet" },
+      { id: "m139", name: "Total Assets", value: "₹ 17,55,980 Cr.", cat: "Balance Sheet" },
+      { id: "m140", name: "Gross block", value: "₹ 11,42,300 Cr.", cat: "Balance Sheet" },
+      { id: "m141", name: "Net block", value: "₹ 7,88,450 Cr.", cat: "Balance Sheet" },
+      { id: "m142", name: "Capital work in progress", value: "₹ 1,92,340 Cr.", cat: "Balance Sheet" },
+      { id: "m143", name: "Investments", value: "₹ 2,34,110 Cr.", cat: "Balance Sheet" },
+      { id: "m144", name: "Current assets", value: "₹ 4,12,890 Cr.", cat: "Balance Sheet" },
+      { id: "m145", name: "Current liabilities", value: "₹ 3,48,210 Cr.", cat: "Balance Sheet" },
+      { id: "m146", name: "Working capital", value: "₹ 64,680 Cr.", cat: "Balance Sheet" },
+      { id: "m147", name: "Inventory", value: "₹ 1,52,770 Cr.", cat: "Balance Sheet" },
+      { id: "m148", name: "Trade receivables", value: "₹ 31,628 Cr.", cat: "Balance Sheet" },
+      { id: "m149", name: "Cash Equivalents", value: "₹ 97,225 Cr.", cat: "Balance Sheet" },
+      { id: "m150", name: "Trade Payables", value: "₹ 1,78,377 Cr.", cat: "Balance Sheet" },
+      { id: "m151", name: "Debt preceding year", value: "₹ 3,89,110 Cr.", cat: "Balance Sheet" },
+      { id: "m152", name: "Working capital preceding year", value: "₹ 59,420 Cr.", cat: "Balance Sheet" },
+      { id: "m153", name: "Net block preceding year", value: "₹ 7,41,200 Cr.", cat: "Balance Sheet" },
+      { id: "m154", name: "Working capital 3Years back", value: "₹ 48,900 Cr.", cat: "Balance Sheet" },
+      { id: "m155", name: "Working capital 5Years back", value: "₹ 39,120 Cr.", cat: "Balance Sheet" },
+      { id: "m156", name: "Debt 3Years back", value: "₹ 3,14,705 Cr.", cat: "Balance Sheet" },
+      { id: "m157", name: "Debt 5Years back", value: "₹ 2,51,811 Cr.", cat: "Balance Sheet" },
+      { id: "m158", name: "Net block 3Years back", value: "₹ 6,12,800 Cr.", cat: "Balance Sheet" },
+      { id: "m159", name: "Cash from operations last year", value: "₹ 1,58,788 Cr.", cat: "Cash Flow" },
+      { id: "m160", name: "CFO to EBITDA last year", value: "0.88", cat: "Cash Flow" },
+      { id: "m161", name: "Free cash flow last year", value: "₹ 26,440 Cr.", cat: "Cash Flow" },
+      { id: "m162", name: "Cash from investing last year", value: "-₹ 1,14,301 Cr.", cat: "Cash Flow" },
+      { id: "m163", name: "Cash from financing last year", value: "-₹ 16,646 Cr.", cat: "Cash Flow" },
+      { id: "m164", name: "Net cash flow last year", value: "₹ 27,841 Cr.", cat: "Cash Flow" },
+      { id: "m165", name: "Cash beginning of last year", value: "₹ 69,384 Cr.", cat: "Cash Flow" },
+      { id: "m166", name: "Cash end of last year", value: "₹ 97,225 Cr.", cat: "Cash Flow" },
+      { id: "m167", name: "Free cash flow preceding year", value: "₹ 19,820 Cr.", cat: "Cash Flow" },
+      { id: "m168", name: "Cash from operations preceding year", value: "₹ 1,41,200 Cr.", cat: "Cash Flow" },
+      { id: "m169", name: "Cash from investing preceding year", value: "-₹ 1,08,450 Cr.", cat: "Cash Flow" },
+      { id: "m170", name: "Net cash flow preceding year", value: "₹ 14,120 Cr.", cat: "Cash Flow" },
+      { id: "m171", name: "Free cash flow 3years", value: "₹ 68,900 Cr.", cat: "Cash Flow" },
+      { id: "m172", name: "Free cash flow 5years", value: "₹ 1,12,400 Cr.", cat: "Cash Flow" },
+      { id: "m173", name: "Operating cash flow 3years", value: "₹ 4,15,200 Cr.", cat: "Cash Flow" },
+      { id: "m174", name: "Operating cash flow 5years", value: "₹ 6,42,800 Cr.", cat: "Cash Flow" },
+      { id: "m175", name: "Cash 3Years back", value: "₹ 56,110 Cr.", cat: "Cash Flow" },
+      { id: "m176", name: "Cash 5Years back", value: "₹ 42,890 Cr.", cat: "Cash Flow" },
+      { id: "m177", name: "DMA 50", value: "₹ 1,318.40", cat: "Technical" },
+      { id: "m178", name: "DMA 200", value: "₹ 1,364.20", cat: "Technical" },
+      { id: "m179", name: "DMA 50 previous day", value: "₹ 1,316.90", cat: "Technical" },
+      { id: "m180", name: "DMA 200 previous day", value: "₹ 1,363.80", cat: "Technical" },
+      { id: "m181", name: "RSI", value: "54.8", cat: "Technical", liveType: "rsi" },
+      { id: "m182", name: "MACD", value: "+8.42", cat: "Technical", liveType: "macd" },
+      { id: "m183", name: "MACD Signal", value: "+5.19", cat: "Technical" },
+      { id: "m184", name: "MACD Previous Day", value: "+7.95", cat: "Technical" },
+      { id: "m185", name: "Volume", value: "1,39,75,234", cat: "Technical", liveType: "volume" },
+      { id: "m186", name: "Volume 1week average", value: "1,42,10,000", cat: "Technical" },
+      { id: "m187", name: "Volume 1month average", value: "1,58,40,000", cat: "Technical" },
+      { id: "m188", name: "Volume 1year average", value: "1,64,20,000", cat: "Technical" },
+      { id: "m189", name: "52w Index", value: "40.8 %", cat: "Technical" },
+      { id: "m190", name: "Down from 52w high", value: "-16.8 %", cat: "Technical" },
+      { id: "m191", name: "Up from 52w low", value: "+16.3 %", cat: "Technical" },
+      { id: "m192", name: "Return over 1day", value: "0.00 %", cat: "Technical", liveType: "ret1d" },
+      { id: "m193", name: "Return over 1week", value: "+1.85 %", cat: "Technical" },
+      { id: "m194", name: "Return over 1month", value: "+4.12 %", cat: "Technical" },
+      { id: "m195", name: "Return over 3months", value: "-2.30 %", cat: "Technical" },
+      { id: "m196", name: "Return over 6months", value: "+6.75 %", cat: "Technical" },
+      { id: "m197", name: "Return over 1year", value: "12.4 %", cat: "Technical" },
+      { id: "m198", name: "Return over 3years", value: "18.7 %", cat: "Technical" },
+      { id: "m199", name: "Return over 5years", value: "21.3 %", cat: "Technical" },
+      { id: "m200", name: "Return over 7years", value: "+24.1 %", cat: "Technical" },
+      { id: "m201", name: "Return over 10years", value: "+22.8 %", cat: "Technical" }
+    ];
+
+    const STORAGE_KEY = "suzlon_custom_ratio_order_v1";
+    let metrics = [];
+    let selectedCategory = "All";
+    let arrangeMode = false;
+    let isLive = true;
+    let dragSrcIndex = null;
+
+    // Live market-data state (no synthetic/random price movement)
+    let currentPrice = null;
+    let currentVolume = null;
+    let currentRSI = null;
+    let liveMarketData = null;
+    let liveRefreshTimer = null;
+
+    function loadSavedOrder() {
+      try {
+        const savedIds = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
+        if (Array.isArray(savedIds) && savedIds.length > 0) {
+          const map = new Map(DEFAULT_METRICS.map(m => [m.id, { ...m }]));
+          const ordered = [];
+          savedIds.forEach(id => {
+            if (map.has(id)) {
+              ordered.push(map.get(id));
+              map.delete(id);
+            }
+          });
+          map.forEach(item => ordered.push(item));
+          metrics = ordered;
+          return;
+        }
+      } catch (e) {
+        console.warn("Storage read failed:", e);
+      }
+      metrics = DEFAULT_METRICS.map(m => ({ ...m }));
+    }
+
+    function renderCategoryPills() {
+      const cats = ["All", "Valuation", "Quarterly", "Annual P&L", "Profitability", "Balance Sheet", "Cash Flow", "Shareholding", "Technical"];
+      const container = document.getElementById("category-pills");
+      if (!container) return;
+      container.innerHTML = cats.map(c => `
+        <button class="cat-pill ${c === selectedCategory ? 'active' : ''}" onclick="setCategory('${c}')">${c}</button>
+      `).join("");
+    }
+
+    function setCategory(cat) {
+      selectedCategory = cat;
+      renderCategoryPills();
+      renderGrid();
+    }
+
+    function renderGrid() {
+      const searchEl = document.getElementById("search-input");
+      const query = searchEl ? searchEl.value.trim().toLowerCase() : "";
+      const grid = document.getElementById("ratios-grid");
+      if (!grid) return;
+
+      const visible = metrics
+        .map((item, actualIndex) => ({ ...item, actualIndex }))
+        .filter(item => {
+          const catMatch = selectedCategory === "All" || item.cat === selectedCategory;
+          const qMatch = !query || item.name.toLowerCase().includes(query) || item.value.toLowerCase().includes(query);
+          return catMatch && qMatch;
+        });
+
+      const countBadge = document.getElementById("ratio-count-badge");
+      if (countBadge) {
+        countBadge.textContent = `Showing ${visible.length} of ${metrics.length} Ratios`;
+      }
+
+      grid.innerHTML = visible.map(item => {
+        const idx = item.actualIndex;
+        return `
+          <li class="ratio-item ${arrangeMode ? 'arrange-active' : ''}"
+              ${arrangeMode ? `draggable="true" ondragstart="handleDragStart(event, ${idx})" ondragover="handleDragOver(event)" ondrop="handleDrop(event, ${idx})" ondragend="handleDragEnd(event)"` : ''}>
+            <div class="ratio-left">
+              ${arrangeMode ? `<span class="drag-handle" title="Drag to reorder">&#9776;</span>` : ''}
+              <span class="ratio-idx">#${idx + 1}</span>
+              <span class="ratio-name" title="${item.name}">${item.name}</span>
+            </div>
+            <div class="ratio-right">
+              <span class="ratio-val" data-metric-id="${item.id}">${item.value}</span>
+              ${arrangeMode ? `
+                <span class="order-btns">
+                  <button class="mini-btn" onclick="moveItem(${idx}, -1)" title="Move Up">&#9650;</button>
+                  <button class="mini-btn" onclick="moveItem(${idx}, 1)" title="Move Down">&#9660;</button>
+                </span>
+              ` : ''}
+            </div>
+          </li>
+        `;
+      }).join("");
+    }
+
+    // ==========================================
+    // 3. ORDERING & SAVING CONTROLS
+    // ==========================================
+    function toggleArrangeMode() {
+      arrangeMode = !arrangeMode;
+      const banner = document.getElementById("arrange-banner");
+      const saveBtn = document.getElementById("save-order-btn");
+      const resetBtn = document.getElementById("reset-order-btn");
+      const toggleBtn = document.getElementById("toggle-arrange-btn");
+
+      if (banner) banner.style.display = arrangeMode ? "flex" : "none";
+      if (saveBtn) saveBtn.style.display = arrangeMode ? "inline-flex" : "none";
+      if (resetBtn) resetBtn.style.display = arrangeMode ? "inline-flex" : "none";
+      if (toggleBtn) toggleBtn.textContent = arrangeMode ? "✖ EXIT ARRANGE" : "⚙ ARRANGE ORDER";
+      renderGrid();
+    }
+
+    function moveItem(index, direction) {
+      const target = index + direction;
+      if (target < 0 || target >= metrics.length) return;
+      const temp = metrics[index];
+      metrics[index] = metrics[target];
+      metrics[target] = temp;
+      renderGrid();
+    }
+
+    function handleDragStart(e, index) {
+      dragSrcIndex = index;
+      e.currentTarget.classList.add("dragging");
+      e.dataTransfer.effectAllowed = "move";
+    }
+
+    function handleDragOver(e) {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = "move";
+    }
+
+    function handleDrop(e, dropIndex) {
+      e.preventDefault();
+      if (dragSrcIndex === null || dragSrcIndex === dropIndex) return;
+      const [moved] = metrics.splice(dragSrcIndex, 1);
+      metrics.splice(dropIndex, 0, moved);
+      dragSrcIndex = null;
+      renderGrid();
+    }
+
+    function handleDragEnd(e) {
+      e.currentTarget.classList.remove("dragging");
+    }
+
+    function saveOrder() {
+      const idOrder = metrics.map(m => m.id);
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(idOrder));
+        showToast("Saved custom order of all " + metrics.length + " ratios!");
+      } catch (e) {
+        console.warn("Could not save ratio order:", e);
+        showToast("Browser storage unavailable; order not saved");
+      }
+    }
+
+    function resetOrder() {
+      localStorage.removeItem(STORAGE_KEY);
+      metrics = DEFAULT_METRICS.map(m => ({ ...m }));
+      renderGrid();
+      showToast("Reset to default sequence");
+    }
+
+    // ==========================================
+    // 4. LIVE MARKET DATA (Yahoo Finance chart feed)
+    //    Daily history powers technical indicators; quote metadata supplies LTP.
+    //    The feed may be delayed. No random/demo values are generated.
+    // ==========================================
+    function formatIndian(num, digits = 0) {
+      return Number(num).toLocaleString("en-IN", { maximumFractionDigits: digits, minimumFractionDigits: digits });
+    }
+
+    function selectedNseSymbol() {
+      const label = (document.getElementById("main-script-link")?.textContent || "SUZLON");
+      const raw = label.replace("↗", "").trim().toUpperCase();
+      return raw.endsWith(".NS") || raw.endsWith(".BO") || raw.startsWith("^") ? raw : `${raw}.NS`;
+    }
+
+    function calculateRsi(closes, period = 14) {
+      if (closes.length <= period) return null;
+      let gain = 0, loss = 0;
+      for (let i = 1; i <= period; i++) {
+        const delta = closes[i] - closes[i - 1];
+        gain += Math.max(delta, 0);
+        loss += Math.max(-delta, 0);
+      }
+      let avgGain = gain / period, avgLoss = loss / period;
+      for (let i = period + 1; i < closes.length; i++) {
+        const delta = closes[i] - closes[i - 1];
+        avgGain = ((avgGain * (period - 1)) + Math.max(delta, 0)) / period;
+        avgLoss = ((avgLoss * (period - 1)) + Math.max(-delta, 0)) / period;
+      }
+      if (avgLoss === 0) return avgGain === 0 ? 50 : 100;
+      const rs = avgGain / avgLoss;
+      return 100 - (100 / (1 + rs));
+    }
+
+    function averageTail(values, count) {
+      if (values.length < count) return null;
+      const tail = values.slice(-count);
+      return tail.reduce((sum, value) => sum + value, 0) / count;
+    }
+
+    function setSnapshotValue(key, value) {
+      const item = document.querySelector(`.market-snapshot-item[data-market-key="${key}"] .market-snapshot-value`);
+      if (item) item.textContent = value;
+    }
+
+    function setMetricValue(names, value) {
+      const wanted = new Set(names.map(n => n.toLowerCase()));
+      metrics.forEach(m => {
+        if (wanted.has(m.name.toLowerCase())) {
+          m.value = value;
+          const el = document.querySelector(`[data-metric-id="${m.id}"]`);
+          if (el) el.textContent = value;
+        }
+      });
+    }
+
+    function setLiveStatus(message, ok = true) {
+      const status = document.getElementById("live-status-text");
+      const dot = document.getElementById("live-dot");
+      if (status) status.textContent = message;
+      if (dot) dot.style.background = ok ? "#16a34a" : "#dc2626";
+    }
+
+    function classifyTrend(last, sma20, sma50, sma200) {
+      const above20 = sma20 !== null && last > sma20;
+      const above50 = sma50 !== null && last > sma50;
+      const above200 = sma200 !== null && last > sma200;
+      if (above20 && above50 && above200) return "STRONG BULLISH";
+      if (above20 && above50) return "BULLISH";
+      if (!above20 && !above50) return "BEARISH";
+      return "MIXED";
+    }
+
+    function classifyMomentum(rsi) {
+      if (rsi === null) return "N/A";
+      if (rsi >= 70) return "OVERBOUGHT";
+      if (rsi <= 30) return "OVERSOLD";
+      if (rsi >= 55) return "POSITIVE";
+      if (rsi <= 45) return "WEAK";
+      return "NEUTRAL";
+    }
+
+    async function fetchYahooJson(url) {
+      // A standalone file:// page is not allowed by Yahoo's browser CORS policy.
+      // Try Yahoo directly, then public CORS relays. No demo/random values are used.
+      const candidates = [
+        url,
+        `https://corsproxy.io/?url=${encodeURIComponent(url)}`,
+        `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+        `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`
+      ];
+      let lastError = null;
+      for (const candidate of candidates) {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 12000);
+        try {
+          const response = await fetch(candidate, {
+            cache: "no-store",
+            signal: controller.signal,
+            headers: { "Accept": "application/json,text/plain,*/*" }
+          });
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+          const payload = await response.json();
+          if (payload?.chart?.error) {
+            throw new Error(payload.chart.error.description || "Yahoo Finance returned an error");
+          }
+          if (payload?.chart?.result?.[0]) return payload;
+          throw new Error("The data provider returned no chart data");
+        } catch (err) {
+          lastError = err;
+        } finally {
+          clearTimeout(timer);
+        }
+      }
+      throw lastError || new Error("Could not connect to Yahoo Finance or its data relays");
+    }
+
+    function calculateRollingRsi(closes, period = 14) {
+      // Matches the rolling-average RSI calculation used by financial_health_scanner.py.
+      if (closes.length <= period) return null;
+      const changes = [];
+      for (let i = 1; i < closes.length; i++) changes.push(closes[i] - closes[i - 1]);
+      const gains = changes.map(v => Math.max(v, 0));
+      const losses = changes.map(v => Math.max(-v, 0));
+      const avgGain = gains.slice(-period).reduce((a, b) => a + b, 0) / period;
+      const avgLoss = losses.slice(-period).reduce((a, b) => a + b, 0) / period;
+      if (avgLoss === 0) return avgGain === 0 ? 50 : 100;
+      const rs = avgGain / avgLoss;
+      return 100 - (100 / (1 + rs));
+    }
+
+    function calculateEma(values, span) {
+      if (!values.length) return null;
+      const alpha = 2 / (span + 1);
+      let ema = values[0];
+      for (let i = 1; i < values.length; i++) {
+        ema = (values[i] * alpha) + (ema * (1 - alpha));
+      }
+      return ema;
+    }
+
+    let liveRequestId = 0;
+    async function fetchLiveMarketData() {
+      if (!isLive) return;
+      const requestId = ++liveRequestId;
+      const symbol = selectedNseSymbol();
+      const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?range=1y&interval=1d&events=div%2Csplits&includePrePost=false`;
+      setLiveStatus(`Fetching ${symbol} market data…`);
+      try {
+        const payload = await fetchYahooJson(url);
+        if (!isLive || requestId !== liveRequestId || symbol !== selectedNseSymbol()) return;
+        const result = payload.chart.result[0];
+        const quote = result.indicators?.quote?.[0] || {};
+        const closesRaw = quote.close || [];
+        const highsRaw = quote.high || [];
+        const lowsRaw = quote.low || [];
+        const volumesRaw = quote.volume || [];
+        const validCloses = closesRaw.filter(v => Number.isFinite(v));
+        const validHighs = highsRaw.filter(v => Number.isFinite(v));
+        const validLows = lowsRaw.filter(v => Number.isFinite(v));
+        const validVolumes = volumesRaw.filter(v => Number.isFinite(v));
+        if (validCloses.length < 30) throw new Error("Not enough daily price history for technical indicators");
+
+        const meta = result.meta || {};
+        const lastClose = validCloses[validCloses.length - 1];
+        const quotePrice = Number(meta.regularMarketPrice);
+        const ltp = Number.isFinite(quotePrice) && quotePrice > 0 ? quotePrice : lastClose;
+        const previousClose = Number(meta.chartPreviousClose || meta.previousClose || validCloses[validCloses.length - 2]);
+        const dayChange = Number.isFinite(previousClose) && previousClose !== 0
+          ? ((ltp / previousClose) - 1) * 100 : null;
+
+        const sma20 = averageTail(validCloses, 20);
+        const sma50 = averageTail(validCloses, 50);
+        const sma200 = averageTail(validCloses, 200);
+        const ema50 = calculateEma(validCloses, 50);
+        const rsi = calculateRollingRsi(validCloses, 14);
+        const high52 = Number(meta.fiftyTwoWeekHigh) ||
+          (validHighs.length ? Math.max(...validHighs.slice(-252)) : null);
+        const low52 = Number(meta.fiftyTwoWeekLow) ||
+          (validLows.length ? Math.min(...validLows.slice(-252)) : null);
+        const volume = Number(meta.regularMarketVolume) ||
+          validVolumes[validVolumes.length - 1] || 0;
+
+        // Trend follows the Python scanner's 50 EMA + 200 SMA method.
+        const above50Ema = ema50 !== null && ltp > ema50;
+        const above200Sma = sma200 !== null && ltp > sma200;
+        const trend = above50Ema && above200Sma ? "STRONG BULLISH" :
+          above50Ema ? "BULLISH" :
+          (!above50Ema && !above200Sma) ? "BEARISH" : "MIXED";
+        const momentum = rsi === null ? "Unavailable" :
+          rsi > 70 ? "OVERBOUGHT" :
+          rsi < 30 ? "OVERSOLD" :
+          rsi >= 55 ? "POSITIVE" :
+          rsi <= 45 ? "WEAK" : "NEUTRAL";
+
+        const money = n => n === null || !Number.isFinite(n) || n <= 0
+          ? "Unavailable" : `₹ ${formatIndian(n, 2)}`;
+        const pct = n => n === null || !Number.isFinite(n)
+          ? "Unavailable" : `${n >= 0 ? "+" : ""}${n.toFixed(2)}%`;
+
+        currentPrice = ltp;
+        currentVolume = volume;
+        currentRSI = rsi;
+        liveMarketData = {
+          symbol, ltp, previousClose, dayChange, volume, rsi,
+          sma20, sma50, sma200, ema50, high52, low52, trend, momentum, meta
+        };
+
+        const priceText = money(ltp);
+        const changeText = pct(dayChange);
+        const priceEl = document.getElementById("header-price");
+        const changeEl = document.getElementById("header-change");
+        if (priceEl) priceEl.textContent = priceText;
+        if (changeEl) {
+          changeEl.textContent = changeText;
+          changeEl.className = `live-badge ${dayChange !== null && dayChange < 0 ? "down" : ""}`;
+        }
+
+        // Refresh every quote/technical field in the one-line LTP → Momentum strip.
+        setSnapshotValue("ltp", priceText);
+        setSnapshotValue("change", changeText);
+        setSnapshotValue("volume", volume ? formatIndian(volume) : "Unavailable");
+        setSnapshotValue("rsi", rsi === null ? "Unavailable" : rsi.toFixed(2));
+        setSnapshotValue("sma20", money(sma20));
+        // The Python reference scanner calculates 50 EMA and 200 SMA.
+        setSnapshotValue("sma50", money(ema50));
+        setSnapshotValue("sma200", money(sma200));
+        setSnapshotValue("high", money(high52));
+        setSnapshotValue("low", money(low52));
+        setSnapshotValue("trend", trend);
+        setSnapshotValue("momentum", momentum);
+
+        // Yahoo chart metadata often omits fundamentals. Update only when genuinely supplied.
+        const mcap = Number(meta.marketCap);
+        const pe = Number(meta.trailingPE || meta.forwardPE);
+        const eps = Number(meta.epsTrailingTwelveMonths || meta.trailingEps);
+        const roe = Number(meta.returnOnEquity);
+        const debtEquity = Number(meta.debtToEquity);
+        if (Number.isFinite(mcap) && mcap > 0) setSnapshotValue("mcap", `₹ ${formatIndian(mcap / 1e7, 2)} Cr.`);
+        if (Number.isFinite(pe) && pe > 0) setSnapshotValue("pe", pe.toFixed(2));
+        if (Number.isFinite(eps)) setSnapshotValue("eps", `₹ ${formatIndian(eps, 2)}`);
+        if (Number.isFinite(roe)) setSnapshotValue("roe", `${(roe * 100).toFixed(2)}%`);
+        if (Number.isFinite(debtEquity)) setSnapshotValue("de", debtEquity.toFixed(2));
+
+        // Keep the corresponding entries in the main ratio list synchronized.
+        setMetricValue(["Current Price"], priceText);
+        setMetricValue(["High / Low"], `${money(high52)} / ${money(low52)}`);
+        setMetricValue(["Return over 1day"], dayChange === null ? "Unavailable" : `${dayChange >= 0 ? "+" : ""}${dayChange.toFixed(2)} %`);
+        setMetricValue(["RSI", "RSI 14", "Relative Strength Index"], rsi === null ? "Unavailable" : rsi.toFixed(2));
+        setMetricValue(["SMA 20", "20 Day Moving Average", "DMA 20", "DMA 20 current day"], money(sma20));
+        setMetricValue(["SMA 50", "50 Day Moving Average", "DMA 50", "DMA 50 current day"], money(ema50));
+        setMetricValue(["SMA 200", "200 Day Moving Average", "DMA 200", "DMA 200 current day"], money(sma200));
+        setMetricValue(["Volume"], formatIndian(volume));
+
+        const stamp = meta.regularMarketTime
+          ? new Date(meta.regularMarketTime * 1000) : new Date();
+        const stampText = stamp.toLocaleString("en-IN", { dateStyle: "short", timeStyle: "medium" });
+        setLiveStatus(`Yahoo Finance • ${stampText}${meta.exchangeName ? ` • ${meta.exchangeName}` : ""} • refreshes every 60s`);
+      } catch (error) {
+        if (!isLive || requestId !== liveRequestId) return;
+        console.error("Live market-data refresh failed:", error);
+        setLiveStatus(`Feed unavailable • ${error.message}`, false);
+        // Do not replace existing valid figures with fake or zero values.
+        ["ltp","change","volume","rsi","sma20","sma50","sma200","high","low","trend","momentum"].forEach(key => {
+          const el = document.querySelector(`.market-snapshot-item[data-market-key="${key}"] .market-snapshot-value`);
+          if (el && (el.textContent === "Loading…" || el.textContent === "Not supplied")) {
+            el.textContent = "Unavailable";
+          }
+        });
+      }
+    }
+
+    function updateLiveMetrics() {
+      return fetchLiveMarketData();
+    }
+
+    function toggleLiveFeed() {
+      isLive = !isLive;
+      const btn = document.getElementById("live-toggle-btn");
+      const dot = document.getElementById("live-dot");
+      if (btn) btn.textContent = isLive ? "⏸ PAUSE LIVE FEED" : "▶ RESUME LIVE FEED";
+      if (dot) dot.style.background = isLive ? "#16a34a" : "#9ca3af";
+      const statusText = document.getElementById("live-status-text");
+      if (!isLive) {
+        liveRequestId++; // Ignore any request that was already in flight.
+        if (statusText) statusText.textContent = "Paused";
+      } else {
+        updateLiveMetrics();
+      }
+    }
+
+    function exportCSV() {
+      const rows = [["Order", "Category", "Ratio Name", "Live Value"]];
+      const quoteCsv = value => `"${String(value ?? "").replace(/"/g, '""')}"`;
+      metrics.forEach((m, idx) => {
+        rows.push([idx + 1, quoteCsv(m.cat), quoteCsv(m.name), quoteCsv(m.value)]);
+      });
+      const csv = "\uFEFF" + rows.map(r => r.join(",")).join("\r\n");
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${selectedNseSymbol().replace(/\.(NS|BO)$/i, "")}_Custom_Ratios.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast("Exported custom ratio list to CSV");
+    }
+
+    function showToast(msg) {
+      const t = document.getElementById("toast");
+      if (!t) return;
+      t.textContent = msg;
+      t.classList.add("show");
+      clearTimeout(window._toastTimer);
+      window._toastTimer = setTimeout(() => t.classList.remove("show"), 2600);
+    }
+
+    // Initialize on DOM Ready
+    document.addEventListener("DOMContentLoaded", function() {
+      loadSavedOrder();
+      applySelectedSymbol(getRequestedSymbol());
+      renderCategoryPills();
+      renderGrid();
+      renderWorkspace();
+      updateLiveMetrics();
+      liveRefreshTimer = setInterval(() => { if (isLive) updateLiveMetrics(); }, 60000);
+    });
+  </script>
+</body>
+</html>
