@@ -4472,6 +4472,80 @@ def screener_window_page():
     return send_file(str(screener_file), mimetype="text/html")
 
 
+
+@app.route("/api/screener-live/<path:symbol>", methods=["GET"])
+def api_screener_live(symbol):
+    """Server-side live quote/history proxy for the selected stock screener symbol."""
+    account, auth_error = _require_supervisor()
+    if auth_error:
+        return auth_error
+
+    raw_symbol = str(symbol or "").strip().upper()
+    clean_symbol = re.sub(r"[^A-Z0-9&._-]", "", raw_symbol)
+    if not clean_symbol:
+        return jsonify({"success": False, "message": "Invalid stock symbol."}), 400
+
+    # Respect an explicitly supplied Yahoo suffix; otherwise try NSE and then BSE.
+    if clean_symbol.endswith(".NS"):
+        base_symbol = clean_symbol[:-3]
+        tickers = [clean_symbol, base_symbol + ".BO"]
+    elif clean_symbol.endswith(".BO"):
+        base_symbol = clean_symbol[:-3]
+        tickers = [clean_symbol, base_symbol + ".NS"]
+    else:
+        tickers = [clean_symbol + ".NS", clean_symbol + ".BO"]
+
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                      "AppleWebKit/537.36 (KHTML, like Gecko) "
+                      "Chrome/124.0.0.0 Safari/537.36",
+        "Accept": "application/json,text/plain,*/*",
+    }
+    last_error = "No Yahoo Finance chart data returned"
+
+    for ticker in tickers:
+        for host in ("query1.finance.yahoo.com", "query2.finance.yahoo.com"):
+            try:
+                url = f"https://{host}/v8/finance/chart/{quote(ticker, safe='')}"
+                response = requests.get(
+                    url,
+                    params={
+                        "range": "1y",
+                        "interval": "1d",
+                        "events": "div,splits",
+                        "includePrePost": "false",
+                    },
+                    headers=headers,
+                    timeout=12,
+                )
+                response.raise_for_status()
+                payload = response.json()
+                results = ((payload.get("chart") or {}).get("result") or [])
+                if results:
+                    result = results[0] or {}
+                    quote_data = ((result.get("indicators") or {}).get("quote") or [{}])[0]
+                    closes = [v for v in (quote_data.get("close") or []) if isinstance(v, (int, float))]
+                    if len(closes) >= 30:
+                        response_obj = jsonify({
+                            "success": True,
+                            "symbol": ticker,
+                            "chart": payload.get("chart") or {},
+                        })
+                        response_obj.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+                        return response_obj
+                    last_error = f"{ticker}: insufficient daily price history"
+                else:
+                    last_error = ((payload.get("chart") or {}).get("error") or {}).get("description") or f"{ticker}: no chart result"
+            except Exception as exc:
+                last_error = f"{ticker}: {exc}"
+
+    return jsonify({
+        "success": False,
+        "message": "Live market data is unavailable for this script from Yahoo Finance.",
+        "error": str(last_error),
+    }), 502
+
+
 @app.route("/api/screener/<path:symbol>", methods=["GET"])
 def api_screener_proxy(symbol):
     """Fetch live Screener.in company fundamentals & URL for desktop split-screen."""
