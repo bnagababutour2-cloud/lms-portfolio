@@ -545,7 +545,7 @@ def _screener_symbol_metadata(symbol):
         f"https://www.screener.in/company/{clean_sym}/",
     ):
         try:
-            resp = requests.get(url, headers=headers, timeout=6)
+            resp = requests.get(url, headers=headers, timeout=2)
             if resp.status_code != 200 or "<h1" not in resp.text:
                 continue
             html = resp.text
@@ -605,7 +605,7 @@ def _yahoo_symbol_metadata(symbol):
         for ticker in tickers:
             try:
                 url = 'https://query1.finance.yahoo.com/v10/finance/quoteSummary/' + quote(ticker, safe='')
-                response = requests.get(url, params={'modules': 'assetProfile,price'}, headers=headers, timeout=6)
+                response = requests.get(url, params={'modules': 'assetProfile,price'}, headers=headers, timeout=2)
                 if response.ok:
                     data = response.json().get('quoteSummary', {}).get('result') or []
                     if data:
@@ -627,7 +627,7 @@ def _yahoo_symbol_metadata(symbol):
                         'https://query1.finance.yahoo.com/v7/finance/quote',
                         params={'symbols': ticker},
                         headers=headers,
-                        timeout=6,
+                        timeout=2,
                     )
                     if response.ok:
                         q = (response.json().get('quoteResponse', {}).get('result') or [])
@@ -638,10 +638,9 @@ def _yahoo_symbol_metadata(symbol):
                 except Exception:
                     pass
 
-    # Only cache complete hits so transient network hiccups retry later
-    if result.get('industry') and result.get('market_cap'):
-        with _YF_META_LOCK:
-            _YF_META_CACHE[norm_sym] = result
+    # Cache both complete and partial/empty results so unmapped symbols don't stall every client click
+    with _YF_META_LOCK:
+        _YF_META_CACHE[norm_sym] = result
     return result
 
 
