@@ -669,18 +669,23 @@ body.tradelogs-split-open #tradeLogsSplitDrawer{display:flex;}
   }
 
 
-  /* 4. Stretch Matching Clients panel & list to match full height of the analytics box */
+  /* 4. Constrain Matching Clients panel strictly to the exact height of the donut chart window */
   .logbook-layout {
     align-items: stretch !important;
   }
   .logbook-client-panel {
-    display: flex !important;
-    flex-direction: column !important;
+    position: relative !important;
+    min-height: 0 !important;
   }
   .logbook-client-list {
-    flex: 1 1 auto !important;
+    position: absolute !important;
+    top: 96px !important;
+    left: 12px !important;
+    right: 12px !important;
+    bottom: 12px !important;
     max-height: none !important;
-    min-height: 430px !important;
+    min-height: 0 !important;
+    overflow-y: auto !important;
   }
 
   /* Ensure dropdowns (like Multi-Clients) stay above page cards but below drawers */
