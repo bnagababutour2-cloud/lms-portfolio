@@ -961,7 +961,7 @@
           <div class="swot-cell swot-opportunity"><strong>—</strong><span>OPPORTUNITIES</span></div>
           <div class="swot-cell swot-threat"><strong>—</strong><span>THREATS</span></div>
         </div>
-        <div class="swot-caption" id="swot-data-note">A verified SWOT feed is not supplied by Screener.in; no sample scores are shown.</div>
+        <div class="swot-caption" id="swot-data-note">Company-specific SWOT checklist and PE valuation are loaded from Trendlyne.</div>
       </article>
 
       <article class="pe-check-card">
@@ -1717,31 +1717,6 @@
       });
     }
 
-    function renderCompanySwot(swot, sourceName) {
-      const grid = document.getElementById("fundamental-swot");
-      const note = document.getElementById("swot-data-note");
-      if (!grid) return;
-      const labels = ["strengths", "weaknesses", "opportunities", "threats"];
-      const cells = Array.from(grid.querySelectorAll(".swot-cell"));
-      let available = 0;
-      labels.forEach((key, index) => {
-        const item = swot && swot[key];
-        const count = item && Number.isFinite(Number(item.count)) ? Number(item.count) : null;
-        if (cells[index]) {
-          const strong = cells[index].querySelector("strong");
-          if (strong) strong.textContent = count === null ? "—" : String(count);
-          const details = item && Array.isArray(item.items) ? item.items : [];
-          cells[index].title = details.length ? details.join("; ") : "No supported indicator available";
-          if (count !== null) available++;
-        }
-      });
-      if (note) {
-        note.textContent = available
-          ? `Rule-based company SWOT indicators from ${sourceName || "the connected financial source"}. Counts reflect available financial metrics, not analyst opinions. Hover each panel for the supporting indicators.`
-          : "SWOT unavailable: the selected company has insufficient verified financial indicators. No sample scores are displayed.";
-      }
-    }
-
     function applyCompanyFundamentals(data) {
       companyFundamentals = data;
       const symbol = data.symbol || getRequestedSymbol();
@@ -1785,13 +1760,55 @@
         ["ROCE3yr avg", "ROCE 3Yr Avg"], ["Return on invested capital", "ROIC Current"]
       ]);
 
-      const pe = ratioValue("Stock P/E", "Price to Earning", "P/E");
-      setTextIfPresent("pe-current-value", pe ? `Current P/E ${pe}` : "Unavailable");
-      setTextIfPresent("pe-forward-value", "Unavailable");
-      setTextIfPresent("pe-insight-text", pe ? `Current company P/E from Screener.in: ${pe}. A fair-value percentage is not supplied by this source.` : "P/E valuation is unavailable in the source response.");
-      // SWOT is calculated only from verified company-specific financial indicators.
-      renderCompanySwot(data.swot || null, data.source || "connected financial source");
-      setTextIfPresent("analyst-target-note", "Analyst target data is not supplied by the connected financial source.");
+      // Trendlyne's published stock overview is the source of the SWOT checklist
+      // counts and PE Buy/Sell Zone valuation. Do not derive or hard-code sample scores.
+      const tl = data.trendlyne && data.trendlyne.success ? data.trendlyne : null;
+      const swot = tl?.swot || {};
+      const swotGrid = document.getElementById("fundamental-swot");
+      const swotItems = [
+        ["strengths", "STRENGTHS", "swot-strength"],
+        ["weaknesses", "WEAKNESSES", "swot-weakness"],
+        ["opportunities", "OPPORTUNITIES", "swot-opportunity"],
+        ["threats", "THREATS", "swot-threat"]
+      ];
+      if (swotGrid) {
+        swotGrid.innerHTML = swotItems.map(([key, label, css]) => {
+          const rawValue = swot[key];
+          const value = rawValue !== null && rawValue !== undefined && rawValue !== "" && Number.isFinite(Number(rawValue)) ? String(rawValue) : "—";
+          return `<div class="swot-cell ${css}"><strong>${escapeHTML(value)}</strong><span>${label}</span></div>`;
+        }).join("");
+      }
+      const checklist = tl?.checklist || {};
+      const currentPe = tl?.pe?.current || {};
+      const forwardPe = tl?.pe?.forward || {};
+      const fmtPct = value => value !== null && value !== undefined && value !== "" && Number.isFinite(Number(value)) ? `${Number(value).toFixed(1)}%` : "";
+      const valuationText = item => {
+        const status = item?.status || "";
+        const upside = fmtPct(item?.upside);
+        return status && upside ? `${status} ${upside}` : (status || "Unavailable");
+      };
+      setTextIfPresent("pe-current-value", valuationText(currentPe));
+      setTextIfPresent("pe-forward-value", valuationText(forwardPe));
+      const peInsightText = tl?.pe?.insight || "Trendlyne has not supplied a PE valuation insight for this company.";
+      setTextIfPresent("pe-insight-text", peInsightText);
+      const swotNote = document.getElementById("swot-data-note");
+      if (swotNote) {
+        if (tl) {
+          const bits = [];
+          if (checklist.rank) bits.push(checklist.rank);
+          if (checklist.positive !== null && checklist.positive !== undefined && checklist.negative !== null && checklist.negative !== undefined && Number.isFinite(Number(checklist.positive)) && Number.isFinite(Number(checklist.negative))) bits.push(`${checklist.positive} positive / ${checklist.negative} negative checks`);
+          if (fmtPct(checklist.passPercent)) bits.push(`${fmtPct(checklist.passPercent)} checklist pass`);
+          swotNote.textContent = `Trendlyne SWOT checklist · ${bits.join(" · ")} · refreshed ${tl.fetched_at || ""}`;
+          if (swot.url) swotNote.innerHTML += ` · <a href="${escapeHTML(swot.url)}" target="_blank" rel="noopener noreferrer">View Trendlyne SWOT ↗</a>`;
+        } else {
+          swotNote.textContent = `Trendlyne SWOT / PE data unavailable: ${data.trendlyne?.message || "source did not return company-specific data"}. No sample values are displayed.`;
+        }
+      }
+      const peInsight = document.getElementById("pe-insight-text");
+      if (peInsight && tl?.pe?.buySellZoneUrl) {
+        peInsight.innerHTML = `${escapeHTML(peInsight.textContent)} · <a href="${escapeHTML(tl.pe.buySellZoneUrl)}" target="_blank" rel="noopener noreferrer">Trendlyne PE zone ↗</a>`;
+      }
+      setTextIfPresent("analyst-target-note", "Analyst target data is not supplied by the connected Screener.in endpoint.");
       setTextIfPresent("analyst-rating-note", "Analyst recommendation distribution is not supplied by the connected Screener.in endpoint.");
       setTextIfPresent("analyst-consensus", "N/A");
       document.querySelectorAll("[data-rating]").forEach(el => el.textContent = "N/A");
@@ -1819,9 +1836,8 @@
       } catch (error) {
         if (requestId !== fundamentalsRequestId) return;
         console.warn("Company fundamentals refresh unavailable:", error);
-        renderCompanySwot(null, "connected financial source");
         const note = document.getElementById("swot-data-note");
-        if (note) note.textContent = `SWOT unavailable because company fundamentals could not be fetched: ${error.message}. No sample values are displayed.`;
+        if (note) note.textContent = `Company fundamentals unavailable: ${error.message}. No sample values are displayed.`;
       }
     }
 
