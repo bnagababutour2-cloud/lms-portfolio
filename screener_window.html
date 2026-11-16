@@ -1735,6 +1735,95 @@
       const symbol = data.symbol || getRequestedSymbol();
       const ratios = formatFundamentalRows(data.ratios || []);
       const companyUrl = data.url || `https://www.screener.in/company/${encodeURIComponent(symbol)}/consolidated/`;
+
+      // IMPORTANT: Every one of the fixed 201 dashboard ratios belongs to the
+      // currently selected script. Never leave the previous script's snapshot
+      // value behind when a new company is selected. We first clear all 201
+      // values, then apply only values actually supplied for this company.
+      // Live Yahoo-derived technical values are applied afterward by
+      // fetchLiveMarketData().
+      metrics.forEach(m => { m.value = "Unavailable"; });
+
+      const sourceRows = ratios.map(r => ({
+        label: r.label,
+        value: r.value,
+        normalized: normalizeFundamentalLabel(r.label)
+      }));
+      const sourceByLabel = new Map(sourceRows.map(r => [r.normalized, r.value]));
+
+      // Match a dashboard label to the selected company's Screener ratio.
+      // Exact matching is preferred; aliases cover the deliberate naming
+      // differences used by this 201-ratio dashboard. No unrelated company
+      // value is used as a fallback.
+      const ratioAliases = {
+        "market cap": ["market capitalization", "market cap"],
+        "market capitalization": ["market capitalization", "market cap"],
+        "stock p e": ["stock p e", "stock p/e", "price to earning", "p e"],
+        "price to earning": ["price to earning", "stock p e", "stock p/e"],
+        "book value": ["book value"],
+        "price to book value": ["price to book value", "price to book"],
+        "dividend yield": ["dividend yield"],
+        "current ratio": ["current ratio"],
+        "quick ratio": ["quick ratio"],
+        "debt to equity": ["debt to equity"],
+        "interest coverage ratio": ["interest coverage ratio"],
+        "promoter holding": ["promoter holding"],
+        "fii holding": ["fii holding", "fii holding %"],
+        "dii holding": ["dii holding", "dii holding %"],
+        "public holding": ["public holding"],
+        "roce": ["roce", "return on capital employed"],
+        "roe": ["roe", "return on equity"],
+        "return on capital employed": ["return on capital employed", "roce"],
+        "return on equity": ["return on equity", "roe"],
+        "return on invested capital": ["return on invested capital", "roic"],
+        "asset turnover ratio": ["asset turnover ratio"],
+        "inventory turnover ratio": ["inventory turnover ratio"],
+        "cash conversion cycle": ["cash conversion cycle"],
+        "debtor days": ["debtor days"],
+        "working capital days": ["working capital days"],
+        "eps": ["eps"],
+        "sales": ["sales"],
+        "profit after tax": ["profit after tax", "net profit"],
+        "net profit": ["net profit", "profit after tax"],
+        "operating profit": ["operating profit"],
+        "opm": ["opm"],
+        "npm": ["npm"],
+        "gpm": ["gpm"],
+        "cash from operations last year": ["cash from operations last year", "cash from operating activities last year"],
+        "free cash flow last year": ["free cash flow last year"],
+        "equity capital": ["equity capital"],
+        "reserves": ["reserves"],
+        "debt": ["debt"],
+        "enterprise value": ["enterprise value"]
+      };
+
+      function findSelectedCompanyRatio(metricName) {
+        const normalized = normalizeFundamentalLabel(metricName);
+        const direct = sourceByLabel.get(normalized);
+        if (direct !== undefined) return direct;
+        const aliases = ratioAliases[normalized] || [];
+        for (const alias of aliases) {
+          const value = sourceByLabel.get(normalizeFundamentalLabel(alias));
+          if (value !== undefined) return value;
+        }
+        // Controlled compact comparison for labels such as "Sales Qtr" vs
+        // "Sales Qtr" with punctuation/spacing differences.
+        const compact = value => normalizeFundamentalLabel(value).replace(/\s+/g, "");
+        const target = compact(metricName);
+        if (target) {
+          const hit = sourceRows.find(r => {
+            const label = compact(r.label);
+            return label === target;
+          });
+          if (hit) return hit.value;
+        }
+        return null;
+      }
+
+      metrics.forEach(m => {
+        const selectedValue = findSelectedCompanyRatio(m.name);
+        if (selectedValue !== null && selectedValue !== "") m.value = selectedValue;
+      });
       ["summary-sales-growth", "summary-profit-growth", "summary-price-eps-cagr", "summary-roe-capital"].forEach(id => {
         const card = document.getElementById(id);
         if (card) card.href = companyUrl;
@@ -1747,16 +1836,10 @@
         [/promoter|fii|dii|holding|pledge/i, "Shareholding"],
         [/price|pe|peg|market cap|enterprise|yield|valuation/i, "Valuation"]
       ];
-      // Keep existing dashboard metrics and synchronize matching entries to the selected company.
-      ratios.forEach((r, index) => {
-        const label = normalizeFundamentalLabel(r.label);
-        let cat = "Valuation";
-        for (const [pattern, candidate] of categoryRules) if (pattern.test(label)) { cat = candidate; break; }
-        const existing = metrics.find(m => normalizeFundamentalLabel(m.name) === label);
-        if (existing) existing.value = r.value;
-        else metrics.push({ id: `src-${index}-${label.replace(/\s+/g,"-")}`, name: r.label, value: r.value, cat });
-      });
-      // Render every fetched Screener ratio in the ratio list/workspace.
+      // Keep the dashboard at exactly the original 201 ratios. Source rows
+      // that do not have a corresponding dashboard metric are intentionally
+      // not appended, so the user's 201-ratio layout/order is preserved.
+      // Every matched value above is now for the selected company only.
       renderGrid();
       if (activeView !== "overview") renderWorkspace();
 
@@ -2026,6 +2109,102 @@
       return ema;
     }
 
+    function calculateEmaSeries(values, span) {
+      if (!values.length) return [];
+      const alpha = 2 / (span + 1);
+      const series = [values[0]];
+      let ema = values[0];
+      for (let i = 1; i < values.length; i++) {
+        ema = (values[i] * alpha) + (ema * (1 - alpha));
+        series.push(ema);
+      }
+      return series;
+    }
+
+    function liveReturnPercent(closes, barsBack, ltp) {
+      if (!Array.isArray(closes) || closes.length <= barsBack || !Number.isFinite(ltp)) return null;
+      const base = Number(closes[closes.length - 1 - barsBack]);
+      if (!Number.isFinite(base) || base === 0) return null;
+      return ((ltp / base) - 1) * 100;
+    }
+
+    function syncPriceDrivenRatios({
+      ltp, high52, low52, volume, rsi, sma20, sma50, sma200,
+      macd, macdSignal, dayChange, returns = {}, mcap = null,
+      pe = null, eps = null, meta = {}
+    }) {
+      const money = n => n === null || !Number.isFinite(Number(n)) ? "Unavailable" : `₹ ${formatIndian(Number(n), 2)}`;
+      const pct = n => n === null || !Number.isFinite(Number(n)) ? "Unavailable" : `${Number(n) >= 0 ? "+" : ""}${Number(n).toFixed(2)} %`;
+
+      // These are the 201-ratio-list entries whose values are market/price driven.
+      // Fundamental-only values continue to come from the existing Screener refresh.
+      setMetricValue(["Current Price"], money(ltp));
+      setMetricValue(["High / Low"], `${money(high52)} / ${money(low52)}`);
+      setMetricValue(["Market Cap", "Market Capitalization"], Number.isFinite(Number(mcap)) && Number(mcap) > 0
+        ? `₹ ${formatIndian(Number(mcap) / 1e7, 2)} Cr.` : "Unavailable");
+      if (Number.isFinite(Number(pe)) && Number(pe) > 0) {
+        setMetricValue(["Stock P/E", "Price to Earning"], Number(pe).toFixed(2));
+      }
+      if (Number.isFinite(Number(eps))) {
+        setMetricValue(["EPS"], `₹ ${formatIndian(Number(eps), 2)}`);
+      }
+
+      setMetricValue(["RSI", "RSI 14", "Relative Strength Index"], rsi === null ? "Unavailable" : Number(rsi).toFixed(2));
+      setMetricValue(["DMA 50", "SMA 50", "50 Day Moving Average", "20 Day Moving Average"], money(sma50));
+      setMetricValue(["DMA 200", "SMA 200", "200 Day Moving Average"], money(sma200));
+      setMetricValue(["Volume"], formatIndian(Number(volume) || 0));
+      setMetricValue(["Return over 1day"], pct(dayChange));
+      setMetricValue(["MACD"], macd === null ? "Unavailable" : `${macd >= 0 ? "+" : ""}${macd.toFixed(2)}`);
+      setMetricValue(["MACD Signal"], macdSignal === null ? "Unavailable" : `${macdSignal >= 0 ? "+" : ""}${macdSignal.toFixed(2)}`);
+
+      const retMap = [
+        [["Return over 1week"], returns["1week"]],
+        [["Return over 1month"], returns["1month"]],
+        [["Return over 3months"], returns["3months"]],
+        [["Return over 6months"], returns["6months"]],
+        [["Return over 1year"], returns["1year"]]
+      ];
+      retMap.forEach(([names, value]) => setMetricValue(names, pct(value)));
+
+      if (Number.isFinite(Number(high52)) && Number(high52) > 0 && Number.isFinite(Number(ltp))) {
+        setMetricValue(["Down from 52w high"], pct(((ltp / Number(high52)) - 1) * 100));
+      }
+      if (Number.isFinite(Number(low52)) && Number(low52) > 0 && Number.isFinite(Number(ltp))) {
+        setMetricValue(["Up from 52w low"], pct(((ltp / Number(low52)) - 1) * 100));
+      }
+      if (Number.isFinite(Number(high52)) && Number.isFinite(Number(low52)) &&
+          Number(high52) > Number(low52) && Number.isFinite(Number(ltp))) {
+        setMetricValue(["52w Index"], `${(((Number(ltp) - Number(low52)) / (Number(high52) - Number(low52))) * 100).toFixed(1)} %`);
+      }
+
+      // Price-derived valuation ratios can be refreshed from the selected company's
+      // existing fundamentals without changing the underlying source logic.
+      const existingValue = name => {
+        const row = metrics.find(m => m.name.toLowerCase() === name.toLowerCase());
+        return row ? String(row.value || "") : "";
+      };
+      const numberFromMetric = name => {
+        const raw = existingValue(name).replace(/₹/g, "").replace(/,/g, "").replace(/%/g, "").trim();
+        const n = parseFloat(raw);
+        return Number.isFinite(n) ? n : null;
+      };
+      const bookValue = numberFromMetric("Book Value");
+      const sales = numberFromMetric("Sales");
+      const shares = numberFromMetric("Number of equity shares preceding year");
+      const dividend = numberFromMetric("Dividend last year");
+
+      if (Number.isFinite(Number(ltp)) && bookValue && bookValue > 0) {
+        setMetricValue(["Price to book value"], (Number(ltp) / bookValue).toFixed(2));
+      }
+      if (Number.isFinite(Number(ltp)) && shares && shares > 0 && sales && sales > 0) {
+        const salesPerShare = sales / shares;
+        if (salesPerShare > 0) setMetricValue(["Price to Sales"], (Number(ltp) / salesPerShare).toFixed(2));
+      }
+      if (Number.isFinite(Number(ltp)) && dividend && dividend > 0) {
+        setMetricValue(["Dividend Yield"], `${((dividend / Number(ltp)) * 100).toFixed(2)} %`);
+      }
+    }
+
     function flashPriceElement(el, newVal, prevVal) {
       if (!el || prevVal === null || newVal === prevVal) return;
       el.classList.remove("flash-up", "flash-down");
@@ -2064,17 +2243,37 @@
         const dayChange = Number.isFinite(previousClose) && previousClose !== 0
           ? ((ltp / previousClose) - 1) * 100 : null;
 
-        const sma20 = averageTail(validCloses, 20);
-        const sma50 = averageTail(validCloses, 50);
-        const sma200 = averageTail(validCloses, 200);
-        const ema50 = calculateEma(validCloses, 50);
-        const rsi = calculateRollingRsi(validCloses, 14);
+        // Use the live LTP as the current bar for all price-driven technical
+        // ratios, while retaining the same historical series and calculations.
+        const liveCloses = validCloses.slice();
+        if (liveCloses.length) liveCloses[liveCloses.length - 1] = ltp;
+
+        const sma20 = averageTail(liveCloses, 20);
+        const sma50 = averageTail(liveCloses, 50);
+        const sma200 = averageTail(liveCloses, 200);
+        const ema50 = calculateEma(liveCloses, 50);
+        const rsi = calculateRollingRsi(liveCloses, 14);
+        const ema12Series = calculateEmaSeries(liveCloses, 12);
+        const ema26Series = calculateEmaSeries(liveCloses, 26);
+        const macdSeries = liveCloses.map((_, i) => ema12Series[i] - ema26Series[i]);
+        const macd = macdSeries.length ? macdSeries[macdSeries.length - 1] : null;
+        const signalSeries = calculateEmaSeries(macdSeries, 9);
+        const macdSignal = signalSeries.length ? signalSeries[signalSeries.length - 1] : null;
+
         const high52 = Number(meta.fiftyTwoWeekHigh) ||
           (validHighs.length ? Math.max(...validHighs.slice(-252)) : null);
         const low52 = Number(meta.fiftyTwoWeekLow) ||
           (validLows.length ? Math.min(...validLows.slice(-252)) : null);
         const volume = Number(meta.regularMarketVolume) ||
           validVolumes[validVolumes.length - 1] || 0;
+
+        const returns = {
+          "1week": liveReturnPercent(validCloses, 5, ltp),
+          "1month": liveReturnPercent(validCloses, 21, ltp),
+          "3months": liveReturnPercent(validCloses, 63, ltp),
+          "6months": liveReturnPercent(validCloses, 126, ltp),
+          "1year": liveReturnPercent(validCloses, 251, ltp)
+        };
 
         const above50Ema = ema50 !== null && ltp > ema50;
         const above200Sma = sma200 !== null && ltp > sma200;
@@ -2149,15 +2348,29 @@
         if (Number.isFinite(roe)) setSnapshotValue("roe", `${(roe * 100).toFixed(2)}%`);
         if (Number.isFinite(debtEquity)) setSnapshotValue("de", debtEquity.toFixed(2));
 
+        // Synchronize every price/market-driven ratio in the full 201-ratio list.
+        // The existing fundamentals refresh continues to supply filing-based values.
+        syncPriceDrivenRatios({
+          ltp, high52, low52, volume, rsi, sma20, sma50, sma200,
+          macd, macdSignal, dayChange, returns,
+          mcap: Number.isFinite(mcap) && mcap > 0 ? mcap : null,
+          pe: Number.isFinite(pe) && pe > 0 ? pe : null,
+          eps, meta
+        });
+
         // Keep the corresponding entries in the main ratio list synchronized
         setMetricValue(["Current Price"], priceText);
         setMetricValue(["High / Low"], `${money(high52)} / ${money(low52)}`);
         setMetricValue(["Return over 1day"], dayChange === null ? "Unavailable" : `${dayChange >= 0 ? "+" : ""}${dayChange.toFixed(2)} %`);
         setMetricValue(["RSI", "RSI 14", "Relative Strength Index"], rsi === null ? "Unavailable" : rsi.toFixed(2));
         setMetricValue(["SMA 20", "20 Day Moving Average", "DMA 20", "DMA 20 current day"], money(sma20));
-        setMetricValue(["SMA 50", "50 Day Moving Average", "DMA 50", "DMA 50 current day"], money(ema50));
+        setMetricValue(["SMA 50", "50 Day Moving Average", "DMA 50", "DMA 50 current day"], money(sma50));
         setMetricValue(["SMA 200", "200 Day Moving Average", "DMA 200", "DMA 200 current day"], money(sma200));
+        setMetricValue(["DMA 50"], money(sma50));
+        setMetricValue(["DMA 200"], money(sma200));
         setMetricValue(["Volume"], formatIndian(volume));
+        setMetricValue(["MACD"], macd === null ? "Unavailable" : `${macd >= 0 ? "+" : ""}${macd.toFixed(2)}`);
+        setMetricValue(["MACD Signal"], macdSignal === null ? "Unavailable" : `${macdSignal >= 0 ? "+" : ""}${macdSignal.toFixed(2)}`);
 
         // Also re-render workspace overview if currently open so live values appear there too
         if (activeView === "overview") renderWorkspace();
