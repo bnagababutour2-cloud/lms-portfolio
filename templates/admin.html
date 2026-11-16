@@ -2234,7 +2234,9 @@ window.setLogbookFilter=async function(filter,button){
 
       renderSidebar(defaultMarketData);
       const pill = document.getElementById('mktFeedStatus');
-      if(pill) pill.textContent = '● LIVE';
+      const moversLive = ['gainers','losers','active'].some(group => Array.isArray(liveData[group]) && liveData[group].length > 0);
+      const indexLive = !!(liveData.nifty || liveData.sensex);
+      if(pill) pill.textContent = (moversLive && indexLive) ? '● LIVE' : (moversLive || indexLive) ? '● PARTIAL' : '● FEED RETRY';
     } catch(e){
       // Keep the last successfully received prices visible during a temporary feed outage.
       const pill = document.getElementById('mktFeedStatus');
