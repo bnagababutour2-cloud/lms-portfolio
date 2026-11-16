@@ -2500,6 +2500,101 @@ def _get_yahoo_ltp(symbol, exchange):
     return None
 
 
+
+def _fetch_yahoo_market_quote(yahoo_symbol):
+    """Fetch one live Yahoo Finance quote with its previous-close change."""
+    last_error = None
+    for base_url in (
+        "https://query2.finance.yahoo.com/v8/finance/chart/",
+        "https://query1.finance.yahoo.com/v8/finance/chart/",
+    ):
+        try:
+            response = _get_ltp_session().get(
+                base_url + quote(yahoo_symbol, safe=""),
+                params={"range": "1d", "interval": "1m", "includePrePost": "false"},
+                timeout=6,
+            )
+            response.raise_for_status()
+            payload = response.json()
+            results = ((payload.get("chart") or {}).get("result") or [])
+            if not results:
+                last_error = (payload.get("chart") or {}).get("error") or "No quote data"
+                continue
+            meta = results[0].get("meta") or {}
+            price = meta.get("regularMarketPrice")
+            previous = meta.get("chartPreviousClose") or meta.get("previousClose")
+            if price in (None, ""):
+                continue
+            price = float(price)
+            previous = float(previous) if previous not in (None, "") else price
+            change = price - previous
+            pct = (change / previous * 100.0) if previous else 0.0
+            return {"price": price, "change": change, "pct": pct}
+        except Exception as exc:
+            last_error = exc
+    print(f"[MARKET PULSE] Yahoo quote failed for {yahoo_symbol}: {last_error}")
+    return None
+
+
+@app.route("/api/market-pulse", methods=["GET"])
+def market_pulse_api():
+    """Return live index and requested sidebar stock quotes; read-only endpoint."""
+    supervisor_id = session.get("supervisor_id")
+    if not _get_supervisor(supervisor_id):
+        return jsonify({"success": False, "message": "Login required."}), 401
+
+    requested = []
+    for raw_symbol in request.args.get("symbols", "").split(","):
+        symbol = re.sub(r"[^A-Z0-9&._-]", "", raw_symbol.strip().upper())
+        if symbol and symbol not in requested:
+            requested.append(symbol)
+    # Keep this endpoint bounded even if a client supplies an unusually long list.
+    requested = requested[:30]
+
+    yahoo_symbols = {
+        "nifty": "^NSEI",
+        "sensex": "^BSESN",
+    }
+    for symbol in requested:
+        yahoo_symbols[symbol] = symbol if symbol.endswith((".NS", ".BO")) else symbol + ".NS"
+
+    quotes = {}
+    import concurrent.futures
+    with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+        futures = {
+            executor.submit(_fetch_yahoo_market_quote, ticker): key
+            for key, ticker in yahoo_symbols.items()
+        }
+        for future in concurrent.futures.as_completed(futures):
+            key = futures[future]
+            try:
+                quote_data = future.result()
+                if quote_data:
+                    if key in ("nifty", "sensex"):
+                        quotes[key] = quote_data
+                    else:
+                        quotes[key] = quote_data
+            except Exception as exc:
+                print(f"[MARKET PULSE] Quote worker failed for {key}: {exc}")
+
+    if not quotes:
+        return jsonify({"success": False, "message": "Live market prices are temporarily unavailable."}), 502
+
+    response = jsonify({
+        "success": True,
+        "data": {
+            "nifty": quotes.get("nifty"),
+            "sensex": quotes.get("sensex"),
+            "quotes": {k: v for k, v in quotes.items() if k not in ("nifty", "sensex")},
+            "updated_at": datetime.now().isoformat(),
+        },
+    })
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    return response
+
+
 def _get_bse_ltp_only(symbol):
     """BSE price through Yahoo .BO."""
     return _get_yahoo_ltp(symbol, "BSE")
