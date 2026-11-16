@@ -638,6 +638,42 @@ body.tradelogs-split-open #tradeLogsSplitDrawer{display:flex;}
 }
 </style>
 
+
+<style id="fixed-top-banner-and-scroll-fix">
+@media (min-width: 1150px) {
+  /* 1. Lock the Top Banner at the top of the viewport */
+  header.top {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 1000 !important;
+    max-width: 1680px !important;
+    width: calc(100% - 24px) !important;
+    margin: 0 auto !important;
+    border-bottom-left-radius: 12px;
+    border-bottom-right-radius: 12px;
+  }
+
+  /* 2. Align the Sticky Left Sidebar directly below the fixed Top Banner */
+  .market-sidebar {
+    position: sticky !important;
+    top: 112px !important; /* Matches header.top height + gap */
+    max-height: calc(100vh - 124px) !important;
+    overflow-y: auto !important;
+  }
+
+  /* 3. Allow the middle/right section to scroll smoothly underneath the banner */
+  .master-main-content {
+    min-width: 0 !important;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Ensure dropdowns (like Multi-Clients) stay above page cards but below drawers */
+  .multi-client-menu {
+    z-index: 950 !important;
+  }
+}
+</style>
 </head>
 <body>
 <header class="top"><div class="header-overlay"><div class="header-subtitle">ADMIN / SUPERVISOR PORTFOLIO &amp; DAILY CONTROL PANEL</div><div class="header-login">Logged in: {{ supervisor_name }} ({{ supervisor_id }}){% if not can_manage %} · VIEW ONLY{% endif %}</div></div></header>
