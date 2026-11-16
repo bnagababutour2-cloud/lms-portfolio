@@ -2227,52 +2227,42 @@ window.setLogbookFilter=async function(filter,button){
   }
 
   async function fetchLiveMarketPulse(){
-    // Try backend proxy /api/market-pulse first if available, else Yahoo Finance / NSE mirror or live tick update
-    try {
-      const res = await fetch('/api/market-pulse?_=' + Date.now(), { cache: 'no-store' });
-      if(res.ok){
-        const json = await res.json();
-        if(json && json.success && json.data){
-          renderSidebar(json.data);
-          const pill = document.getElementById('mktFeedStatus');
-          if(pill) pill.textContent = '● NSE/BSE LIVE';
-          return;
-        }
-      }
-    } catch(e){}
+    const symbols = [...new Set([
+      ...defaultMarketData.gainers,
+      ...defaultMarketData.losers,
+      ...defaultMarketData.active
+    ].map(item => item.symbol))].join(',');
 
-    // Live Yahoo Finance public quote fallback for Nifty (^NSEI) & Sensex (^BSESN)
     try {
-      const yUrl = 'https://query1.finance.yahoo.com/v7/finance/quote?symbols=%5ENSEI,%5EBSESN';
-      const yRes = await fetch(yUrl);
-      if(yRes.ok){
-        const yJson = await yRes.json();
-        const quotes = yJson?.quoteResponse?.result || [];
-        quotes.forEach(q => {
-          if(q.symbol === '^NSEI' && q.regularMarketPrice){
-            defaultMarketData.nifty = { price: q.regularMarketPrice, change: q.regularMarketChange || 0, pct: q.regularMarketChangePercent || 0 };
-          }
-          if(q.symbol === '^BSESN' && q.regularMarketPrice){
-            defaultMarketData.sensex = { price: q.regularMarketPrice, change: q.regularMarketChange || 0, pct: q.regularMarketChangePercent || 0 };
+      const res = await fetch('/api/market-pulse?symbols=' + encodeURIComponent(symbols) + '&_=' + Date.now(), { cache: 'no-store' });
+      if(!res.ok) throw new Error('Market feed HTTP ' + res.status);
+      const json = await res.json();
+      if(!json || !json.success || !json.data) throw new Error('Market feed returned no data');
+
+      const liveData = json.data;
+      const liveQuotes = liveData.quotes || {};
+      ['gainers','losers','active'].forEach(group => {
+        defaultMarketData[group].forEach(item => {
+          const quote = liveQuotes[item.symbol];
+          if(quote && Number(quote.price) > 0){
+            item.price = Number(quote.price);
+            item.pct = Number(quote.pct || 0);
           }
         });
-      }
-    } catch(e){}
-
-    // Also sync any matching live portfolio LTPs into the sidebar stocks
-    const ltpMap = {};
-    document.querySelectorAll('#portfolioTable tbody tr').forEach(r => {
-      const sym = (r.cells[2]?.innerText || '').trim().toUpperCase();
-      const ltp = parseFloat((r.cells[6]?.innerText || '').replace(/,/g,''));
-      if(sym && ltp > 0) ltpMap[sym] = ltp;
-    });
-    ['gainers','losers','active'].forEach(k => {
-      defaultMarketData[k].forEach(item => {
-        if(ltpMap[item.symbol]) item.price = ltpMap[item.symbol];
       });
-    });
 
-    renderSidebar(defaultMarketData);
+      if(liveData.nifty && Number(liveData.nifty.price) > 0) defaultMarketData.nifty = liveData.nifty;
+      if(liveData.sensex && Number(liveData.sensex.price) > 0) defaultMarketData.sensex = liveData.sensex;
+
+      renderSidebar(defaultMarketData);
+      const pill = document.getElementById('mktFeedStatus');
+      if(pill) pill.textContent = '● LIVE';
+    } catch(e){
+      // Keep the last successfully received prices visible during a temporary feed outage.
+      const pill = document.getElementById('mktFeedStatus');
+      if(pill) pill.textContent = '● FEED RETRY';
+      console.warn('[Market Pulse] Live price refresh failed:', e);
+    }
   }
 
   renderSidebar(defaultMarketData);
@@ -2595,6 +2585,7 @@ body.bse-alerts-split-open #bseAlertsSplitDrawer{display: flex;}
 </script>
 
 </body></html>
+
 
 
 
