@@ -1602,8 +1602,8 @@ async function setSelectedPasswords(){
    if(days===null || days===undefined || !Number.isFinite(Number(days))) return false;
    const d=Number(days);
    if(filter==='0-9' || filter==='recent') return d>=0 && d<=10;
-   if(filter==='10-29' || filter==='10-30') return d>10 && d<=30;
-   if(filter==='30-59' || filter==='30-60') return d>30 && d<=60;
+   if(filter==='10-29' || filter==='10-30') return d>=11 && d<=30;
+   if(filter==='30-59' || filter==='30-60') return d>=31 && d<=60;
    if(filter==='60+') return d>60;
    return true;
  }
@@ -1842,6 +1842,13 @@ window.setLogbookFilter=async function(filter,button){
      .then(r=>r.json())
      .then(data=>{
        if(!data.success || selectedLogbookClient!==clientId) return;
+       if(data.last_trade_date){
+         const dt=new Date(data.last_trade_date+'T00:00:00');
+         const today=new Date();today.setHours(0,0,0,0);
+         const diff=!Number.isNaN(dt.getTime())?Math.max(0,Math.floor((today-dt)/86400000)):null;
+         const ltEl=document.getElementById('logbookLastTrade');
+         if(ltEl) ltEl.textContent='Last trade: '+data.last_trade_date+(diff!==null?' ('+diff+' days ago)':'');
+       }
        const td=data.trading_days||{};
        [['daysWeek',td.week],['daysMonth',td.month],['daysQuarter',td.quarter],['daysFY',td.financial_year]].forEach(([id,v])=>{
          const el=document.getElementById(id);
