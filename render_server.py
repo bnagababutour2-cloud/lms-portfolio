@@ -427,6 +427,13 @@ _BUILTIN_CLASSIFICATIONS = {
     "ELGIEQUIP": {"industry": "Capital Goods & Defence", "market_cap": "Mid Cap"},
     "GRINDWELL": {"industry": "Capital Goods & Defence", "market_cap": "Mid Cap"},
     "CARBORUNIV": {"industry": "Capital Goods & Defence", "market_cap": "Mid Cap"},
+    "CDSL": {"industry": "Financial Services", "market_cap": "Mid Cap"},
+    "ANGELONE": {"industry": "Financial Services", "market_cap": "Mid Cap"},
+    "BSE": {"industry": "Financial Services", "market_cap": "Mid Cap"},
+    "MCX": {"industry": "Financial Services", "market_cap": "Mid Cap"},
+    "IEX": {"industry": "Financial Services", "market_cap": "Small Cap"},
+    "CAMS": {"industry": "Financial Services", "market_cap": "Mid Cap"},
+    "KFINTECH": {"industry": "Financial Services", "market_cap": "Mid Cap"},
     "FINCABLES": {"industry": "Capital Goods & Defence", "market_cap": "Small Cap"},
     "FINPIPE": {"industry": "Capital Goods & Defence", "market_cap": "Small Cap"},
     "PRINCEPIPE": {"industry": "Capital Goods & Defence", "market_cap": "Small Cap"},
@@ -545,7 +552,7 @@ def _screener_symbol_metadata(symbol):
         f"https://www.screener.in/company/{clean_sym}/",
     ):
         try:
-            resp = requests.get(url, headers=headers, timeout=6)
+            resp = requests.get(url, headers=headers, timeout=3)
             if resp.status_code != 200 or "<h1" not in resp.text:
                 continue
             html = resp.text
@@ -588,7 +595,10 @@ def _yahoo_symbol_metadata(symbol):
         return {}
     with _YF_META_LOCK:
         if norm_sym in _YF_META_CACHE:
-            return _YF_META_CACHE[norm_sym]
+            cached_val, cached_at = _YF_META_CACHE[norm_sym]
+            ttl = 86400 if (cached_val.get('industry') and cached_val.get('market_cap')) else 900
+            if time.time() - cached_at < ttl:
+                return cached_val
 
     result = {}
     # 1. Try Screener.in first (most accurate for Indian NSE/BSE stocks, including small caps & BSE-only scrips)
@@ -598,14 +608,14 @@ def _yahoo_symbol_metadata(symbol):
     if scr.get('market_cap'):
         result['market_cap'] = scr['market_cap']
 
-    # 2. If either field is still missing, try Yahoo Finance quoteSummary + quote fallback
+    # 2. If either field is still missing, try Yahoo Finance quoteSummary + quote + chart fallback
     if not result.get('industry') or not result.get('market_cap'):
         tickers = [raw_sym] if raw_sym.endswith(('.NS', '.BO')) else [norm_sym + '.NS', norm_sym + '.BO']
         headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124.0 Safari/537.36'}
         for ticker in tickers:
             try:
                 url = 'https://query1.finance.yahoo.com/v10/finance/quoteSummary/' + quote(ticker, safe='')
-                response = requests.get(url, params={'modules': 'assetProfile,price'}, headers=headers, timeout=6)
+                response = requests.get(url, params={'modules': 'assetProfile,price'}, headers=headers, timeout=3)
                 if response.ok:
                     data = response.json().get('quoteSummary', {}).get('result') or []
                     if data:
@@ -627,7 +637,7 @@ def _yahoo_symbol_metadata(symbol):
                         'https://query1.finance.yahoo.com/v7/finance/quote',
                         params={'symbols': ticker},
                         headers=headers,
-                        timeout=6,
+                        timeout=3,
                     )
                     if response.ok:
                         q = (response.json().get('quoteResponse', {}).get('result') or [])
@@ -637,12 +647,53 @@ def _yahoo_symbol_metadata(symbol):
                                 result['market_cap'] = _cap_from_crore(float(mc) / 10000000.0)
                 except Exception:
                     pass
+            if not result.get('market_cap'):
+                try:
+                    c_resp = requests.get(
+                        'https://query1.finance.yahoo.com/v8/finance/chart/' + quote(ticker, safe=''),
+                        params={'range': '1d', 'interval': '1d'},
+                        headers=headers,
+                        timeout=3,
+                    )
+                    if c_resp.ok:
+                        c_res = (c_resp.json().get('chart', {}).get('result') or [])
+                        if c_res:
+                            meta_c = c_res[0].get('meta') or {}
+                            mc = meta_c.get('marketCap')
+                            if isinstance(mc, (int, float)) and mc > 0:
+                                result['market_cap'] = _cap_from_crore(float(mc) / 10000000.0)
+                except Exception:
+                    pass
 
-    # Only cache complete hits so transient network hiccups retry later
-    if result.get('industry') and result.get('market_cap'):
-        with _YF_META_LOCK:
-            _YF_META_CACHE[norm_sym] = result
+    with _YF_META_LOCK:
+        _YF_META_CACHE[norm_sym] = (result, time.time())
     return result
+
+def _resolve_symbols_metadata_parallel(symbols):
+    """Fetch metadata for all uncached symbols concurrently instead of sequentially."""
+    import concurrent.futures
+    to_fetch = []
+    for sym in set(symbols):
+        norm = _normalize_symbol_key(sym)
+        if not norm or norm in ('-', 'UNKNOWN', 'N/A'):
+            continue
+        meta = COMPANY_CLASSIFICATIONS.get(sym) or COMPANY_CLASSIFICATIONS.get(norm) or {}
+        if meta.get("industry") and meta.get("market_cap"):
+            continue
+        with _YF_META_LOCK:
+            if norm in _YF_META_CACHE:
+                cached_val, cached_at = _YF_META_CACHE[norm]
+                ttl = 86400 if (cached_val.get('industry') and cached_val.get('market_cap')) else 900
+                if time.time() - cached_at < ttl:
+                    continue
+        to_fetch.append(norm)
+
+    if not to_fetch:
+        return
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=12) as executor:
+        futures = [executor.submit(_yahoo_symbol_metadata, s) for s in to_fetch]
+        concurrent.futures.wait(futures, timeout=7)
 
 
 
@@ -1557,8 +1608,8 @@ def admin_portfolio():
     if(days === null || days === undefined || !Number.isFinite(Number(days))) return false;
     const n = Number(days);
     if(bucket === 'recent' || bucket === '0-9') return n >= 0 && n <= 10;
-    if(bucket === '10-30' || bucket === '10-29') return n > 10 && n <= 30;
-    if(bucket === '30-60' || bucket === '30-59') return n > 30 && n <= 60;
+    if(bucket === '10-30' || bucket === '10-29') return n >= 11 && n <= 30;
+    if(bucket === '30-60' || bucket === '30-59') return n >= 31 && n <= 60;
     return n > 60;
   }
 
@@ -1768,7 +1819,7 @@ def admin_trade_recency():
                 continue
             cid_key = cid_raw.lower()
             has_holdings.add(cid_key)
-            dt = _clean_trade_date(h.get("trade_date")) or _clean_trade_date(h.get("created_at"))
+            dt = _clean_trade_date(h.get("trade_date")) or _clean_trade_date(h.get("created_at")) or _clean_trade_date(h.get("created_at"))
             if dt and (cid_key not in latest or dt > latest[cid_key]):
                 latest[cid_key] = dt
 
@@ -1830,7 +1881,10 @@ def admin_client_analytics(client_id):
         fy_start = today.replace(year=fy_year, month=4, day=1)
         week_days, month_days, quarter_days, fy_days = set(), set(), set(), set()
 
-        for h in result.data or []:
+        rows = result.data or []
+        _resolve_symbols_metadata_parallel([str(h.get("symbol") or "").strip().upper() for h in rows])
+
+        for h in rows:
             symbol = str(h.get("symbol") or "-").strip().upper()
             qty = _clean_number(h.get("quantity"))
             buy = _clean_number(h.get("buy_price"))
@@ -3290,6 +3344,20 @@ def _start_bse_ltp_updater():
 
 _start_bse_ltp_updater()
 
+def _prewarm_symbol_metadata():
+    if supabase is None:
+        return
+    try:
+        time.sleep(3)
+        res = supabase.table("holdings").select("symbol").execute()
+        syms = [str(r.get("symbol") or "").strip().upper() for r in (res.data or []) if r.get("symbol")]
+        _resolve_symbols_metadata_parallel(syms)
+        print(f"[META] Pre-warmed industry & market-cap metadata for {len(set(syms))} symbols.")
+    except Exception as exc:
+        print(f"[META] Pre-warm warning: {exc}")
+
+threading.Thread(target=_prewarm_symbol_metadata, name="Meta-Prewarm", daemon=True).start()
+
 # -------------------------
 # Daily trade report
 # -------------------------
@@ -3962,7 +4030,7 @@ def upload_trade_report():
         # Canonicalize Client IDs case-insensitively BEFORE any database mutation.
         # Only Client IDs present in this uploaded report are needed here.
         report_client_ids = [trade.get("client") for trade in trades]
-        print(f"[TRADE-REPORT {request_id}] Loading {len(set(str(x or "").strip() for x in report_client_ids))} report Client IDs")
+        print(f"[TRADE-REPORT {request_id}] Loading {len(set(str(x or '').strip() for x in report_client_ids))} report Client IDs")
         client_map = _load_daily_client_map(report_client_ids)
         print(f"[TRADE-REPORT {request_id}] Client ID validation data loaded: {len(client_map)} clients")
         unknown = []
