@@ -2502,8 +2502,11 @@ def _get_yahoo_ltp(symbol, exchange):
 
 
 def _fetch_yahoo_market_quote(yahoo_symbol):
-    """Fetch one live Yahoo Finance quote with its previous-close change."""
+    """Fetch a live Yahoo quote, using chart data and quote API as fallbacks."""
     last_error = None
+    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/131.0 Safari/537.36"}
+
+    # Chart endpoint supplies current price and previous close for indices and stocks.
     for base_url in (
         "https://query2.finance.yahoo.com/v8/finance/chart/",
         "https://query1.finance.yahoo.com/v8/finance/chart/",
@@ -2512,28 +2515,107 @@ def _fetch_yahoo_market_quote(yahoo_symbol):
             response = _get_ltp_session().get(
                 base_url + quote(yahoo_symbol, safe=""),
                 params={"range": "1d", "interval": "1m", "includePrePost": "false"},
-                timeout=6,
+                timeout=8,
             )
             response.raise_for_status()
             payload = response.json()
             results = ((payload.get("chart") or {}).get("result") or [])
             if not results:
-                last_error = (payload.get("chart") or {}).get("error") or "No quote data"
+                last_error = (payload.get("chart") or {}).get("error") or "No chart quote data"
                 continue
             meta = results[0].get("meta") or {}
             price = meta.get("regularMarketPrice")
             previous = meta.get("chartPreviousClose") or meta.get("previousClose")
-            if price in (None, ""):
-                continue
-            price = float(price)
-            previous = float(previous) if previous not in (None, "") else price
-            change = price - previous
-            pct = (change / previous * 100.0) if previous else 0.0
-            return {"price": price, "change": change, "pct": pct}
+            if price not in (None, ""):
+                price = float(price)
+                previous = float(previous) if previous not in (None, "") else price
+                change = price - previous
+                pct = (change / previous * 100.0) if previous else 0.0
+                return {"price": price, "change": change, "pct": pct}
         except Exception as exc:
             last_error = exc
+
+    # Yahoo's quote endpoint is an independent fallback, particularly useful for ^BSESN.
+    try:
+        response = _get_ltp_session().get(
+            "https://query1.finance.yahoo.com/v7/finance/quote",
+            params={"symbols": yahoo_symbol},
+            headers=headers,
+            timeout=8,
+        )
+        response.raise_for_status()
+        items = (response.json().get("quoteResponse") or {}).get("result") or []
+        if items:
+            item = items[0]
+            price = item.get("regularMarketPrice")
+            previous = item.get("regularMarketPreviousClose") or item.get("regularMarketOpen")
+            change = item.get("regularMarketChange")
+            pct = item.get("regularMarketChangePercent")
+            if price not in (None, ""):
+                price = float(price)
+                if change in (None, ""):
+                    previous = float(previous) if previous not in (None, "") else price
+                    change = price - previous
+                if pct in (None, ""):
+                    previous = float(previous) if previous not in (None, "") else price
+                    pct = (float(change) / previous * 100.0) if previous else 0.0
+                return {"price": price, "change": float(change), "pct": float(pct)}
+    except Exception as exc:
+        last_error = exc
+
     print(f"[MARKET PULSE] Yahoo quote failed for {yahoo_symbol}: {last_error}")
     return None
+
+
+def _fetch_yahoo_market_movers(screen_id, limit=5):
+    """Fetch current NSE day gainers, losers, or most-active stocks from Yahoo."""
+    url = "https://query1.finance.yahoo.com/v1/finance/screener/predefined/saved"
+    try:
+        response = _get_ltp_session().get(
+            url,
+            params={
+                "formatted": "false",
+                "lang": "en-IN",
+                "region": "IN",
+                "scrIds": screen_id,
+                "count": int(limit),
+                "start": 0,
+            },
+            timeout=8,
+        )
+        response.raise_for_status()
+        results = (response.json().get("finance") or {}).get("result") or []
+        raw_quotes = (results[0].get("quotes") or []) if results else []
+        movers = []
+        for item in raw_quotes:
+            ticker = str(item.get("symbol") or "").upper()
+            # These sidebar sections are explicitly NSE; do not mix BSE-only symbols.
+            if not ticker.endswith(".NS"):
+                continue
+            price = item.get("regularMarketPrice")
+            pct = item.get("regularMarketChangePercent")
+            if price in (None, "") or pct in (None, ""):
+                continue
+            volume = item.get("regularMarketVolume") or 0
+            if volume >= 10000000:
+                volume_text = f"{volume / 10000000:.2f} Cr"
+            elif volume >= 100000:
+                volume_text = f"{volume / 100000:.2f} L"
+            else:
+                volume_text = f"{volume:,}"
+            movers.append({
+                "symbol": ticker[:-3],
+                "name": item.get("shortName") or item.get("longName") or ticker[:-3],
+                "price": float(price),
+                "pct": float(pct),
+                "vol": volume_text,
+            })
+            if len(movers) >= limit:
+                break
+        return movers
+    except Exception as exc:
+        print(f"[MARKET PULSE] Yahoo {screen_id} screener failed: {exc}")
+        return []
 
 
 @app.route("/api/market-pulse", methods=["GET"])
@@ -2559,23 +2641,35 @@ def market_pulse_api():
         yahoo_symbols[symbol] = symbol if symbol.endswith((".NS", ".BO")) else symbol + ".NS"
 
     quotes = {}
+    movers = {"gainers": [], "losers": [], "active": []}
     import concurrent.futures
-    with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
-        futures = {
+    with concurrent.futures.ThreadPoolExecutor(max_workers=12) as executor:
+        quote_futures = {
             executor.submit(_fetch_yahoo_market_quote, ticker): key
             for key, ticker in yahoo_symbols.items()
         }
-        for future in concurrent.futures.as_completed(futures):
-            key = futures[future]
+        mover_futures = {
+            executor.submit(_fetch_yahoo_market_movers, screen_id, 5): group
+            for group, screen_id in (
+                ("gainers", "day_gainers"),
+                ("losers", "day_losers"),
+                ("active", "most_actives"),
+            )
+        }
+        for future in concurrent.futures.as_completed(quote_futures):
+            key = quote_futures[future]
             try:
                 quote_data = future.result()
                 if quote_data:
-                    if key in ("nifty", "sensex"):
-                        quotes[key] = quote_data
-                    else:
-                        quotes[key] = quote_data
+                    quotes[key] = quote_data
             except Exception as exc:
                 print(f"[MARKET PULSE] Quote worker failed for {key}: {exc}")
+        for future in concurrent.futures.as_completed(mover_futures):
+            group = mover_futures[future]
+            try:
+                movers[group] = future.result() or []
+            except Exception as exc:
+                print(f"[MARKET PULSE] {group} worker failed: {exc}")
 
     if not quotes:
         return jsonify({"success": False, "message": "Live market prices are temporarily unavailable."}), 502
@@ -2586,6 +2680,9 @@ def market_pulse_api():
             "nifty": quotes.get("nifty"),
             "sensex": quotes.get("sensex"),
             "quotes": {k: v for k, v in quotes.items() if k not in ("nifty", "sensex")},
+            "gainers": movers["gainers"],
+            "losers": movers["losers"],
+            "active": movers["active"],
             "updated_at": datetime.now().isoformat(),
         },
     })
