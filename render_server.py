@@ -2567,55 +2567,148 @@ def _fetch_yahoo_market_quote(yahoo_symbol):
     return None
 
 
-def _fetch_yahoo_market_movers(screen_id, limit=5):
-    """Fetch current NSE day gainers, losers, or most-active stocks from Yahoo."""
-    url = "https://query1.finance.yahoo.com/v1/finance/screener/predefined/saved"
+_NSE_MOVER_CACHE = {"gainers": {"at": 0, "rows": []}, "losers": {"at": 0, "rows": []}, "active": {"at": 0, "rows": []}}
+_NSE_MOVER_LOCK = threading.Lock()
+_NSE_SESSION_LOCK = threading.Lock()
+_NSE_SESSION = None
+
+
+def _nse_market_session():
+    """Create a warmed NSE session; NSE market-data APIs require homepage cookies."""
+    global _NSE_SESSION
+    with _NSE_SESSION_LOCK:
+        if _NSE_SESSION is not None:
+            return _NSE_SESSION
+        sess = requests.Session()
+        sess.headers.update({
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+        "Accept": "application/json, text/plain, */*",
+        "Accept-Language": "en-IN,en;q=0.9",
+        "Referer": "https://www.nseindia.com/market-data/top-gainers-losers",
+        "Connection": "keep-alive",
+    })
+    # Establish NSE cookies before requesting the JSON endpoints.
+        sess.get("https://www.nseindia.com/", timeout=8)
+        _NSE_SESSION = sess
+        return _NSE_SESSION
+
+
+def _nse_rows_from_payload(payload):
+    """Extract the NSE all-securities rows across known response envelopes."""
+    if not isinstance(payload, dict):
+        return []
+    # NSE variations commonly returns allSec plus index-specific buckets.
+    for key in ("allSec", "data", "NIFTY", "equities", "stocks"):
+        value = payload.get(key)
+        if isinstance(value, list) and value:
+            return value
+        if isinstance(value, dict):
+            for nested in ("data", "allSec", "rows"):
+                rows = value.get(nested)
+                if isinstance(rows, list) and rows:
+                    return rows
+    # Some versions wrap the response under a top-level `data` object.
+    for value in payload.values():
+        if isinstance(value, dict):
+            rows = _nse_rows_from_payload(value)
+            if rows:
+                return rows
+    return []
+
+
+def _nse_number(row, *keys):
+    for key in keys:
+        value = row.get(key)
+        if value not in (None, "", "-", "NA", "N/A"):
+            try:
+                return float(str(value).replace(",", "").replace("%", "").strip())
+            except (TypeError, ValueError):
+                continue
+    return None
+
+
+def _fetch_nse_market_movers(group, limit=5):
+    """Fetch today's actual NSE gainers, losers and most-active-by-volume rows."""
+    now = time.time()
+    with _NSE_MOVER_LOCK:
+        cached = _NSE_MOVER_CACHE.get(group, {})
+        if cached.get("rows") and now - cached.get("at", 0) < 20:
+            return list(cached["rows"][:limit])
+
+    if group == "gainers":
+        url = "https://www.nseindia.com/api/live-analysis-variations"
+        params = {"index": "gainers"}
+    elif group == "losers":
+        url = "https://www.nseindia.com/api/live-analysis-variations"
+        # NSE's public endpoint historically spells this parameter `loosers`.
+        params = {"index": "loosers"}
+    elif group == "active":
+        url = "https://www.nseindia.com/api/live-analysis-most-active-securities"
+        params = {"index": "volume"}
+    else:
+        return []
+
     try:
-        response = _get_ltp_session().get(
-            url,
-            params={
-                "formatted": "false",
-                "lang": "en-IN",
-                "region": "IN",
-                "scrIds": screen_id,
-                "count": int(limit),
-                "start": 0,
-            },
-            timeout=8,
-        )
+        sess = _nse_market_session()
+        response = sess.get(url, params=params, timeout=10)
         response.raise_for_status()
-        results = (response.json().get("finance") or {}).get("result") or []
-        raw_quotes = (results[0].get("quotes") or []) if results else []
-        movers = []
-        for item in raw_quotes:
-            ticker = str(item.get("symbol") or "").upper()
-            # These sidebar sections are explicitly NSE; do not mix BSE-only symbols.
-            if not ticker.endswith(".NS"):
+        payload = response.json()
+        rows = _nse_rows_from_payload(payload)
+        normalized = []
+        for row in rows:
+            if not isinstance(row, dict):
                 continue
-            price = item.get("regularMarketPrice")
-            pct = item.get("regularMarketChangePercent")
-            if price in (None, "") or pct in (None, ""):
+            symbol = str(row.get("symbol") or row.get("symbolName") or "").strip().upper()
+            if not symbol or not re.fullmatch(r"[A-Z0-9&._-]+", symbol):
                 continue
-            volume = item.get("regularMarketVolume") or 0
+            price = _nse_number(row, "ltp", "lastPrice", "lastTradedPrice", "lastPriceValue")
+            pct = _nse_number(row, "pChange", "perChange", "changePercent", "percentChange")
+            if price is None or price <= 0 or pct is None:
+                continue
+            # Do not allow non-gainers into the gainers list or non-losers into losers.
+            if group == "gainers" and pct <= 0:
+                continue
+            if group == "losers" and pct >= 0:
+                continue
+            volume = _nse_number(row, "quantityTraded", "totalTradedVolume", "tradedQuantity", "volume", "qty") or 0
             if volume >= 10000000:
                 volume_text = f"{volume / 10000000:.2f} Cr"
             elif volume >= 100000:
                 volume_text = f"{volume / 100000:.2f} L"
             else:
-                volume_text = f"{volume:,}"
-            movers.append({
-                "symbol": ticker[:-3],
-                "name": item.get("shortName") or item.get("longName") or ticker[:-3],
-                "price": float(price),
-                "pct": float(pct),
+                volume_text = f"{int(volume):,}"
+            normalized.append({
+                "symbol": symbol,
+                "name": str(row.get("companyName") or row.get("meta") or row.get("name") or symbol),
+                "price": price,
+                "pct": pct,
                 "vol": volume_text,
+                "volume_raw": volume,
             })
-            if len(movers) >= limit:
-                break
-        return movers
+
+        # Sort by the actual NSE percentage/volume fields rather than trusting
+        # endpoint ordering, then return only the requested number of rows.
+        if group == "gainers":
+            normalized.sort(key=lambda x: x["pct"], reverse=True)
+        elif group == "losers":
+            normalized.sort(key=lambda x: x["pct"])
+        else:
+            normalized.sort(key=lambda x: x["volume_raw"], reverse=True)
+        result = normalized[:limit]
+        if result:
+            with _NSE_MOVER_LOCK:
+                _NSE_MOVER_CACHE[group] = {"at": now, "rows": result}
+            return result
+        print(f"[MARKET PULSE] NSE {group} response had no valid rows; refusing fabricated fallback")
     except Exception as exc:
-        print(f"[MARKET PULSE] Yahoo {screen_id} screener failed: {exc}")
-        return []
+        print(f"[MARKET PULSE] NSE {group} request failed: {exc}")
+
+    # Use a short-lived prior genuine NSE response during a temporary outage.
+    with _NSE_MOVER_LOCK:
+        cached = _NSE_MOVER_CACHE.get(group, {})
+        if cached.get("rows") and now - cached.get("at", 0) < 180:
+            return list(cached["rows"][:limit])
+    return []
 
 
 @app.route("/api/market-pulse", methods=["GET"])
@@ -2649,12 +2742,8 @@ def market_pulse_api():
             for key, ticker in yahoo_symbols.items()
         }
         mover_futures = {
-            executor.submit(_fetch_yahoo_market_movers, screen_id, 5): group
-            for group, screen_id in (
-                ("gainers", "day_gainers"),
-                ("losers", "day_losers"),
-                ("active", "most_actives"),
-            )
+            executor.submit(_fetch_nse_market_movers, group, 5): group
+            for group in ("gainers", "losers", "active")
         }
         for future in concurrent.futures.as_completed(quote_futures):
             key = quote_futures[future]
