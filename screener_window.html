@@ -1085,7 +1085,7 @@
     </section>
 
     <div class="workspace-note" style="margin:0 0 0 0">
-      <strong>Data note:</strong> Fundamentals are refreshed from the selected company's available Screener.in ratio and statement tables. Missing source values remain Unavailable; technical quote indicators continue to use the existing Yahoo Finance feed.
+      <strong>Data note:</strong> Summary values are populated from the selected company's Screener.in fundamentals when available. Missing source values are shown as Unavailable, not copied from another company. Quote/technical values are refreshed from Yahoo Finance; quarterly and annual fundamentals in this standalone file remain the supplied snapshot and are not live-updated.
     </div>
 
     <!-- Single-Page All Ratios Container -->
@@ -1692,16 +1692,27 @@
 
     function formatFundamentalRows(rows) {
       return (rows || []).map(row => ({
-        label: String(row.label || "").trim(),
-        value: String(row.value || "").trim(),
-        category: String(row.category || "").trim()
+        label: String(row.label || "").trim(), value: String(row.value || "").trim()
       })).filter(row => row.label && row.value);
     }
 
     function ratioValue(...names) {
       if (!companyFundamentals?.ratios) return null;
-      const wanted = names.map(normalizeFundamentalLabel);
-      const found = companyFundamentals.ratios.find(r => wanted.includes(normalizeFundamentalLabel(r.label)));
+      const rows = formatFundamentalRows(companyFundamentals.ratios);
+      const wanted = names.map(normalizeFundamentalLabel).filter(Boolean);
+      // Exact label matching is safest; the fallback handles Screener label variations
+      // such as "10 Years" vs "10Years" and "Average ROE" vs "ROE Avg".
+      let found = rows.find(r => wanted.includes(normalizeFundamentalLabel(r.label)));
+      if (!found) {
+        const compact = value => normalizeFundamentalLabel(value).replace(/\\s+/g, "");
+        found = rows.find(r => {
+          const label = compact(r.label);
+          return wanted.some(name => {
+            const candidate = compact(name);
+            return candidate && (label === candidate || label.includes(candidate) || candidate.includes(label));
+          });
+        });
+      }
       return found ? found.value : null;
     }
 
@@ -1723,59 +1734,27 @@
       companyFundamentals = data;
       const symbol = data.symbol || getRequestedSymbol();
       const ratios = formatFundamentalRows(data.ratios || []);
+      const companyUrl = data.url || `https://www.screener.in/company/${encodeURIComponent(symbol)}/consolidated/`;
+      ["summary-sales-growth", "summary-profit-growth", "summary-price-eps-cagr", "summary-roe-capital"].forEach(id => {
+        const card = document.getElementById(id);
+        if (card) card.href = companyUrl;
+      });
       const categoryRules = [
-        [/quarter|qtr/i, "Quarterly"],
-        [/cash flow|cash from|cash generated|cash used/i, "Cash Flow"],
-        [/promoter|fii|dii|holding|pledge|public holding/i, "Shareholding"],
-        [/equity|capital employed|return on|roce|roe|roic|asset turnover|current ratio|quick ratio|interest coverage|inventory turnover|debtor days|working capital days/i, "Profitability"],
-        [/loan|debt|asset|reserve|cash|inventory|receivable|payable|working capital|book value|capital work/i, "Balance Sheet"],
         [/sales|revenue|profit|ebit|ebitda|eps|tax|dividend|depreciation|interest|opm|npm|gpm/i, "Annual P&L"],
+        [/quarter|qtr/i, "Quarterly"],
+        [/equity|capital employed|return on|roce|roe|roic|asset turnover/i, "Profitability"],
+        [/loan|debt|asset|reserve|cash|inventory|receivable|payable|working capital|book value/i, "Balance Sheet"],
+        [/promoter|fii|dii|holding|pledge/i, "Shareholding"],
         [/price|pe|peg|market cap|enterprise|yield|valuation/i, "Valuation"]
       ];
-
-      // Start each company refresh from the original metric definitions. Preserve
-      // the user's saved ordering, clear snapshot values, and remove source-only
-      // rows belonging to the previously selected company.
-      const previousMetricOrder = metrics.map(m => m.id);
-      const freshMetricMap = new Map(DEFAULT_METRICS.map(m => [m.id, { ...m, value: "Unavailable" }]));
-      metrics = previousMetricOrder.map(id => freshMetricMap.get(id)).filter(Boolean);
-      freshMetricMap.forEach((metric, id) => {
-        if (!previousMetricOrder.includes(id)) metrics.push(metric);
-      });
-      const aliases = {
-        "sales latest quarter": ["sales qtr", "sales latest quarter"],
-        "sales preceding quarter": ["sales prev qtr", "sales preceding quarter"],
-        "sales preceding year quarter": ["sales py qtr", "sales preceding year quarter"],
-        "net profit latest quarter": ["pat qtr", "profit after tax latest quarter", "net profit latest quarter"],
-        "net profit preceding quarter": ["pat prev qtr", "profit after tax preceding quarter"],
-        "net profit preceding year quarter": ["pat py qtr", "profit after tax preceding year quarter"],
-        "operating profit": ["operating profit", "operating profit latest quarter"],
-        "net profit": ["profit after tax", "net profit"],
-        "market cap": ["market cap", "market capitalization"],
-        "stock pe": ["stock pe", "price to earning", "price to earnings"]
-      };
+      // Keep existing dashboard metrics and synchronize matching entries to the selected company.
       ratios.forEach((r, index) => {
         const label = normalizeFundamentalLabel(r.label);
-        let cat = r.category || "";
-        if (!cat) {
-          cat = "Valuation";
-          for (const [pattern, candidate] of categoryRules) if (pattern.test(label)) { cat = candidate; break; }
-        }
-        const candidates = [label, ...(aliases[label] || [])];
-        let existing = metrics.find(m => candidates.includes(normalizeFundamentalLabel(m.name)));
-        if (!existing) {
-          // Match common Screener naming variations without changing the source value.
-          existing = metrics.find(m => {
-            const current = normalizeFundamentalLabel(m.name);
-            return current === label || (label.includes("latest quarter") && current.includes("qtr") && current.startsWith(label.split(" ")[0]));
-          });
-        }
-        if (existing) {
-          existing.value = r.value;
-          if (r.category) existing.cat = r.category;
-        } else {
-          metrics.push({ id: `src-${index}-${label.replace(/\s+/g,"-")}`, name: r.label, value: r.value, cat });
-        }
+        let cat = "Valuation";
+        for (const [pattern, candidate] of categoryRules) if (pattern.test(label)) { cat = candidate; break; }
+        const existing = metrics.find(m => normalizeFundamentalLabel(m.name) === label);
+        if (existing) existing.value = r.value;
+        else metrics.push({ id: `src-${index}-${label.replace(/\s+/g,"-")}`, name: r.label, value: r.value, cat });
       });
       // Render every fetched Screener ratio in the ratio list/workspace.
       renderGrid();
