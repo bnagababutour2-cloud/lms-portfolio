@@ -955,13 +955,13 @@
     <section class="mc-top-forecast" aria-label="SWOT analysis, PE valuation check, share price forecast and analyst rating">
       <article class="swot-card">
         <h3>SWOT Analysis</h3>
-        <div class="swot-grid" role="img" aria-label="SWOT snapshot: 13 strengths, 8 weaknesses, 3 opportunities and 1 threat">
-          <div class="swot-cell swot-strength"><strong>13</strong><span>STRENGTHS</span></div>
-          <div class="swot-cell swot-weakness"><strong>8</strong><span>WEAKNESSES</span></div>
-          <div class="swot-cell swot-opportunity"><strong>3</strong><span>OPPORTUNITIES</span></div>
-          <div class="swot-cell swot-threat"><strong>1</strong><span>THREAT</span></div>
+        <div class="swot-grid" id="fundamental-swot" role="group" aria-label="Company SWOT analysis">
+          <div class="swot-cell swot-strength"><strong>—</strong><span>STRENGTHS</span></div>
+          <div class="swot-cell swot-weakness"><strong>—</strong><span>WEAKNESSES</span></div>
+          <div class="swot-cell swot-opportunity"><strong>—</strong><span>OPPORTUNITIES</span></div>
+          <div class="swot-cell swot-threat"><strong>—</strong><span>THREATS</span></div>
         </div>
-        <div class="swot-caption">SWOT snapshot from the supplied reference image</div>
+        <div class="swot-caption" id="swot-data-note">A verified SWOT feed is not supplied by Screener.in; no sample scores are shown.</div>
       </article>
 
       <article class="pe-check-card">
@@ -969,98 +969,70 @@
         <div class="pe-check-grid">
           <div class="pe-check-item">
             <span>Right Now</span>
-            <strong>Undervalued&nbsp; 123.1%</strong>
+            <strong id="pe-current-value">Unavailable</strong>
           </div>
           <div class="pe-check-item">
             <span>1 Year Forward</span>
-            <strong>Undervalued&nbsp; 121.3%</strong>
+            <strong id="pe-forward-value">Unavailable</strong>
           </div>
         </div>
         <div class="pe-check-insight">
           <b>INSIGHT</b>
-          High 5Y PE Avg of 51.9 may distort upside values.
+          <span id="pe-insight-text">Valuation will be shown only when source ratios support it; no target valuation is inferred.</span>
         </div>
       </article>
 
       <!-- Share Price Forecast and Analyst Rating are the third and fourth panels in this row -->
       <article class="mc-panel">
         <h3 class="mc-panel-heading">Share Price Forecast</h3>
-        <svg class="mc-price-chart" viewBox="0 0 340 135" role="img" aria-label="Suzlon analyst price targets: low 40 rupees, average 54.58 rupees, high 68 rupees">
-          <g stroke="#e5e7eb" stroke-width="1">
-            <line x1="30" y1="17" x2="319" y2="17"/>
-            <line x1="30" y1="48" x2="319" y2="48"/>
-            <line x1="30" y1="79" x2="319" y2="79"/>
-            <line x1="30" y1="108" x2="319" y2="108"/>
-          </g>
-          <g fill="#6b7280" font-size="9" font-family="Inter,Arial,sans-serif">
-            <text x="2" y="20">₹70</text>
-            <text x="2" y="51">₹60</text>
-            <text x="2" y="82">₹50</text>
-            <text x="2" y="111">₹40</text>
-          </g>
-          <line x1="30" y1="108" x2="319" y2="108" stroke="#9ca3af" stroke-width="1"/>
-          <path d="M42 113 L170 67 L306 23 L306 108 L170 67 L42 113 Z" fill="#16a36a" opacity=".12"/>
-          <path d="M42 113 L306 23" fill="none" stroke="#16a36a" stroke-width="2.2" stroke-dasharray="4 3"/>
-          <path d="M42 113 L306 108" fill="none" stroke="#ef4444" stroke-width="2" stroke-dasharray="3 3"/>
-          <path d="M42 113 L170 67 L306 23" fill="none" stroke="#64748b" stroke-width="1.2" opacity=".7"/>
-          <circle cx="42" cy="113" r="4" fill="#64748b"/>
-          <circle cx="170" cy="67" r="4" fill="#2563eb"/>
-          <circle cx="306" cy="23" r="4" fill="#16a36a"/>
-          <circle cx="306" cy="108" r="4" fill="#ef4444"/>
-          <g font-family="Inter,Arial,sans-serif" font-size="9" font-weight="800">
-            <text x="28" y="128" fill="#475569">Current ₹38.25</text>
-            <text x="145" y="57" fill="#2563eb">Avg ₹54.58</text>
-            <text x="269" y="14" fill="#16a36a">High</text>
-            <text x="270" y="98" fill="#ef4444">Low</text>
-          </g>
-        </svg>
+        <div class="mc-price-chart" id="analyst-forecast-chart" role="img" aria-label="Analyst forecast unavailable">Analyst forecast data is not supplied by the connected source.</div>
         <div class="mc-price-legend">
           <span><i class="mc-dot" style="background:#16a36a"></i>High target</span>
           <span><i class="mc-dot" style="background:#2563eb"></i>Average target</span>
           <span><i class="mc-dot" style="background:#ef4444"></i>Low target</span>
         </div>
         <div class="mc-targets">
-          <div class="mc-target"><span>Low</span><strong>₹40.00</strong></div>
-          <div class="mc-target"><span>Average</span><strong>₹54.58</strong></div>
-          <div class="mc-target"><span>High</span><strong>₹68.00</strong></div>
+          <div class="mc-target"><span>Low</span><strong id="analyst-target-low">Unavailable</strong></div>
+          <div class="mc-target"><span>Average</span><strong id="analyst-target-average">Unavailable</strong></div>
+          <div class="mc-target"><span>High</span><strong id="analyst-target-high">Unavailable</strong></div>
         </div>
-        <div class="mc-data-note">12-month analyst target snapshot · Last quoted price ₹38.25</div>
+        <div class="mc-data-note" id="analyst-target-note">Analyst target feed is not included in the connected Screener.in source.</div>
         <a class="mc-panel-source" href="https://www.moneycontrol.com/india/stockpricequote/power-generationdistribution/suzlonenergy/SE17" target="_blank" rel="noopener noreferrer">Moneycontrol ↗</a>
       </article>
 
       <article class="mc-panel">
-        <h3 class="mc-panel-heading">Analyst Rating Based on 12 Analysts</h3>
+        <h3 class="mc-panel-heading">Analyst Rating</h3>
         <div class="mc-rating-layout">
-          <div class="mc-consensus-circle"><strong>BUY</strong>Consensus</div>
+          <div class="mc-consensus-circle"><strong id="analyst-consensus">N/A</strong>Consensus</div>
           <div class="mc-rating-bars">
             <div class="mc-rating-row">
               <span class="mc-rating-name">Buy</span>
-              <div class="mc-rating-track"><div class="mc-rating-fill" style="width:67%;background:#27834c"></div></div>
-              <strong class="mc-rating-percent">67%</strong>
+              <div class="mc-rating-track"><div class="mc-rating-fill" style="width:0%;background:#27834c"></div></div>
+              <strong class="mc-rating-percent" data-rating="buy">N/A</strong>
             </div>
             <div class="mc-rating-row">
               <span class="mc-rating-name">Outperform</span>
-              <div class="mc-rating-track"><div class="mc-rating-fill" style="width:25%;background:#55b978"></div></div>
-              <strong class="mc-rating-percent">25%</strong>
+              <div class="mc-rating-track"><div class="mc-rating-fill" style="width:0%;background:#55b978"></div></div>
+              <strong class="mc-rating-percent" data-rating="outperform">N/A</strong>
             </div>
             <div class="mc-rating-row">
               <span class="mc-rating-name">Hold</span>
-              <div class="mc-rating-track"><div class="mc-rating-fill" style="width:8%;background:#9ca3af"></div></div>
-              <strong class="mc-rating-percent">8%</strong>
+              <div class="mc-rating-track"><div class="mc-rating-fill" style="width:0%;background:#9ca3af"></div></div>
+              <strong class="mc-rating-percent" data-rating="hold">N/A</strong>
             </div>
             <div class="mc-rating-row">
               <span class="mc-rating-name">Underperform</span>
               <div class="mc-rating-track"><div class="mc-rating-fill" style="width:0%;background:#ef7777"></div></div>
-              <strong class="mc-rating-percent">0%</strong>
+              <strong class="mc-rating-percent" data-rating="underperform">N/A</strong>
             </div>
             <div class="mc-rating-row">
               <span class="mc-rating-name">Sell</span>
               <div class="mc-rating-track"><div class="mc-rating-fill" style="width:0%;background:#b91c1c"></div></div>
-              <strong class="mc-rating-percent">0%</strong>
+              <strong class="mc-rating-percent" data-rating="sell">N/A</strong>
             </div>
           </div>
         </div>
-        <div class="mc-data-note">Distribution shown as in the supplied Moneycontrol reference screenshot</div>
+        <div class="mc-data-note" id="analyst-rating-note">Analyst recommendations are unavailable from the connected source; no sample distribution is displayed.</div>
         <a class="mc-panel-source" href="https://www.moneycontrol.com/india/stockpricequote/power-generationdistribution/suzlonenergy/SE17" target="_blank" rel="noopener noreferrer">Moneycontrol ↗</a>
       </article>
     </section>
@@ -1070,10 +1042,10 @@
       <a class="screener-summary-card" id="summary-sales-growth" href="https://www.screener.in/company/SUZLON/consolidated/" target="_blank" rel="noopener noreferrer">
         <div class="screener-summary-title">Compounded Sales Growth</div>
         <div class="screener-summary-lines">
-          <div class="screener-summary-line"><span>10 Years:</span><strong>11.8%</strong></div>
-          <div class="screener-summary-line"><span>7 Years:</span><strong>13.4%</strong></div>
-          <div class="screener-summary-line"><span>5 Years:</span><strong>12.9%</strong></div>
-          <div class="screener-summary-line"><span>3 Years:</span><strong>14.6%</strong></div>
+          <div class="screener-summary-line"><span>10 Years:</span><strong>Unavailable</strong></div>
+          <div class="screener-summary-line"><span>7 Years:</span><strong>Unavailable</strong></div>
+          <div class="screener-summary-line"><span>5 Years:</span><strong>Unavailable</strong></div>
+          <div class="screener-summary-line"><span>3 Years:</span><strong>Unavailable</strong></div>
         </div>
         <span class="screener-summary-source">Open latest Screener data ↗</span>
       </a>
@@ -1081,10 +1053,10 @@
       <a class="screener-summary-card" id="summary-profit-growth" href="https://www.screener.in/company/SUZLON/consolidated/" target="_blank" rel="noopener noreferrer">
         <div class="screener-summary-title">Compounded Profit &amp; EBITDA Growth</div>
         <div class="screener-summary-lines">
-          <div class="screener-summary-line"><span>Profit 5 Years:</span><strong>13.8%</strong></div>
-          <div class="screener-summary-line"><span>Profit 3 Years:</span><strong>15.1%</strong></div>
-          <div class="screener-summary-line"><span>EBITDA 5 Years:</span><strong>14.1%</strong></div>
-          <div class="screener-summary-line"><span>EBITDA 3 Years:</span><strong>15.2%</strong></div>
+          <div class="screener-summary-line"><span>Profit 5 Years:</span><strong>Unavailable</strong></div>
+          <div class="screener-summary-line"><span>Profit 3 Years:</span><strong>Unavailable</strong></div>
+          <div class="screener-summary-line"><span>EBITDA 5 Years:</span><strong>Unavailable</strong></div>
+          <div class="screener-summary-line"><span>EBITDA 3 Years:</span><strong>Unavailable</strong></div>
         </div>
         <span class="screener-summary-source">Open latest Screener data ↗</span>
       </a>
@@ -1092,10 +1064,10 @@
       <a class="screener-summary-card" id="summary-price-eps-cagr" href="https://www.screener.in/company/SUZLON/consolidated/" target="_blank" rel="noopener noreferrer">
         <div class="screener-summary-title">Stock Price &amp; EPS CAGR</div>
         <div class="screener-summary-lines">
-          <div class="screener-summary-line"><span>10Y / 7Y Price:</span><strong>22.8% / 24.1%</strong></div>
-          <div class="screener-summary-line"><span>5Y / 3Y Price:</span><strong>21.3% / 18.7%</strong></div>
-          <div class="screener-summary-line"><span>Price Return:</span><strong>12.4%</strong></div>
-          <div class="screener-summary-line"><span>EPS 5Y / 3Y:</span><strong>12.7% / 13.9%</strong></div>
+          <div class="screener-summary-line"><span>10Y / 7Y Price:</span><strong>Unavailable</strong></div>
+          <div class="screener-summary-line"><span>5Y / 3Y Price:</span><strong>Unavailable</strong></div>
+          <div class="screener-summary-line"><span>Price Return:</span><strong>Unavailable</strong></div>
+          <div class="screener-summary-line"><span>EPS 5Y / 3Y:</span><strong>Unavailable</strong></div>
         </div>
         <span class="screener-summary-source">Open latest Screener data ↗</span>
       </a>
@@ -1103,17 +1075,17 @@
       <a class="screener-summary-card" id="summary-roe-capital" href="https://www.screener.in/company/SUZLON/consolidated/" target="_blank" rel="noopener noreferrer">
         <div class="screener-summary-title">Return on Equity &amp; Capital</div>
         <div class="screener-summary-lines">
-          <div class="screener-summary-line"><span>ROE 5Yr Avg:</span><strong>9.45%</strong></div>
-          <div class="screener-summary-line"><span>ROE 3Yr Avg:</span><strong>9.12%</strong></div>
-          <div class="screener-summary-line"><span>ROCE 3Yr Avg:</span><strong>10.10%</strong></div>
-          <div class="screener-summary-line"><span>ROIC Current:</span><strong>11.40%</strong></div>
+          <div class="screener-summary-line"><span>ROE 5Yr Avg:</span><strong>Unavailable</strong></div>
+          <div class="screener-summary-line"><span>ROE 3Yr Avg:</span><strong>Unavailable</strong></div>
+          <div class="screener-summary-line"><span>ROCE 3Yr Avg:</span><strong>Unavailable</strong></div>
+          <div class="screener-summary-line"><span>ROIC Current:</span><strong>Unavailable</strong></div>
         </div>
         <span class="screener-summary-source">Open latest Screener data ↗</span>
       </a>
     </section>
 
     <div class="workspace-note" style="margin:0 0 0 0">
-      <strong>Data note:</strong> The four summary cards retain the figures from your supplied dashboard screenshot. Click any card or the company name to open the latest figures on Screener.in. Quote/technical values are refreshed from Yahoo Finance; quarterly and annual fundamentals in this standalone file remain the supplied snapshot and are not live-updated.
+      <strong>Data note:</strong> Summary values are populated from the selected company's Screener.in fundamentals when available. Missing source values are shown as Unavailable, not copied from another company. Quote/technical values are refreshed from Yahoo Finance; quarterly and annual fundamentals in this standalone file remain the supplied snapshot and are not live-updated.
     </div>
 
     <!-- Single-Page All Ratios Container -->
@@ -1187,6 +1159,7 @@
       currentPrice = currentVolume = currentRSI = liveMarketData = null;
       document.title = `${symbol} Stock Screener`;
       renderWorkspace();
+      loadCompanyFundamentals(true);
       if (isLive) updateLiveMetrics();
     }
 
@@ -1242,6 +1215,15 @@
       </div><p class="source-footnote">Bars visualize the return figures already present in this HTML file; they are not a live historical price chart.</p></div>`;
     }
 
+    function renderSourceFundamentalTable(key) {
+      const table = companyFundamentals?.tables?.[key];
+      if (!table || !(table.rows || []).length) return "";
+      const headers = table.headers || [];
+      const headerHtml = headers.length ? `<thead><tr>${headers.map(h => `<th>${escapeHTML(h)}</th>`).join("")}</tr></thead>` : "";
+      const rowsHtml = table.rows.map(row => `<tr>${row.map(cell => `<td>${escapeHTML(cell)}</td>`).join("")}</tr>`).join("");
+      return `<div class="workspace-table-wrap"><table class="workspace-table">${headerHtml}<tbody>${rowsHtml}</tbody></table></div><p class="source-footnote">Source: Screener.in · selected company · latest published table.</p>`;
+    }
+
     function renderWorkspace() {
       const scriptLink = document.getElementById("main-script-link");
       const symbol = (scriptLink?.textContent || getRequestedSymbol()).replace("↗", "").trim().toUpperCase();
@@ -1272,7 +1254,7 @@
       };
 
       if (activeView === "overview") {
-        set(`${symbol} Overview`, "Company snapshot from the metrics currently stored in this dashboard",
+        set(`${companyFundamentals?.company_name || symbol} Overview`, companyFundamentals ? `Company fundamentals from Screener.in · ${companyFundamentals.fetched_at || ""}` : "Loading company-specific fundamentals…",
           `<div class="workspace-grid">
             ${cardMetric("Current Price","Dashboard display value")}
             ${cardMetric("Market Cap")}
@@ -1296,23 +1278,23 @@
         set(`${symbol} Peer Comparison`, "Peer-company data is not present in the supplied HTML file",
           `<div class="workspace-empty"><strong>Peer data has not been loaded</strong>This page cannot show genuine peer names or comparisons yet. Add a peer dataset or connect a permitted market-data source to populate this section.</div>`);
       } else if (activeView === "quarterly") {
-        set(`${symbol} Quarterly Results`, "Quarterly metrics available in the supplied dashboard",
-          metricRows(byCat("Quarterly")));
+        set(`${symbol} Quarterly Results`, "Latest published quarterly results from Screener.in",
+          renderSourceFundamentalTable("quarterly") || metricRows(byCat("Quarterly")));
       } else if (activeView === "profitloss") {
-        set(`${symbol} Profit & Loss`, "Annual P&L metrics available in the supplied dashboard",
-          metricRows(byCat("Annual P&L")));
+        set(`${symbol} Profit & Loss`, "Latest published annual profit and loss statement from Screener.in",
+          renderSourceFundamentalTable("profit_loss") || metricRows(byCat("Annual P&L")));
       } else if (activeView === "balance") {
-        set(`${symbol} Balance Sheet`, "Balance-sheet metrics available in the supplied dashboard",
-          metricRows(byCat("Balance Sheet")));
+        set(`${symbol} Balance Sheet`, "Latest published balance sheet from Screener.in",
+          renderSourceFundamentalTable("balance_sheet") || metricRows(byCat("Balance Sheet")));
       } else if (activeView === "cashflow") {
-        set(`${symbol} Cash Flow`, "Cash-flow metrics available in the supplied dashboard",
-          metricRows(byCat("Cash Flow")));
+        set(`${symbol} Cash Flow`, "Latest published cash flow statement from Screener.in",
+          renderSourceFundamentalTable("cash_flow") || metricRows(byCat("Cash Flow")));
       } else if (activeView === "ratios") {
-        set(`${symbol} Ratios`, "All profitability and valuation ratios in the local dashboard",
-          metricRows(metrics.filter(m => ["Valuation","Profitability"].includes(m.cat))));
+        set(`${symbol} Ratios`, "Company-specific ratios returned by Screener.in",
+          renderSourceFundamentalTable("ratios") || metricRows(metrics.filter(m => ["Valuation","Profitability"].includes(m.cat))));
       } else if (activeView === "investors") {
-        set(`${symbol} Investors & Shareholding`, "Shareholding metrics available in the supplied dashboard",
-          metricRows(byCat("Shareholding")));
+        set(`${symbol} Investors & Shareholding`, "Latest published shareholding pattern from Screener.in",
+          renderSourceFundamentalTable("shareholding") || metricRows(byCat("Shareholding")));
       } else if (activeView === "documents") {
         set(`${symbol} Documents`, "Document links are not included in the supplied HTML file",
           `<div class="workspace-empty"><strong>No document links are available</strong>This local page has no annual-report, exchange-filing or investor-presentation URLs to display. Use the “Open original Screener page” link if you need Screener's document list.</div>`);
@@ -1697,6 +1679,126 @@
       return Number(num).toLocaleString("en-IN", { maximumFractionDigits: digits, minimumFractionDigits: digits });
     }
 
+    // Company-specific fundamentals are fetched separately from the 15-second quote feed.
+    // Screener.in statements/ratios update when the source publishes new filings.
+    let fundamentalsRequestId = 0;
+    let companyFundamentals = null;
+    const FUNDAMENTAL_REFRESH_MS = 15 * 60 * 1000;
+    let lastFundamentalFetchAt = 0;
+
+    function normalizeFundamentalLabel(value) {
+      return String(value || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+    }
+
+    function formatFundamentalRows(rows) {
+      return (rows || []).map(row => ({
+        label: String(row.label || "").trim(), value: String(row.value || "").trim()
+      })).filter(row => row.label && row.value);
+    }
+
+    function ratioValue(...names) {
+      if (!companyFundamentals?.ratios) return null;
+      const wanted = names.map(normalizeFundamentalLabel);
+      const found = companyFundamentals.ratios.find(r => wanted.includes(normalizeFundamentalLabel(r.label)));
+      return found ? found.value : null;
+    }
+
+    function setTextIfPresent(id, value) {
+      const el = document.getElementById(id);
+      if (el) el.textContent = value || "Unavailable";
+    }
+
+    function updateSummaryCard(id, candidates) {
+      const card = document.getElementById(id);
+      if (!card) return;
+      const strongs = card.querySelectorAll(".screener-summary-line strong");
+      candidates.forEach((names, i) => {
+        if (strongs[i]) strongs[i].textContent = ratioValue(...names) || "Unavailable";
+      });
+    }
+
+    function applyCompanyFundamentals(data) {
+      companyFundamentals = data;
+      const symbol = data.symbol || getRequestedSymbol();
+      const ratios = formatFundamentalRows(data.ratios || []);
+      const categoryRules = [
+        [/sales|revenue|profit|ebit|ebitda|eps|tax|dividend|depreciation|interest|opm|npm|gpm/i, "Annual P&L"],
+        [/quarter|qtr/i, "Quarterly"],
+        [/equity|capital employed|return on|roce|roe|roic|asset turnover/i, "Profitability"],
+        [/loan|debt|asset|reserve|cash|inventory|receivable|payable|working capital|book value/i, "Balance Sheet"],
+        [/promoter|fii|dii|holding|pledge/i, "Shareholding"],
+        [/price|pe|peg|market cap|enterprise|yield|valuation/i, "Valuation"]
+      ];
+      // Keep existing dashboard metrics and synchronize matching entries to the selected company.
+      ratios.forEach((r, index) => {
+        const label = normalizeFundamentalLabel(r.label);
+        let cat = "Valuation";
+        for (const [pattern, candidate] of categoryRules) if (pattern.test(label)) { cat = candidate; break; }
+        const existing = metrics.find(m => normalizeFundamentalLabel(m.name) === label);
+        if (existing) existing.value = r.value;
+        else metrics.push({ id: `src-${index}-${label.replace(/\s+/g,"-")}`, name: r.label, value: r.value, cat });
+      });
+      // Render every fetched Screener ratio in the ratio list/workspace.
+      renderGrid();
+      if (activeView !== "overview") renderWorkspace();
+
+      updateSummaryCard("summary-sales-growth", [
+        ["Sales growth 10Years", "Sales growth 10 Years"], ["Sales growth 7Years", "Sales growth 7 Years"],
+        ["Sales growth 5Years", "Sales growth 5 Years"], ["Sales growth 3Years", "Sales growth 3 Years"]
+      ]);
+      updateSummaryCard("summary-profit-growth", [
+        ["Profit growth 5Years", "Profit growth 5 Years"], ["Profit growth 3Years", "Profit growth 3 Years"],
+        ["EBITDA growth 5Years", "EBITDA growth 5 Years", "EBIDT growth 5Years"],
+        ["EBITDA growth 3Years", "EBITDA growth 3 Years", "EBIDT growth 3Years"]
+      ]);
+      updateSummaryCard("summary-price-eps-cagr", [
+        ["Price CAGR 10Years", "Stock price CAGR 10Years"], ["Price CAGR 7Years", "Stock price CAGR 7Years"],
+        ["Price CAGR 5Years", "Stock price CAGR 5Years"], ["EPS growth 5Years", "EPS growth 3Years"]
+      ]);
+      updateSummaryCard("summary-roe-capital", [
+        ["Average return on equity 5Years", "ROE 5Yr Avg"], ["Average return on equity 3Years", "ROE 3Yr Avg"],
+        ["ROCE3yr avg", "ROCE 3Yr Avg"], ["Return on invested capital", "ROIC Current"]
+      ]);
+
+      const pe = ratioValue("Stock P/E", "Price to Earning", "P/E");
+      setTextIfPresent("pe-current-value", pe ? `Current P/E ${pe}` : "Unavailable");
+      setTextIfPresent("pe-forward-value", "Unavailable");
+      setTextIfPresent("pe-insight-text", pe ? `Current company P/E from Screener.in: ${pe}. A fair-value percentage is not supplied by this source.` : "P/E valuation is unavailable in the source response.");
+      // Analyst targets/ratings and SWOT are not present in this source; keep them explicitly unavailable.
+      setTextIfPresent("swot-data-note", "No company-specific SWOT dataset is supplied by Screener.in; no scores are inferred.");
+      setTextIfPresent("analyst-target-note", "Analyst target data is not supplied by the connected Screener.in endpoint.");
+      setTextIfPresent("analyst-rating-note", "Analyst recommendation distribution is not supplied by the connected Screener.in endpoint.");
+      setTextIfPresent("analyst-consensus", "N/A");
+      document.querySelectorAll("[data-rating]").forEach(el => el.textContent = "N/A");
+      document.querySelectorAll(".mc-rating-fill").forEach(el => el.style.width = "0%");
+
+      const note = document.querySelector(".workspace-note");
+      if (note) note.innerHTML = `<strong>Data source:</strong> ${escapeHTML(data.source || "Screener.in")} · ${escapeHTML(data.company_name || symbol)} · fetched ${escapeHTML(data.fetched_at || "")} · missing values remain unavailable.`;
+      const status = document.getElementById("live-status-text");
+      if (status) status.title = `Fundamentals last fetched ${data.fetched_at || ""}`;
+    }
+
+    async function loadCompanyFundamentals(force = false) {
+      const requestId = ++fundamentalsRequestId;
+      const currentLabel = (document.getElementById("main-script-link")?.textContent || getRequestedSymbol()).replace("↗", "").trim();
+      const symbol = currentLabel.toUpperCase().replace(/\.(NS|BO)$/i, "");
+      if (!force && companyFundamentals?.symbol === symbol && Date.now() - lastFundamentalFetchAt < FUNDAMENTAL_REFRESH_MS) return;
+      try {
+        const response = await fetchWithTimeout(`/api/screener/${encodeURIComponent(symbol)}?_=${Date.now()}`, { credentials: "same-origin", cache: "no-store" }, 18000);
+        const payload = await response.json();
+        const activeLabel = (document.getElementById("main-script-link")?.textContent || getRequestedSymbol()).replace("↗", "").trim().toUpperCase().replace(/\.(NS|BO)$/i, "");
+        if (requestId !== fundamentalsRequestId || symbol !== activeLabel) return;
+        if (!response.ok || !payload.success) throw new Error(payload.message || `HTTP ${response.status}`);
+        lastFundamentalFetchAt = Date.now();
+        applyCompanyFundamentals(payload);
+      } catch (error) {
+        if (requestId !== fundamentalsRequestId) return;
+        console.warn("Company fundamentals refresh unavailable:", error);
+        const note = document.getElementById("swot-data-note");
+        if (note) note.textContent = `Company fundamentals unavailable: ${error.message}. No sample values are displayed.`;
+      }
+    }
+
     function selectedNseSymbol() {
       const label = (document.getElementById("main-script-link")?.textContent || "SUZLON");
       const raw = label.replace("↗", "").trim().toUpperCase();
@@ -2072,8 +2174,10 @@
       renderCategoryPills();
       renderGrid();
       renderWorkspace();
+      loadCompanyFundamentals(true);
       updateLiveMetrics();
       liveRefreshTimer = setInterval(() => { if (isLive) updateLiveMetrics(false); }, 15000);
+      setInterval(() => { if (isLive) loadCompanyFundamentals(true); }, FUNDAMENTAL_REFRESH_MS);
     });
   </script>
 </body>
