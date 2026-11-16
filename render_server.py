@@ -526,6 +526,32 @@ def _load_company_classifications():
 
 COMPANY_CLASSIFICATIONS = _load_company_classifications()
 
+def _classify_symbol_fast(symbol, allow_remote=False):
+    """Resolve (industry, market_cap) from local classifications, optional remote lookup, defaulting to Unclassified."""
+    raw_sym = str(symbol or "").strip().upper()
+    norm_sym = _normalize_symbol_key(raw_sym)
+    meta = COMPANY_CLASSIFICATIONS.get(raw_sym) or COMPANY_CLASSIFICATIONS.get(norm_sym) or {}
+    ind = str(meta.get("industry") or "").strip()
+    cap = str(meta.get("market_cap") or "").strip()
+    if (not ind or not cap) and allow_remote and norm_sym:
+        remote = _yahoo_symbol_metadata(norm_sym)
+        if not ind:
+            ind = str(remote.get("industry") or "").strip()
+        if not cap:
+            cap = str(remote.get("market_cap") or "").strip()
+    if not ind:
+        ind = "Unclassified"
+    raw_cap = cap.title()
+    if raw_cap in ("Large", "Largecap", "Large-Cap"):
+        raw_cap = "Large Cap"
+    elif raw_cap in ("Mid", "Midcap", "Mid-Cap"):
+        raw_cap = "Mid Cap"
+    elif raw_cap in ("Small", "Smallcap", "Small-Cap"):
+        raw_cap = "Small Cap"
+    cap = raw_cap if raw_cap in ("Large Cap", "Mid Cap", "Small Cap") else "Unclassified"
+    return ind, cap
+
+
 _YF_META_CACHE = {}
 _YF_META_LOCK = threading.Lock()
 
@@ -1220,6 +1246,8 @@ def _load_all_holdings():
             "ltp": ltp,
             "market_value": market_value,
             "mtm": mtm,
+            "industry": (h.get("industry") if h.get("industry") not in (None, "", "Unclassified") else _classify_symbol_fast(h.get("symbol"))[0]),
+            "market_cap": (h.get("market_cap") if h.get("market_cap") not in (None, "", "Unclassified") else _classify_symbol_fast(h.get("symbol"))[1]),
         })
     rows.sort(key=lambda x: x["mtm"], reverse=True)
     return rows
@@ -1882,7 +1910,15 @@ def admin_client_analytics(client_id):
         week_days, month_days, quarter_days, fy_days = set(), set(), set(), set()
 
         rows = result.data or []
-        _resolve_symbols_metadata_parallel([str(h.get("symbol") or "").strip().upper() for h in rows])
+        unresolved_syms = []
+        for h in rows:
+            sym_u = str(h.get("symbol") or "").strip().upper()
+            db_ind = str(h.get("industry") or "").strip()
+            db_cap = str(h.get("market_cap") or "").strip()
+            if (not db_ind or db_ind == "Unclassified") or (not db_cap or db_cap == "Unclassified"):
+                unresolved_syms.append(sym_u)
+        if unresolved_syms:
+            _resolve_symbols_metadata_parallel(unresolved_syms)
 
         for h in rows:
             symbol = str(h.get("symbol") or "-").strip().upper()
@@ -1899,13 +1935,17 @@ def admin_client_analytics(client_id):
             item["invested"] += invested
             item["pnl"] += pnl
 
+            db_ind = str(h.get("industry") or h.get("sector") or h.get("industry_name") or "").strip()
+            db_cap = str(h.get("market_cap") or "").strip()
             norm_symbol = _normalize_symbol_key(symbol)
             meta = COMPANY_CLASSIFICATIONS.get(symbol) or COMPANY_CLASSIFICATIONS.get(norm_symbol) or {}
-            # Enrich missing symbol metadata from Screener.in / Yahoo Finance (cached per worker).
-            yf_meta = _yahoo_symbol_metadata(norm_symbol) if (not meta.get("industry") or not meta.get("market_cap")) else {}
-            sector = str(h.get("industry") or h.get("sector") or h.get("industry_name") or meta.get("industry") or yf_meta.get("industry") or "Unclassified").strip() or "Unclassified"
+            need_remote = (not db_ind or db_ind == "Unclassified") and not meta.get("industry") or (not db_cap or db_cap == "Unclassified") and not meta.get("market_cap")
+            yf_meta = _yahoo_symbol_metadata(norm_symbol) if need_remote else {}
+
+            sector = (db_ind if db_ind and db_ind != "Unclassified" else "") or meta.get("industry") or yf_meta.get("industry") or "Unclassified"
             industry[sector] = industry.get(sector, 0.0) + invested
-            raw_cap = str(h.get("market_cap") or meta.get("market_cap") or yf_meta.get("market_cap") or "Unclassified").strip().title()
+
+            raw_cap = ((db_cap if db_cap and db_cap != "Unclassified" else "") or meta.get("market_cap") or yf_meta.get("market_cap") or "Unclassified").strip().title()
             if raw_cap in ("Large", "Largecap", "Large-Cap"):
                 raw_cap = "Large Cap"
             elif raw_cap in ("Mid", "Midcap", "Mid-Cap"):
@@ -3349,10 +3389,28 @@ def _prewarm_symbol_metadata():
         return
     try:
         time.sleep(3)
-        res = supabase.table("holdings").select("symbol").execute()
-        syms = [str(r.get("symbol") or "").strip().upper() for r in (res.data or []) if r.get("symbol")]
+        res = supabase.table("holdings").select("id,symbol,industry,market_cap").execute()
+        rows = res.data or []
+        syms = [str(r.get("symbol") or "").strip().upper() for r in rows if r.get("symbol")]
         _resolve_symbols_metadata_parallel(syms)
-        print(f"[META] Pre-warmed industry & market-cap metadata for {len(set(syms))} symbols.")
+        # Persist resolved industry & market_cap into Supabase holdings rows that are still Unclassified
+        by_sym_updates = {}
+        for r in rows:
+            sym = str(r.get("symbol") or "").strip().upper()
+            if not sym:
+                continue
+            cur_ind = str(r.get("industry") or "").strip()
+            cur_cap = str(r.get("market_cap") or "").strip()
+            if (not cur_ind or cur_ind == "Unclassified") or (not cur_cap or cur_cap == "Unclassified"):
+                ind_val, cap_val = _classify_symbol_fast(sym, allow_remote=True)
+                if ind_val != "Unclassified" or cap_val != "Unclassified":
+                    by_sym_updates[sym] = (ind_val, cap_val)
+        for sym, (ind_val, cap_val) in by_sym_updates.items():
+            try:
+                supabase.table("holdings").update({"industry": ind_val, "market_cap": cap_val}).eq("symbol", sym).execute()
+            except Exception:
+                pass
+        print(f"[META] Pre-warmed & synced industry/market-cap for {len(set(syms))} symbols ({len(by_sym_updates)} updated in DB).")
     except Exception as exc:
         print(f"[META] Pre-warm warning: {exc}")
 
@@ -3806,6 +3864,7 @@ def _daily_insert_lots(new_lots):
         batch_lots = new_lots[start:start + 100]
         batch = []
         for lot in batch_lots:
+            ind_val, cap_val = _classify_symbol_fast(lot["symbol"], allow_remote=True)
             row = {
                 "client_id": lot["client"],
                 "symbol": lot["symbol"],
@@ -3816,6 +3875,8 @@ def _daily_insert_lots(new_lots):
                 "market_value": lot["market_value"],
                 "pnl": lot["pnl"],
                 "trade_date": _clean_trade_date(lot.get("trade_date")),
+                "industry": ind_val,
+                "market_cap": cap_val,
             }
             if product_supported:
                 row["product"] = lot["product"]
@@ -4280,10 +4341,14 @@ def _holding_client_for_key(key):
 
 
 def _holding_update(key, payload):
-    data = {"symbol": str(payload.get("symbol") or "").strip().upper(),
+    sym_up = str(payload.get("symbol") or "").strip().upper()
+    ind_val, cap_val = _classify_symbol_fast(sym_up, allow_remote=True)
+    data = {"symbol": sym_up,
             "exchange": str(payload.get("exchange") or "BSE").strip().upper(),
             "quantity": _clean_number(payload.get("quantity")),
-            "buy_price": _clean_number(payload.get("buy_price"))}
+            "buy_price": _clean_number(payload.get("buy_price")),
+            "industry": ind_val,
+            "market_cap": cap_val}
     if payload.get("trade_date") not in (None, ""):
         clean_date = _clean_trade_date(payload.get("trade_date"))
         if not clean_date:
@@ -4350,8 +4415,10 @@ def add_holding():
     if not client_id or not symbol or qty == 0 or buy == 0:
         return jsonify({"success": False, "message": "Valid Client ID, Symbol, Qty and Buy Price are required."}), 400
     try:
+        ind_val, cap_val = _classify_symbol_fast(symbol, allow_remote=True)
         row = {"client_id": client_id, "symbol": symbol, "exchange": exchange, "quantity": qty,
-               "buy_price": buy, "ltp": buy, "market_value": qty * buy, "pnl": 0}
+               "buy_price": buy, "ltp": buy, "market_value": qty * buy, "pnl": 0,
+               "industry": ind_val, "market_cap": cap_val}
         if data.get("trade_date") not in (None, ""):
             clean_date = _clean_trade_date(data.get("trade_date"))
             if not clean_date:
