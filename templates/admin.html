@@ -2165,27 +2165,9 @@ window.setLogbookFilter=async function(filter,button){
   const defaultMarketData = {
     nifty: { price: 24367.50, change: 142.35, pct: 0.59 },
     sensex: { price: 80116.40, change: 468.20, pct: 0.59 },
-    gainers: [
-      { symbol: 'TRENT', name: 'Trent Ltd.', price: 6845.20, pct: 4.82 },
-      { symbol: 'BEL', name: 'Bharat Electronics', price: 312.45, pct: 3.94 },
-      { symbol: 'INFY', name: 'Infosys Ltd.', price: 1876.90, pct: 3.15 },
-      { symbol: 'TATASTEEL', name: 'Tata Steel Ltd.', price: 154.60, pct: 2.78 },
-      { symbol: 'SBIN', name: 'State Bank of India', price: 842.30, pct: 2.41 }
-    ],
-    losers: [
-      { symbol: 'INDUSINDBK', name: 'IndusInd Bank', price: 1042.15, pct: -3.65 },
-      { symbol: 'ASIANPAINT', name: 'Asian Paints Ltd.', price: 2890.40, pct: -2.88 },
-      { symbol: 'TITAN', name: 'Titan Company', price: 3245.75, pct: -2.14 },
-      { symbol: 'BRITANNIA', name: 'Britannia Ind.', price: 5410.00, pct: -1.79 },
-      { symbol: 'NTPC', name: 'NTPC Ltd.', price: 398.25, pct: -1.45 }
-    ],
-    active: [
-      { symbol: 'RELIANCE', vol: '2.41 Cr', price: 1294.80, pct: 1.12 },
-      { symbol: 'HDFCBANK', vol: '2.18 Cr', price: 1742.50, pct: 0.85 },
-      { symbol: 'SUZLON', vol: '1.95 Cr', price: 64.35, pct: 3.45 },
-      { symbol: 'TATAMOTORS', vol: '1.72 Cr', price: 818.90, pct: -0.64 },
-      { symbol: 'ICICIBANK', vol: '1.54 Cr', price: 1289.10, pct: 1.38 }
-    ]
+    gainers: [],
+    losers: [],
+    active: []
   };
 
   function fmtNum(v){ return Number(v).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2}); }
@@ -2210,7 +2192,8 @@ window.setLogbookFilter=async function(filter,button){
 
     const renderList = (elId, list, isVol) => {
       const el = document.getElementById(elId);
-      if(!el || !Array.isArray(list)) return;
+      if(!el) return;
+      if(!Array.isArray(list) || !list.length){ el.innerHTML = '<div class="market-stock-card"><small>Live NSE data temporarily unavailable</small></div>'; return; }
       el.innerHTML = list.slice(0,5).map(item => {
         const up = Number(item.pct) >= 0;
         const sub = isVol ? `Vol: ${item.vol || '-'}` : (item.name || 'NSE');
@@ -2242,19 +2225,8 @@ window.setLogbookFilter=async function(filter,button){
       const liveData = json.data;
       const liveQuotes = liveData.quotes || {};
       ['gainers','losers','active'].forEach(group => {
-        if(Array.isArray(liveData[group]) && liveData[group].length){
-          // Use the live NSE market ranking, not a fixed list of sample symbols.
-          defaultMarketData[group] = liveData[group].slice(0,5);
-        } else {
-          // Keep existing sidebar entries and update their latest prices if the screener is unavailable.
-          defaultMarketData[group].forEach(item => {
-            const quote = liveQuotes[item.symbol];
-            if(quote && Number(quote.price) > 0){
-              item.price = Number(quote.price);
-              item.pct = Number(quote.pct || 0);
-            }
-          });
-        }
+        // These are rankings, not watchlists: show only validated live NSE rows.
+        defaultMarketData[group] = Array.isArray(liveData[group]) ? liveData[group].slice(0,5) : [];
       });
 
       if(liveData.nifty && Number(liveData.nifty.price) > 0) defaultMarketData.nifty = liveData.nifty;
