@@ -178,16 +178,18 @@
 </style>
 
 <style id="logbook-sidebar-space-utilization">
-/* Desktop: widen the client sidebar to make better use of available horizontal space.
-   Keep the 3 analytics cards (Company, P/L, Allocation) on one row. */
+/* Desktop: reduce Matching Clients sidebar width by 40% (180px-204px) */
 @media (min-width: 901px) {
   .logbook-layout {
-    grid-template-columns: minmax(300px, 340px) minmax(0, 1fr) !important;
+    grid-template-columns: minmax(180px, 204px) minmax(0, 1fr) !important;
     gap: 14px !important;
   }
   .logbook-charts {
     grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
     gap: 10px !important;
+  }
+  .logbook-charts-bottom {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
   }
   .logbook-allocation-box {
     grid-column: auto !important;
@@ -198,6 +200,7 @@
 }
 @media (max-width: 900px) {
   .logbook-layout { grid-template-columns: minmax(0,1fr) !important; }
+  .logbook-charts-bottom { grid-template-columns: 1fr !important; }
 }
 </style>
 
@@ -779,6 +782,10 @@ body.tradelogs-split-open #tradeLogsSplitDrawer{display:flex;}
         <section class="logbook-chart"><h4>1. Investment by Company</h4><div class="logbook-donut-wrap"><div class="logbook-donut" id="logbookInvestmentDonut"><div class="logbook-donut-center"><b>—</b><small>Investment</small></div></div></div><div class="logbook-legend" id="logbookInvestmentLegend"><div class="logbook-empty">Select a client.</div></div></section>
         <section class="logbook-chart"><h4>2. Profit by Company</h4><div class="logbook-donut-wrap"><div class="logbook-donut" id="logbookProfitDonut"><div class="logbook-donut-center"><b>—</b><small>Profit</small></div></div></div><div class="logbook-legend" id="logbookProfitLegend"><div class="logbook-empty">Select a client.</div></div></section>
         <section class="logbook-chart"><h4>3. Loss by Company</h4><div class="logbook-donut-wrap"><div class="logbook-donut" id="logbookLossDonut"><div class="logbook-donut-center"><b>—</b><small>Loss</small></div></div></div><div class="logbook-legend" id="logbookLossLegend"><div class="logbook-empty">Select a client.</div></div></section>
+      </div>
+      <div class="logbook-charts logbook-charts-bottom" style="grid-template-columns:repeat(2,minmax(0,1fr));margin-top:10px">
+        <section class="logbook-chart"><h4>4. Investment by Industry</h4><div class="logbook-donut-wrap"><div class="logbook-donut" id="logbookIndustryDonut"><div class="logbook-donut-center"><b>—</b><small>Industry</small></div></div></div><div class="logbook-legend" id="logbookIndustryLegend"><div class="logbook-empty">Select a client.</div></div></section>
+        <section class="logbook-chart"><h4>5. Investment by Market Cap (Large / Mid / Small)</h4><div class="logbook-donut-wrap"><div class="logbook-donut" id="logbookMarketCapDonut"><div class="logbook-donut-center"><b>—</b><small>Market Cap</small></div></div></div><div class="logbook-legend" id="logbookMarketCapLegend"><div class="logbook-empty">Select a client.</div></div></section>
       </div>
       <div class="logbook-note">Investment = quantity × buy price. Profit/Loss = current MTM from the portfolio. Industry and market-cap metadata are resolved from holding fields, company_classifications.json, and Yahoo Finance where available; unknown symbols remain Unclassified. Trade-recency is based on the Trade Date currently stored on portfolio rows.</div>
     </div>
@@ -1682,7 +1689,7 @@ window.setLogbookFilter=async function(filter,button){
      const e=document.getElementById(id);
      if(e) e.textContent=['No client selected','Last trade: —','—','—','—'][i];
    });
-   ['logbookInvestmentLegend','logbookProfitLegend','logbookLossLegend'].forEach(id=>{
+   ['logbookInvestmentLegend','logbookProfitLegend','logbookLossLegend','logbookIndustryLegend','logbookMarketCapLegend'].forEach(id=>{
      const e=document.getElementById(id);
      if(e) e.innerHTML='<div class="logbook-empty">Select a client.</div>';
    });
@@ -1690,7 +1697,7 @@ window.setLogbookFilter=async function(filter,button){
      const e=document.getElementById(id);
      if(e) e.textContent='—';
    });
-   ['logbookInvestmentDonut','logbookProfitDonut','logbookLossDonut'].forEach(id=>{
+   ['logbookInvestmentDonut','logbookProfitDonut','logbookLossDonut','logbookIndustryDonut','logbookMarketCapDonut'].forEach(id=>{
      const e=document.getElementById(id);
      if(e) e.innerHTML='<div class="logbook-empty">No chart data</div>';
    });
