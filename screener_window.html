@@ -1698,8 +1698,21 @@
 
     function ratioValue(...names) {
       if (!companyFundamentals?.ratios) return null;
-      const wanted = names.map(normalizeFundamentalLabel);
-      const found = companyFundamentals.ratios.find(r => wanted.includes(normalizeFundamentalLabel(r.label)));
+      const rows = formatFundamentalRows(companyFundamentals.ratios);
+      const wanted = names.map(normalizeFundamentalLabel).filter(Boolean);
+      // Exact label matching is safest; the fallback handles Screener label variations
+      // such as "10 Years" vs "10Years" and "Average ROE" vs "ROE Avg".
+      let found = rows.find(r => wanted.includes(normalizeFundamentalLabel(r.label)));
+      if (!found) {
+        const compact = value => normalizeFundamentalLabel(value).replace(/\\s+/g, "");
+        found = rows.find(r => {
+          const label = compact(r.label);
+          return wanted.some(name => {
+            const candidate = compact(name);
+            return candidate && (label === candidate || label.includes(candidate) || candidate.includes(label));
+          });
+        });
+      }
       return found ? found.value : null;
     }
 
@@ -1721,6 +1734,11 @@
       companyFundamentals = data;
       const symbol = data.symbol || getRequestedSymbol();
       const ratios = formatFundamentalRows(data.ratios || []);
+      const companyUrl = data.url || `https://www.screener.in/company/${encodeURIComponent(symbol)}/consolidated/`;
+      ["summary-sales-growth", "summary-profit-growth", "summary-price-eps-cagr", "summary-roe-capital"].forEach(id => {
+        const card = document.getElementById(id);
+        if (card) card.href = companyUrl;
+      });
       const categoryRules = [
         [/sales|revenue|profit|ebit|ebitda|eps|tax|dividend|depreciation|interest|opm|npm|gpm/i, "Annual P&L"],
         [/quarter|qtr/i, "Quarterly"],
