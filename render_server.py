@@ -5065,78 +5065,28 @@ def api_screener_proxy(symbol):
     title_m = re.search(r"<h1[^>]*>(.*?)</h1>", html_body, re.S | re.I)
     company_name = re.sub(r"\s+", " ", re.sub(r"<[^>]+>", "", title_m.group(1))).strip() if title_m else clean_sym
 
-    # Read the complete Screener ratio list and all published statement tables.
-    # The previous endpoint truncated the ratio list to 12 entries, leaving most
-    # dashboard categories on the bundled demo snapshot.
-    from bs4 import BeautifulSoup
-    soup = BeautifulSoup(html_body, "html.parser")
     ratios = []
-    seen = set()
+    for li_m in re.finditer(r'<li class="flex flex-space-between"[^>]*>(.*?)</li>', html_body, re.S):
+        block = li_m.group(1)
+        nm = re.search(r'<span class="name"[^>]*>(.*?)</span>', block, re.S)
+        vl = re.search(r'<span class="nowrap value"[^>]*>(.*?)</span>', block, re.S)
+        if nm and vl:
+            k = re.sub(r"\s+", " ", re.sub(r"<[^>]+>", "", nm.group(1))).strip()
+            v = re.sub(r"\s+", " ", re.sub(r"<[^>]+>", "", vl.group(1))).strip()
+            if k:
+                ratios.append({"label": k, "value": v})
 
-    def add_ratio(label, value, category=None):
-        label = re.sub(r"\s+", " ", str(label or "")).strip()
-        value = re.sub(r"\s+", " ", str(value or "")).strip()
-        if not label or not value or value in {"-", "—", "NA", "N/A"}:
-            return
-        key = (label.casefold(), value.casefold(), (category or "").casefold())
-        if key in seen:
-            return
-        seen.add(key)
-        row = {"label": label, "value": value}
-        if category:
-            row["category"] = category
-        ratios.append(row)
-
-    for li in soup.select("li.flex.flex-space-between"):
-        name_el = li.select_one("span.name")
-        value_el = li.select_one("span.nowrap.value")
-        if name_el and value_el:
-            add_ratio(name_el.get_text(" ", strip=True), value_el.get_text(" ", strip=True))
-
-    # Screener statement tables contain the quarterly, annual P&L, balance-sheet,
-    # cash-flow and shareholding figures that are not part of the top ratio list.
-    table_categories = {
-        "quarters": "Quarterly", "quarterly-results": "Quarterly",
-        "profit-loss": "Annual P&L", "profit_loss": "Annual P&L",
-        "balance-sheet": "Balance Sheet", "balance_sheet": "Balance Sheet",
-        "cash-flow": "Cash Flow", "cash_flow": "Cash Flow",
-        "shareholding": "Shareholding",
-    }
-    for table in soup.select("table"):
-        table_id = (table.get("id") or "").lower()
-        parent_id = (table.find_parent(id=True).get("id") or "").lower() if table.find_parent(id=True) else ""
-        category = next((cat for key, cat in table_categories.items() if key in table_id or key in parent_id), None)
-        if not category:
-            continue
-        rows = table.select("tbody tr") or table.select("tr")
-        for tr in rows:
-            cells = tr.find_all(["th", "td"], recursive=False)
-            if len(cells) < 2:
-                continue
-            label = cells[0].get_text(" ", strip=True)
-            values = [c.get_text(" ", strip=True) for c in cells[1:]]
-            values = [v for v in values if v and v not in {"-", "—"}]
-            if not label or not values:
-                continue
-            # Preserve the published period headings where present; emit every
-            # available period instead of silently substituting another period.
-            header = table.select_one("thead tr")
-            headings = [c.get_text(" ", strip=True) for c in header.find_all(["th", "td"])[1:]] if header else []
-            for idx, value in enumerate(values):
-                period = headings[idx] if idx < len(headings) else f"Period {idx + 1}"
-                add_ratio(f"{label} — {period}", value, category)
-            add_ratio(label, values[-1], category)
-
-    about_m = soup.select_one("div.sub.show-more-box.about")
-    about_txt = re.sub(r"\s+", " ", about_m.get_text(" ", strip=True)).strip() if about_m else ""
+    about_m = re.search(r'<div class="sub show-more-box about"[^>]*>(.*?)</div>', html_body, re.S)
+    about_txt = re.sub(r"\s+", " ", re.sub(r"<[^>]+>", "", about_m.group(1))).strip() if about_m else ""
 
     return jsonify({
         "success": True,
         "symbol": clean_sym,
         "company_name": company_name,
         "url": final_url,
+        # Return every company-specific ratio found on the selected Screener page.
+        # The browser uses these rows to refresh all categories and the four summary cards.
         "ratios": ratios,
-        "ratio_count": len(ratios),
         "about": about_txt[:420],
     })
 
