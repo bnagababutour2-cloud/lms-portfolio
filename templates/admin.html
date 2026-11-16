@@ -800,7 +800,7 @@ body.tradelogs-split-open #tradeLogsSplitDrawer{display:flex;}
 {% for h in holdings %}
 <tr data-id="{{ h.get('id','') }}" data-portfolio-id="{{ h.get('portfolio_id','') }}"
     data-client="{{ h.client_id|lower }}" data-symbol="{{ h.symbol|lower }}"
-    data-product="{{ h.product|lower }}" data-exchange="{{ h.exchange|lower }}" data-industry="{{ (h.get('industry') or h.get('sector') or h.get('industry_name') or 'Unclassified')|e|lower }}">
+    data-product="{{ h.product|lower }}" data-exchange="{{ h.exchange|lower }}" data-industry="{{ (h.get('industry') or h.get('sector') or h.get('industry_name') or 'Unclassified')|e }}" data-market-cap="{{ (h.get('market_cap') or h.get('cap_category') or 'Unclassified')|e }}">
 <td><input class="row-check check" type="checkbox" onchange="updateRowCount()"></td>
 <td>{{ h.client_id }}</td><td class="portfolio-symbol-link" data-symbol="{{ h.symbol }}">{{ h.symbol }}</td><td><b>{{ h.product }}</b></td><td>{{ h.exchange }}</td>
 <td class="{{ 'profit' if h.mtm >= 0 else 'loss' }}" data-mtm="{{ h.mtm }}">{{ '%.2f'|format(h.mtm) }}</td>
@@ -1875,15 +1875,19 @@ window.setLogbookFilter=async function(filter,button){
    const rows=allPortfolioRows().filter(r=>(r.dataset.client||r.cells[1]?.textContent.trim()).toUpperCase()===clientId.toUpperCase());
    if(!rows.length){clearLogbookCharts();return;}
 
-   const companies=new Map(),industries=new Map();
+   const companies=new Map(),industries=new Map(),marketCaps=new Map();
    let investment=0,pnl=0,lastDays=null,lastDate='—';
    rows.forEach(r=>{
      const symbol=(r.cells[2]?.textContent||'Unknown').trim();
      const qty=num(r.cells[7]?.textContent),buy=num(r.cells[8]?.textContent),mtm=num(r.cells[5]?.textContent);
      const invested=qty*buy;investment+=invested;pnl+=mtm;
      const c=companies.get(symbol)||{name:symbol,investment:0,pnl:0};c.investment+=invested;c.pnl+=mtm;companies.set(symbol,c);
-     const industry=(r.dataset.industry||'unclassified').trim().replace(/\b\w/g,x=>x.toUpperCase())||'Unclassified';
+     const rawInd=(r.dataset.industry||'Unclassified').trim()||'Unclassified';
+     const industry=rawInd.toLowerCase()==='unclassified'?'Unclassified':rawInd;
      industries.set(industry,(industries.get(industry)||0)+invested);
+     const rawCap=(r.dataset.marketCap||'Unclassified').trim()||'Unclassified';
+     const cap=CAP_META[rawCap]?rawCap:'Unclassified';
+     marketCaps.set(cap,(marketCaps.get(cap)||0)+invested);
      const days=daysSinceTrade(r);
      if(days!==null&&(lastDays===null||days<lastDays)){lastDays=days;lastDate=r.cells[10]?.textContent.trim()||'—';}
    });
@@ -1906,9 +1910,15 @@ window.setLogbookFilter=async function(filter,button){
    const byProfit=[...companies.values()].filter(x=>x.pnl>0).sort((a,b)=>b.pnl-a.pnl).map(x=>({name:x.name,value:x.pnl}));
    const byLoss=[...companies.values()].filter(x=>x.pnl<0).sort((a,b)=>a.pnl-b.pnl).map(x=>({name:x.name,value:x.pnl}));
 
+   const byIndustry=[...industries.entries()].sort((a,b)=>b[1]-a[1]).map(([name,value])=>({name,value}));
+   const capOrder=['Large Cap','Mid Cap','Small Cap','Unclassified'];
+   const byMarketCap=capOrder.map(name=>({name,value:marketCaps.get(name)||0})).filter(x=>x.value>0 || ['Large Cap','Mid Cap','Small Cap'].includes(x.name));
+
    renderDonut('logbookInvestmentDonut','logbookInvestmentLegend',byInvestment,byInvestment.reduce((a,x)=>a+Math.abs(x.value),0),'investment');
    renderDonut('logbookProfitDonut','logbookProfitLegend',byProfit,byProfit.reduce((a,x)=>a+Math.abs(x.value),0),'pnl');
    renderDonut('logbookLossDonut','logbookLossLegend',byLoss,byLoss.reduce((a,x)=>a+Math.abs(x.value),0),'pnl');
+   renderDonut('logbookIndustryDonut','logbookIndustryLegend',byIndustry,byIndustry.reduce((a,x)=>a+Math.abs(x.value),0),'industry');
+   renderDonut('logbookMarketCapDonut','logbookMarketCapLegend',byMarketCap,byMarketCap.reduce((a,x)=>a+Math.abs(x.value),0),'cap');
 
    fetch('/api/admin/client-analytics/'+encodeURIComponent(clientId),{credentials:'same-origin',cache:'no-store'})
      .then(r=>r.json())
