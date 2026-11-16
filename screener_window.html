@@ -79,17 +79,18 @@
     .btn-tradingview { background: #131722; color: #fff; border-color: #131722; }
     .btn-tradingview:hover { background: #2a2e39; border-color: #2a2e39; }
 
-    /* Sticky wrapper for the first two boxes */
+    /* Sticky wrapper keeping Header, Snapshot, SWOT/PE/Forecast/Rating & 4 Summary Cards fixed above the Ratios Grid */
     .top-fixed-boxes {
       position: sticky;
       top: 0;
       z-index: 50;
       background-color: var(--bg-page);
-      padding-top: 10px;
-      padding-bottom: 4px;
+      padding-top: 8px;
+      padding-bottom: 8px;
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: 10px;
+      border-bottom: 1px solid var(--border);
     }
 
     /* Top Header Card */
@@ -922,10 +923,10 @@
         <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
           <div class="symbol-selector" title="Switch NSE/BSE Ticker">
             <span>SYMBOL:</span>
-            <input type="text" id="symbol-input" value="SUZLON" style="width:82px; border:none; background:transparent; font-weight:800; color:var(--primary); text-transform:uppercase; outline:none;" onkeydown="if(event.key==='Enter'){applySelectedSymbol(this.value);}" />
+            <input type="text" id="symbol-input" value="SUZLON" placeholder="SYMBOL" style="width:92px; border:none; background:transparent; font-weight:800; color:var(--primary); text-transform:uppercase; outline:none;" onkeydown="if(event.key==='Enter'){event.preventDefault();refreshSymbolAndMetrics();}" />
             <button type="button" class="mini-btn" onclick="applySelectedSymbol(document.getElementById('symbol-input').value)" title="Load Symbol">&#10148;</button>
           </div>
-          <button class="btn btn-outline" id="refresh-now-btn" onclick="updateLiveMetrics(true)" title="Fetch latest quote now">&#8635; REFRESH</button>
+          <button class="btn btn-outline" id="refresh-now-btn" onclick="refreshSymbolAndMetrics()" title="Fetch latest quote now">&#8635; REFRESH</button>
           <button class="btn btn-amber" id="toggle-arrange-btn" onclick="toggleArrangeMode()">&#9881; ARRANGE ORDER</button>
           <button class="btn btn-success" id="save-order-btn" onclick="saveOrder()" style="display:none;">&#128190; SAVE ORDER</button>
           <button class="btn btn-outline" id="reset-order-btn" onclick="resetOrder()" style="display:none;">&#8634; RESET DEFAULT</button>
@@ -959,7 +960,7 @@
       </div>
       <div class="market-snapshot-note">The 11 quote and technical metrics are shown in one horizontal line. Click any metric to open the selected company on Screener.in. Quote and technical values are refreshed from Yahoo Finance daily candles and quote metadata (may be delayed). Trend uses 50 EMA and 200 SMA; Momentum uses RSI(14), following the Python scanner. If Yahoo or its browser-access relay is unavailable, the dashboard will show Unavailable rather than fabricated values.</div>
     </section>
-    </div>
+
 
 
 
@@ -1100,6 +1101,8 @@
       <strong>Data note:</strong> Summary values are populated from the selected company's Screener.in fundamentals when available. Missing source values are shown as Unavailable, not copied from another company. Quote/technical values are refreshed from Yahoo Finance; quarterly and annual fundamentals in this standalone file remain the supplied snapshot and are not live-updated.
     </div>
 
+    </div>
+
     <!-- Single-Page All Ratios Container -->
     <main class="ratios-card">
       <div class="arrange-banner" id="arrange-banner">
@@ -1156,23 +1159,45 @@
       return /^[A-Z0-9&._-]{1,20}$/.test(raw) ? raw : "SUZLON";
     }
 
-    function applySelectedSymbol(value) {
+    function applySelectedSymbol(value, forceFetch = true) {
       const symbol = String(value || "").trim().toUpperCase().replace(/\.(NS|BO)$/i, "");
-      if (!/^[A-Z0-9&._-]{1,20}$/.test(symbol)) return;
+      if (!/^[A-Z0-9&._-]{1,20}$/.test(symbol)) return false;
       const link = document.getElementById("main-script-link");
       if (link) {
         link.textContent = `${symbol} ↗`;
         link.href = `https://www.screener.in/company/${encodeURIComponent(symbol)}/consolidated/`;
       }
       const symInput = document.getElementById("symbol-input");
-      if (symInput && symInput.value.toUpperCase() !== symbol) {
+      if (symInput && symInput.value.trim().toUpperCase() !== symbol) {
         symInput.value = symbol;
       }
+      // Reset header & snapshot placeholders while fetching the new symbol's values
+      const priceEl = document.getElementById("header-price");
+      const changeEl = document.getElementById("header-change");
+      if (priceEl) priceEl.textContent = "Loading…";
+      if (changeEl) { changeEl.textContent = "—"; changeEl.className = "live-badge"; }
+      ["ltp","change","volume","rsi","sma20","sma50","sma200","high","low","trend","momentum"].forEach(k => setSnapshotValue(k, "Loading…"));
+
       currentPrice = currentVolume = currentRSI = liveMarketData = null;
+      companyFundamentals = null;
+      lastFundamentalFetchAt = 0;
       document.title = `${symbol} Stock Screener`;
       renderWorkspace();
       loadCompanyFundamentals(true);
-      if (isLive) updateLiveMetrics();
+      updateLiveMetrics(forceFetch);
+      return true;
+    }
+
+    function refreshSymbolAndMetrics() {
+      const symInput = document.getElementById("symbol-input");
+      const typed = (symInput ? symInput.value : "").trim().toUpperCase().replace(/\.(NS|BO)$/i, "");
+      const currentSym = (document.getElementById("main-script-link")?.textContent || "").replace("↗", "").trim().toUpperCase();
+      if (typed && typed !== currentSym) {
+        applySelectedSymbol(typed, true);
+      } else {
+        loadCompanyFundamentals(true);
+        updateLiveMetrics(true);
+      }
     }
 
     function setWorkspaceView(view, button) {
@@ -1927,6 +1952,9 @@
       document.querySelectorAll("[data-rating]").forEach(el => el.textContent = "N/A");
       document.querySelectorAll(".mc-rating-fill").forEach(el => el.style.width = "0%");
 
+      if (liveMarketData && liveMarketData.symbol === selectedNseSymbol()) {
+        updateLiveMetrics(false);
+      }
       const note = document.querySelector(".workspace-note");
       if (note) note.innerHTML = `<strong>Data source:</strong> ${escapeHTML(data.source || "Screener.in")} · ${escapeHTML(data.company_name || symbol)} · fetched ${escapeHTML(data.fetched_at || "")} · missing values remain unavailable.`;
       const status = document.getElementById("live-status-text");
