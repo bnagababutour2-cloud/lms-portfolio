@@ -4873,70 +4873,161 @@ def screener_window_page():
 
 @app.route("/api/screener-live/<path:symbol>", methods=["GET"])
 def api_screener_live(symbol):
-    """Server-side live quote/history proxy for the selected stock screener symbol."""
+    """Return latest available Yahoo quote plus daily history for Screener UI.
 
+    The UI uses daily candles for RSI/SMA/EMA/52-week calculations. Those
+    candles alone can leave LTP stuck on the previous daily close. Fetch a
+    short-interval chart as well and merge its latest traded price/volume/time
+    into the daily chart metadata. This keeps the existing browser-side
+    calculations and all other application logic unchanged.
+    """
     raw_symbol = str(symbol or "").strip().upper()
     clean_symbol = re.sub(r"[^A-Z0-9&._-]", "", raw_symbol)
     if not clean_symbol:
         return jsonify({"success": False, "message": "Invalid stock symbol."}), 400
 
-    # Respect an explicitly supplied Yahoo suffix; otherwise try NSE and then BSE.
+    # Preserve an explicit Yahoo suffix. Otherwise try NSE first, then BSE.
     if clean_symbol.endswith(".NS"):
         base_symbol = clean_symbol[:-3]
         tickers = [clean_symbol, base_symbol + ".BO"]
     elif clean_symbol.endswith(".BO"):
         base_symbol = clean_symbol[:-3]
         tickers = [clean_symbol, base_symbol + ".NS"]
+    elif clean_symbol.startswith("^"):
+        tickers = [clean_symbol]
     else:
         tickers = [clean_symbol + ".NS", clean_symbol + ".BO"]
 
     headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                      "AppleWebKit/537.36 (KHTML, like Gecko) "
-                      "Chrome/124.0.0.0 Safari/537.36",
+        "User-Agent": (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/131.0.0.0 Safari/537.36"
+        ),
         "Accept": "application/json,text/plain,*/*",
+        "Accept-Language": "en-US,en;q=0.9",
     }
-    last_error = "No Yahoo Finance chart data returned"
+    last_error = "Yahoo Finance returned no usable quote or price history"
+
+    def fetch_chart(session, host, ticker, period, interval):
+        endpoint = f"https://{host}/v8/finance/chart/{quote(ticker, safe='')}"
+        response = session.get(
+            endpoint,
+            params={
+                "range": period,
+                "interval": interval,
+                "events": "div,splits",
+                "includePrePost": "false",
+            },
+            headers=headers,
+            timeout=(4, 12),
+        )
+        response.raise_for_status()
+        payload = response.json()
+        chart_obj = payload.get("chart") or {}
+        if chart_obj.get("error"):
+            err = chart_obj.get("error") or {}
+            raise RuntimeError(err.get("description") or err.get("code") or "Yahoo chart error")
+        results = chart_obj.get("result") or []
+        if not results:
+            raise RuntimeError("Yahoo returned an empty chart result")
+        return results[0] or {}
 
     for ticker in tickers:
         for host in ("query1.finance.yahoo.com", "query2.finance.yahoo.com"):
             try:
-                url = f"https://{host}/v8/finance/chart/{quote(ticker, safe='')}"
-                response = requests.get(
-                    url,
-                    params={
-                        "range": "1y",
-                        "interval": "1d",
-                        "events": "div,splits",
-                        "includePrePost": "false",
-                    },
-                    headers=headers,
-                    timeout=12,
-                )
-                response.raise_for_status()
-                payload = response.json()
-                results = ((payload.get("chart") or {}).get("result") or [])
-                if results:
-                    result = results[0] or {}
-                    quote_data = ((result.get("indicators") or {}).get("quote") or [{}])[0]
-                    closes = [v for v in (quote_data.get("close") or []) if isinstance(v, (int, float))]
-                    if len(closes) >= 30:
-                        response_obj = jsonify({
-                            "success": True,
-                            "symbol": ticker,
-                            "chart": payload.get("chart") or {},
-                        })
-                        response_obj.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
-                        return response_obj
-                    last_error = f"{ticker}: insufficient daily price history"
-                else:
-                    last_error = ((payload.get("chart") or {}).get("error") or {}).get("description") or f"{ticker}: no chart result"
+                with requests.Session() as session:
+                    # Daily history is retained for the existing technical calculations.
+                    daily = fetch_chart(session, host, ticker, "1y", "1d")
+                    daily_quote = ((daily.get("indicators") or {}).get("quote") or [{}])[0] or {}
+                    daily_closes = [
+                        value for value in (daily_quote.get("close") or [])
+                        if isinstance(value, (int, float)) and value > 0
+                    ]
+                    if len(daily_closes) < 30:
+                        raise RuntimeError(f"{ticker}: insufficient daily history for technical indicators")
+
+                    daily_meta = dict(daily.get("meta") or {})
+                    latest_price = None
+                    latest_volume = None
+                    latest_timestamp = None
+                    quote_interval = None
+
+                    # Prefer the latest 5-minute traded price; try 1-minute data if
+                    # the 5-minute endpoint is temporarily empty for this symbol.
+                    for period, interval in (("5d", "5m"), ("1d", "1m")):
+                        try:
+                            intraday = fetch_chart(session, host, ticker, period, interval)
+                            intraday_meta = intraday.get("meta") or {}
+                            intraday_quote = ((intraday.get("indicators") or {}).get("quote") or [{}])[0] or {}
+                            closes = intraday_quote.get("close") or []
+                            volumes = intraday_quote.get("volume") or []
+                            stamps = intraday.get("timestamp") or []
+                            for index in range(min(len(closes), len(stamps)) - 1, -1, -1):
+                                value = closes[index]
+                                if isinstance(value, (int, float)) and value > 0:
+                                    latest_price = float(value)
+                                    latest_timestamp = stamps[index]
+                                    if index < len(volumes) and isinstance(volumes[index], (int, float)):
+                                        latest_volume = int(volumes[index])
+                                    quote_interval = interval
+                                    break
+                            # Yahoo's regularMarketPrice is preferred when it is
+                            # newer than the final candle (e.g. current session tick).
+                            meta_price = intraday_meta.get("regularMarketPrice")
+                            meta_time = intraday_meta.get("regularMarketTime")
+                            if isinstance(meta_price, (int, float)) and meta_price > 0:
+                                if (latest_timestamp is None or not meta_time or meta_time >= latest_timestamp):
+                                    latest_price = float(meta_price)
+                                    latest_timestamp = meta_time or latest_timestamp
+                                    quote_interval = "Yahoo regular-market quote"
+                            if latest_price is not None:
+                                # Preserve authoritative exchange metadata from the intraday response.
+                                for key in (
+                                    "regularMarketTime", "regularMarketVolume", "previousClose",
+                                    "chartPreviousClose", "currency", "exchangeName",
+                                    "fullExchangeName", "marketState", "instrumentType",
+                                    "fiftyTwoWeekHigh", "fiftyTwoWeekLow",
+                                ):
+                                    if intraday_meta.get(key) is not None:
+                                        daily_meta[key] = intraday_meta[key]
+                                break
+                        except Exception as intraday_exc:
+                            last_error = f"{ticker} intraday {interval}: {intraday_exc}"
+
+                    # If intraday data is unavailable (closed market/provider limits),
+                    # use Yahoo's latest regular-market quote, then the last daily close.
+                    if latest_price is not None:
+                        daily_meta["regularMarketPrice"] = latest_price
+                    elif isinstance(daily_meta.get("regularMarketPrice"), (int, float)) and daily_meta["regularMarketPrice"] > 0:
+                        latest_price = float(daily_meta["regularMarketPrice"])
+                    else:
+                        latest_price = float(daily_closes[-1])
+                        daily_meta["regularMarketPrice"] = latest_price
+
+                    if latest_volume is not None and not daily_meta.get("regularMarketVolume"):
+                        daily_meta["regularMarketVolume"] = latest_volume
+                    if latest_timestamp and not daily_meta.get("regularMarketTime"):
+                        daily_meta["regularMarketTime"] = latest_timestamp
+                    daily_meta["lmsQuoteInterval"] = quote_interval or "latest available Yahoo quote/daily close"
+                    daily_meta["lmsQuoteSource"] = "Yahoo Finance chart"
+                    daily["meta"] = daily_meta
+
+                    response_obj = jsonify({
+                        "success": True,
+                        "symbol": ticker,
+                        "chart": {"result": [daily], "error": None},
+                    })
+                    response_obj.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+                    response_obj.headers["Pragma"] = "no-cache"
+                    response_obj.headers["Expires"] = "0"
+                    return response_obj
             except Exception as exc:
-                last_error = f"{ticker}: {exc}"
+                last_error = f"{ticker} via {host}: {exc}"
 
     return jsonify({
         "success": False,
-        "message": "Live market data is unavailable for this script from Yahoo Finance.",
+        "message": "Latest market data is unavailable for this script from Yahoo Finance.",
         "error": str(last_error),
     }), 502
 
