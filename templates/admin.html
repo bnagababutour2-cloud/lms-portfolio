@@ -848,6 +848,22 @@ body.tradelogs-split-open #tradeLogsSplitDrawer{display:flex;}
   </div>
 </div>
 
+<div class="card" id="inlineScreenerCard" style="padding:0;overflow:hidden">
+  <div style="background:#052d70;color:#fff;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;gap:8px">
+    <div style="min-width:0;display:flex;align-items:center;gap:10px">
+      <strong style="font-size:14px;letter-spacing:.4px">STOCK SCREENER &amp; FUNDAMENTALS</strong>
+      <span id="inlineScrActiveSym" class="pill" style="background:rgba(255,255,255,.16);color:#ffd21c;border:0;padding:3px 9px;font-size:11px">SUZLON</span>
+    </div>
+    <div style="display:flex;gap:6px;flex-shrink:0;align-items:center">
+      <a id="inlineScrExtLink" href="https://www.screener.in/company/SUZLON/consolidated/" target="_blank" rel="noopener noreferrer"
+         style="background:#fff;color:#052d70;padding:5px 9px;border-radius:6px;font-size:11px;font-weight:800;text-decoration:none">Open Screener.in ↗</a>
+    </div>
+  </div>
+  <div style="width:100%;height:780px;background:#f4f6f9">
+    <iframe id="inlineScreenerFrame" title="Stock Screener & Fundamentals" src="/screener-window?symbol=SUZLON" style="width:100%;height:100%;border:0;display:block"></iframe>
+  </div>
+</div>
+
 <div class="card"><div class="title">Client Information</div><div class="sub">Select clients to view their portfolio.</div>
 <div class="selectbar"><button class="btn light" onclick="selectAllClients()">SELECT ALL CLIENTS</button><button class="btn light" onclick="clearClientSelection()">CLEAR</button><button class="btn" onclick="viewSelectedClients()">VIEW SELECTED</button><span class="pill" id="clientCount">0 selected</span></div>
 <div class="table-wrap"><table id="clientsTable"><thead><tr><th></th><th>Client ID</th><th>Mobile</th><th>Email</th><th>DOB</th><th>Status</th></tr></thead><tbody>
@@ -1958,13 +1974,27 @@ window.setLogbookFilter=async function(filter,button){
   window.openScreenerSplit=async function(rawSym){
     const sym=String(rawSym||'').trim().toUpperCase().replace(/\.(NS|BO)$/i,'');
     if(!/^[A-Z0-9&._-]{1,20}$/.test(sym)) return;
+    const inlineCard=document.getElementById('inlineScreenerCard');
+    const inlineFrame=document.getElementById('inlineScreenerFrame');
+    const inlineBadge=document.getElementById('inlineScrActiveSym');
+    const inlineExt=document.getElementById('inlineScrExtLink');
+    const fallbackUrl=`https://www.screener.in/company/${sym}/consolidated/`;
+    if(inlineBadge) inlineBadge.textContent=sym;
+    if(inlineExt) inlineExt.href=fallbackUrl;
+    if(inlineFrame){
+      if(inlineFrame.dataset.symbol!==sym){
+        inlineFrame.dataset.symbol=sym;
+        inlineFrame.src=`/screener-window?symbol=${encodeURIComponent(sym)}`;
+      }
+      if(inlineCard) inlineCard.scrollIntoView({behavior:'smooth',block:'start'});
+      return;
+    }
     document.body.classList.add('screener-split-open');
     const titleEl=document.getElementById('scrDrawerTitle');
     const linkEl=document.getElementById('scrDrawerExtLink');
     const frame=document.getElementById('scrDrawerFrame');
-    const fallbackUrl=`https://www.screener.in/company/${sym}/consolidated/`;
-    titleEl.textContent=sym;
-    linkEl.href=fallbackUrl;
+    if(titleEl) titleEl.textContent=sym;
+    if(linkEl) linkEl.href=fallbackUrl;
     if(activeSym===sym && frame && frame.dataset.symbol===sym) return;
     activeSym=sym;
     if(frame){
