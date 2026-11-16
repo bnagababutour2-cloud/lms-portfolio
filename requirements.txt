@@ -6,4 +6,4 @@ psycopg2-binary==2.9.12
 supabase==2.18.1
 python-dotenv==1.1.1
 requests==2.32.5
-beautifulsoup4
+beautifulsoup4==4.13.5
