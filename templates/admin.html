@@ -535,6 +535,65 @@ body.tradelogs-split-open #tradeLogsSplitDrawer{display:flex;}
 @media(max-width:700px){.live-news-ticker-bar{gap:7px;padding:6px}.live-news-badge{font-size:9px;padding:4px 5px}.live-news-item{font-size:9.5px;margin-right:22px}}
 </style>
 
+
+<style id="portfolio-heading-compact-single-row">
+/* Compact the PRIME, status and star filters without changing their actions. */
+@media (min-width: 900px) {
+  .portfolio-heading-row {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    flex-wrap: nowrap !important;
+    gap: 6px !important;
+    overflow-x: auto;
+    white-space: nowrap;
+    padding-bottom: 2px;
+    scrollbar-width: thin;
+  }
+  .portfolio-heading-row .portfolio-heading-left {
+    display: flex !important;
+    align-items: center !important;
+    flex-wrap: nowrap !important;
+    gap: 6px !important;
+    min-width: max-content;
+    width: max-content;
+  }
+  .portfolio-heading-row .portfolio-heading-left > .title {
+    flex: 0 0 auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    font-size: 14px !important;
+    line-height: 1.15 !important;
+    white-space: nowrap !important;
+  }
+  .portfolio-heading-row #primeClientsBtn,
+  .portfolio-heading-row .prime-quick-filters .btn {
+    flex: 0 0 auto !important;
+    min-height: 28px !important;
+    padding: 5px 8px !important;
+    margin: 0 !important;
+    font-size: 10px !important;
+    line-height: 1 !important;
+    border-radius: 6px !important;
+    white-space: nowrap !important;
+  }
+  .portfolio-heading-row #primeClientsBtn { min-width: 52px; }
+  .portfolio-heading-row .prime-quick-filters {
+    display: flex !important;
+    align-items: center !important;
+    flex-wrap: nowrap !important;
+    gap: 4px !important;
+    min-width: max-content;
+    margin: 0 !important;
+  }
+  .portfolio-heading-row .prime-quick-filters [id^="adminStar"] {
+    min-width: 30px !important;
+    padding-left: 5px !important;
+    padding-right: 5px !important;
+  }
+}
+</style>
+
 </head>
 <body>
 <header class="top"><div class="header-overlay"><div class="header-subtitle">ADMIN / SUPERVISOR PORTFOLIO &amp; DAILY CONTROL PANEL</div><div class="header-login">Logged in: {{ supervisor_name }} ({{ supervisor_id }}){% if not can_manage %} · VIEW ONLY{% endif %}</div></div></header>
