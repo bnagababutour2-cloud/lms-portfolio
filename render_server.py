@@ -12,6 +12,7 @@ import traceback
 from datetime import datetime, timedelta
 import pandas as pd
 import requests
+from bs4 import BeautifulSoup
 import threading
 import time
 import fcntl
@@ -2500,287 +2501,6 @@ def _get_yahoo_ltp(symbol, exchange):
     return None
 
 
-
-def _fetch_yahoo_market_quote(yahoo_symbol):
-    """Fetch a live Yahoo quote, using chart data and quote API as fallbacks."""
-    last_error = None
-    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/131.0 Safari/537.36"}
-
-    # Chart endpoint supplies current price and previous close for indices and stocks.
-    for base_url in (
-        "https://query2.finance.yahoo.com/v8/finance/chart/",
-        "https://query1.finance.yahoo.com/v8/finance/chart/",
-    ):
-        try:
-            response = _get_ltp_session().get(
-                base_url + quote(yahoo_symbol, safe=""),
-                params={"range": "1d", "interval": "1m", "includePrePost": "false"},
-                timeout=8,
-            )
-            response.raise_for_status()
-            payload = response.json()
-            results = ((payload.get("chart") or {}).get("result") or [])
-            if not results:
-                last_error = (payload.get("chart") or {}).get("error") or "No chart quote data"
-                continue
-            meta = results[0].get("meta") or {}
-            price = meta.get("regularMarketPrice")
-            previous = meta.get("chartPreviousClose") or meta.get("previousClose")
-            if price not in (None, ""):
-                price = float(price)
-                previous = float(previous) if previous not in (None, "") else price
-                change = price - previous
-                pct = (change / previous * 100.0) if previous else 0.0
-                return {"price": price, "change": change, "pct": pct}
-        except Exception as exc:
-            last_error = exc
-
-    # Yahoo's quote endpoint is an independent fallback, particularly useful for ^BSESN.
-    try:
-        response = _get_ltp_session().get(
-            "https://query1.finance.yahoo.com/v7/finance/quote",
-            params={"symbols": yahoo_symbol},
-            headers=headers,
-            timeout=8,
-        )
-        response.raise_for_status()
-        items = (response.json().get("quoteResponse") or {}).get("result") or []
-        if items:
-            item = items[0]
-            price = item.get("regularMarketPrice")
-            previous = item.get("regularMarketPreviousClose") or item.get("regularMarketOpen")
-            change = item.get("regularMarketChange")
-            pct = item.get("regularMarketChangePercent")
-            if price not in (None, ""):
-                price = float(price)
-                if change in (None, ""):
-                    previous = float(previous) if previous not in (None, "") else price
-                    change = price - previous
-                if pct in (None, ""):
-                    previous = float(previous) if previous not in (None, "") else price
-                    pct = (float(change) / previous * 100.0) if previous else 0.0
-                return {"price": price, "change": float(change), "pct": float(pct)}
-    except Exception as exc:
-        last_error = exc
-
-    print(f"[MARKET PULSE] Yahoo quote failed for {yahoo_symbol}: {last_error}")
-    return None
-
-
-_NSE_MOVER_CACHE = {"gainers": {"at": 0, "rows": []}, "losers": {"at": 0, "rows": []}, "active": {"at": 0, "rows": []}}
-_NSE_MOVER_LOCK = threading.Lock()
-_NSE_SESSION_LOCK = threading.Lock()
-_NSE_SESSION = None
-
-
-def _nse_market_session():
-    """Create a warmed NSE session; NSE market-data APIs require homepage cookies."""
-    global _NSE_SESSION
-    with _NSE_SESSION_LOCK:
-        if _NSE_SESSION is not None:
-            return _NSE_SESSION
-        sess = requests.Session()
-        sess.headers.update({
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
-        "Accept": "application/json, text/plain, */*",
-        "Accept-Language": "en-IN,en;q=0.9",
-        "Referer": "https://www.nseindia.com/market-data/top-gainers-losers",
-        "Connection": "keep-alive",
-    })
-    # Establish NSE cookies before requesting the JSON endpoints.
-        sess.get("https://www.nseindia.com/", timeout=8)
-        _NSE_SESSION = sess
-        return _NSE_SESSION
-
-
-def _nse_rows_from_payload(payload):
-    """Extract the NSE all-securities rows across known response envelopes."""
-    if not isinstance(payload, dict):
-        return []
-    # NSE variations commonly returns allSec plus index-specific buckets.
-    for key in ("allSec", "data", "NIFTY", "equities", "stocks"):
-        value = payload.get(key)
-        if isinstance(value, list) and value:
-            return value
-        if isinstance(value, dict):
-            for nested in ("data", "allSec", "rows"):
-                rows = value.get(nested)
-                if isinstance(rows, list) and rows:
-                    return rows
-    # Some versions wrap the response under a top-level `data` object.
-    for value in payload.values():
-        if isinstance(value, dict):
-            rows = _nse_rows_from_payload(value)
-            if rows:
-                return rows
-    return []
-
-
-def _nse_number(row, *keys):
-    for key in keys:
-        value = row.get(key)
-        if value not in (None, "", "-", "NA", "N/A"):
-            try:
-                return float(str(value).replace(",", "").replace("%", "").strip())
-            except (TypeError, ValueError):
-                continue
-    return None
-
-
-def _fetch_nse_market_movers(group, limit=5):
-    """Fetch today's actual NSE gainers, losers and most-active-by-volume rows."""
-    now = time.time()
-    with _NSE_MOVER_LOCK:
-        cached = _NSE_MOVER_CACHE.get(group, {})
-        if cached.get("rows") and now - cached.get("at", 0) < 20:
-            return list(cached["rows"][:limit])
-
-    if group == "gainers":
-        url = "https://www.nseindia.com/api/live-analysis-variations"
-        params = {"index": "gainers"}
-    elif group == "losers":
-        url = "https://www.nseindia.com/api/live-analysis-variations"
-        # NSE's public endpoint historically spells this parameter `loosers`.
-        params = {"index": "loosers"}
-    elif group == "active":
-        url = "https://www.nseindia.com/api/live-analysis-most-active-securities"
-        params = {"index": "volume"}
-    else:
-        return []
-
-    try:
-        sess = _nse_market_session()
-        response = sess.get(url, params=params, timeout=10)
-        response.raise_for_status()
-        payload = response.json()
-        rows = _nse_rows_from_payload(payload)
-        normalized = []
-        for row in rows:
-            if not isinstance(row, dict):
-                continue
-            symbol = str(row.get("symbol") or row.get("symbolName") or "").strip().upper()
-            if not symbol or not re.fullmatch(r"[A-Z0-9&._-]+", symbol):
-                continue
-            price = _nse_number(row, "ltp", "lastPrice", "lastTradedPrice", "lastPriceValue")
-            pct = _nse_number(row, "pChange", "perChange", "changePercent", "percentChange")
-            if price is None or price <= 0 or pct is None:
-                continue
-            # Do not allow non-gainers into the gainers list or non-losers into losers.
-            if group == "gainers" and pct <= 0:
-                continue
-            if group == "losers" and pct >= 0:
-                continue
-            volume = _nse_number(row, "quantityTraded", "totalTradedVolume", "tradedQuantity", "volume", "qty") or 0
-            if volume >= 10000000:
-                volume_text = f"{volume / 10000000:.2f} Cr"
-            elif volume >= 100000:
-                volume_text = f"{volume / 100000:.2f} L"
-            else:
-                volume_text = f"{int(volume):,}"
-            normalized.append({
-                "symbol": symbol,
-                "name": str(row.get("companyName") or row.get("meta") or row.get("name") or symbol),
-                "price": price,
-                "pct": pct,
-                "vol": volume_text,
-                "volume_raw": volume,
-            })
-
-        # Sort by the actual NSE percentage/volume fields rather than trusting
-        # endpoint ordering, then return only the requested number of rows.
-        if group == "gainers":
-            normalized.sort(key=lambda x: x["pct"], reverse=True)
-        elif group == "losers":
-            normalized.sort(key=lambda x: x["pct"])
-        else:
-            normalized.sort(key=lambda x: x["volume_raw"], reverse=True)
-        result = normalized[:limit]
-        if result:
-            with _NSE_MOVER_LOCK:
-                _NSE_MOVER_CACHE[group] = {"at": now, "rows": result}
-            return result
-        print(f"[MARKET PULSE] NSE {group} response had no valid rows; refusing fabricated fallback")
-    except Exception as exc:
-        print(f"[MARKET PULSE] NSE {group} request failed: {exc}")
-
-    # Use a short-lived prior genuine NSE response during a temporary outage.
-    with _NSE_MOVER_LOCK:
-        cached = _NSE_MOVER_CACHE.get(group, {})
-        if cached.get("rows") and now - cached.get("at", 0) < 180:
-            return list(cached["rows"][:limit])
-    return []
-
-
-@app.route("/api/market-pulse", methods=["GET"])
-def market_pulse_api():
-    """Return live index and requested sidebar stock quotes; read-only endpoint."""
-    supervisor_id = session.get("supervisor_id")
-    if not _get_supervisor(supervisor_id):
-        return jsonify({"success": False, "message": "Login required."}), 401
-
-    requested = []
-    for raw_symbol in request.args.get("symbols", "").split(","):
-        symbol = re.sub(r"[^A-Z0-9&._-]", "", raw_symbol.strip().upper())
-        if symbol and symbol not in requested:
-            requested.append(symbol)
-    # Keep this endpoint bounded even if a client supplies an unusually long list.
-    requested = requested[:30]
-
-    yahoo_symbols = {
-        "nifty": "^NSEI",
-        "sensex": "^BSESN",
-    }
-    for symbol in requested:
-        yahoo_symbols[symbol] = symbol if symbol.endswith((".NS", ".BO")) else symbol + ".NS"
-
-    quotes = {}
-    movers = {"gainers": [], "losers": [], "active": []}
-    import concurrent.futures
-    with concurrent.futures.ThreadPoolExecutor(max_workers=12) as executor:
-        quote_futures = {
-            executor.submit(_fetch_yahoo_market_quote, ticker): key
-            for key, ticker in yahoo_symbols.items()
-        }
-        mover_futures = {
-            executor.submit(_fetch_nse_market_movers, group, 5): group
-            for group in ("gainers", "losers", "active")
-        }
-        for future in concurrent.futures.as_completed(quote_futures):
-            key = quote_futures[future]
-            try:
-                quote_data = future.result()
-                if quote_data:
-                    quotes[key] = quote_data
-            except Exception as exc:
-                print(f"[MARKET PULSE] Quote worker failed for {key}: {exc}")
-        for future in concurrent.futures.as_completed(mover_futures):
-            group = mover_futures[future]
-            try:
-                movers[group] = future.result() or []
-            except Exception as exc:
-                print(f"[MARKET PULSE] {group} worker failed: {exc}")
-
-    if not quotes:
-        return jsonify({"success": False, "message": "Live market prices are temporarily unavailable."}), 502
-
-    response = jsonify({
-        "success": True,
-        "data": {
-            "nifty": quotes.get("nifty"),
-            "sensex": quotes.get("sensex"),
-            "quotes": {k: v for k, v in quotes.items() if k not in ("nifty", "sensex")},
-            "gainers": movers["gainers"],
-            "losers": movers["losers"],
-            "active": movers["active"],
-            "updated_at": datetime.now().isoformat(),
-        },
-    })
-    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
-    response.headers["Pragma"] = "no-cache"
-    response.headers["Expires"] = "0"
-    return response
-
-
 def _get_bse_ltp_only(symbol):
     """BSE price through Yahoo .BO."""
     return _get_yahoo_ltp(symbol, "BSE")
@@ -4826,59 +4546,96 @@ def api_screener_live(symbol):
 
 @app.route("/api/screener/<path:symbol>", methods=["GET"])
 def api_screener_proxy(symbol):
-    """Fetch live Screener.in company fundamentals & URL for desktop split-screen."""
+    """Return company-specific Screener.in ratios and financial statement tables."""
     account, auth_error = _require_supervisor()
     if auth_error:
         return auth_error
-    clean_sym = re.sub(r"[^A-Za-z0-9]", "", (symbol or "").upper())
+    clean_sym = re.sub(r"[^A-Za-z0-9&._-]", "", (symbol or "").upper())
     if not clean_sym:
         return jsonify({"success": False, "message": "Invalid stock symbol."}), 400
 
     urls = [
-        f"https://www.screener.in/company/{clean_sym}/consolidated/",
-        f"https://www.screener.in/company/{clean_sym}/",
+        f"https://www.screener.in/company/{quote(clean_sym, safe='&._-')}/consolidated/",
+        f"https://www.screener.in/company/{quote(clean_sym, safe='&._-')}/",
     ]
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-                      "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+                      "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
     }
     html_body = ""
     final_url = urls[0]
+    last_error = "Screener.in did not return company data"
     for candidate in urls:
         try:
-            resp = requests.get(candidate, headers=headers, timeout=8)
-            if resp.status_code == 200 and "<h1" in resp.text:
-                html_body = resp.text
-                final_url = candidate
+            resp = requests.get(candidate, headers=headers, timeout=15)
+            if resp.status_code == 200 and "<html" in resp.text.lower():
+                html_body, final_url = resp.text, candidate
                 break
-        except Exception:
-            continue
+            last_error = f"Screener.in returned HTTP {resp.status_code}"
+        except Exception as exc:
+            last_error = str(exc)
+    if not html_body:
+        return jsonify({"success": False, "symbol": clean_sym, "message": last_error}), 502
 
-    title_m = re.search(r"<h1[^>]*>(.*?)</h1>", html_body, re.S | re.I)
-    company_name = re.sub(r"\s+", " ", re.sub(r"<[^>]+>", "", title_m.group(1))).strip() if title_m else clean_sym
+    soup = BeautifulSoup(html_body, "html.parser")
+    h1 = soup.find("h1")
+    company_name = h1.get_text(" ", strip=True) if h1 else clean_sym
 
+    # Ratios at the top of the Screener company page. Return every parsed ratio,
+    # not an arbitrary first 12, and retain the source's original labels/values.
     ratios = []
-    for li_m in re.finditer(r'<li class="flex flex-space-between"[^>]*>(.*?)</li>', html_body, re.S):
-        block = li_m.group(1)
-        nm = re.search(r'<span class="name"[^>]*>(.*?)</span>', block, re.S)
-        vl = re.search(r'<span class="nowrap value"[^>]*>(.*?)</span>', block, re.S)
-        if nm and vl:
-            k = re.sub(r"\s+", " ", re.sub(r"<[^>]+>", "", nm.group(1))).strip()
-            v = re.sub(r"\s+", " ", re.sub(r"<[^>]+>", "", vl.group(1))).strip()
-            if k:
-                ratios.append({"label": k, "value": v})
+    for li in soup.select('li.flex.flex-space-between'):
+        name_el = li.select_one('span.name')
+        value_el = li.select_one('span.nowrap.value')
+        if name_el and value_el:
+            label = name_el.get_text(" ", strip=True)
+            value = value_el.get_text(" ", strip=True)
+            if label and value:
+                ratios.append({"label": label, "value": value})
 
-    about_m = re.search(r'<div class="sub show-more-box about"[^>]*>(.*?)</div>', html_body, re.S)
-    about_txt = re.sub(r"\s+", " ", re.sub(r"<[^>]+>", "", about_m.group(1))).strip() if about_m else ""
+    # Parse Screener's financial statement tables by their section/table IDs.
+    # Keep the original headings and values; no synthetic or estimated rows.
+    tables = {}
+    section_aliases = {
+        "quarters": "quarterly", "quarterly-results": "quarterly",
+        "profit-loss": "profit_loss", "balance-sheet": "balance_sheet",
+        "cash-flow": "cash_flow", "ratios": "ratios",
+        "shareholding": "shareholding", "documents": "documents",
+    }
+    for section_id, key in section_aliases.items():
+        section = soup.find(id=section_id)
+        if not section:
+            continue
+        table = section.find("table")
+        if not table:
+            continue
+        headers_row = table.find("thead")
+        headers_out = [th.get_text(" ", strip=True) for th in headers_row.select("th")] if headers_row else []
+        rows_out = []
+        tbody = table.find("tbody") or table
+        for tr in tbody.find_all("tr"):
+            cells = [cell.get_text(" ", strip=True) for cell in tr.find_all(["th", "td"], recursive=False)]
+            if cells:
+                rows_out.append(cells)
+        if headers_out or rows_out:
+            tables[key] = {"headers": headers_out, "rows": rows_out}
 
-    return jsonify({
+    about_el = soup.select_one('div.sub.show-more-box.about') or soup.select_one('#about')
+    about_txt = about_el.get_text(" ", strip=True)[:1200] if about_el else ""
+    response = jsonify({
         "success": True,
         "symbol": clean_sym,
         "company_name": company_name,
         "url": final_url,
-        "ratios": ratios[:12],
-        "about": about_txt[:420],
+        "source": "Screener.in",
+        "fetched_at": datetime.utcnow().isoformat(timespec="seconds") + "Z",
+        "ratios": ratios,
+        "tables": tables,
+        "about": about_txt,
     })
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    return response
 
 
 if __name__ == "__main__":
