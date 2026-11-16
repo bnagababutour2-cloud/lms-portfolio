@@ -2242,13 +2242,19 @@ window.setLogbookFilter=async function(filter,button){
       const liveData = json.data;
       const liveQuotes = liveData.quotes || {};
       ['gainers','losers','active'].forEach(group => {
-        defaultMarketData[group].forEach(item => {
-          const quote = liveQuotes[item.symbol];
-          if(quote && Number(quote.price) > 0){
-            item.price = Number(quote.price);
-            item.pct = Number(quote.pct || 0);
-          }
-        });
+        if(Array.isArray(liveData[group]) && liveData[group].length){
+          // Use the live NSE market ranking, not a fixed list of sample symbols.
+          defaultMarketData[group] = liveData[group].slice(0,5);
+        } else {
+          // Keep existing sidebar entries and update their latest prices if the screener is unavailable.
+          defaultMarketData[group].forEach(item => {
+            const quote = liveQuotes[item.symbol];
+            if(quote && Number(quote.price) > 0){
+              item.price = Number(quote.price);
+              item.pct = Number(quote.pct || 0);
+            }
+          });
+        }
       });
 
       if(liveData.nifty && Number(liveData.nifty.price) > 0) defaultMarketData.nifty = liveData.nifty;
@@ -2585,7 +2591,6 @@ body.bse-alerts-split-open #bseAlertsSplitDrawer{display: flex;}
 </script>
 
 </body></html>
-
 
 
 
