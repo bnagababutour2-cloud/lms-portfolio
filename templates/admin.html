@@ -1838,10 +1838,22 @@ window.setLogbookFilter=async function(filter,button){
    renderDonut('logbookProfitDonut','logbookProfitLegend',byProfit,byProfit.reduce((a,x)=>a+Math.abs(x.value),0),'pnl');
    renderDonut('logbookLossDonut','logbookLossLegend',byLoss,byLoss.reduce((a,x)=>a+Math.abs(x.value),0),'pnl');
 
-   fetch('/api/admin/client-analytics/'+encodeURIComponent(clientId),{credentials:'same-origin',cache:'no-store'})
+   const domIndustries=[...industries.entries()]
+     .map(([name,value])=>({name,value}))
+     .sort((a,b)=>b.value-a.value);
+   renderDonut('logbookIndustryDonut','logbookIndustryLegend',domIndustries,domIndustries.reduce((a,x)=>a+Math.abs(x.value),0),'industry');
+
+   const capHost=document.getElementById('logbookMarketCapDonut');
+   const capLeg=document.getElementById('logbookMarketCapLegend');
+   if(capHost) capHost.innerHTML='<div class="logbook-empty" style="width:100%">Loading Market Cap…</div>';
+   if(capLeg) capLeg.innerHTML='<div class="logbook-empty">Loading…</div>';
+
+   const requestedClient=String(clientId||'').trim().toUpperCase();
+
+   fetch('/api/admin/client-analytics/'+encodeURIComponent(requestedClient),{credentials:'same-origin',cache:'no-store'})
      .then(r=>r.json())
      .then(data=>{
-       if(!data.success || selectedLogbookClient!==clientId) return;
+       if(!data.success || String(selectedLogbookClient||'').trim().toUpperCase()!==requestedClient) return;
        const td=data.trading_days||{};
        [['daysWeek',td.week],['daysMonth',td.month],['daysQuarter',td.quarter],['daysFY',td.financial_year]].forEach(([id,v])=>{
          const el=document.getElementById(id);
@@ -1849,12 +1861,20 @@ window.setLogbookFilter=async function(filter,button){
        });
        const capOrder=['Large Cap','Mid Cap','Small Cap','Unclassified'];
        const rawCaps=new Map((data.market_caps||[]).map(x=>[x.name,Number(x.invested)||0]));
-       const caps=capOrder.map(name=>({name,value:rawCaps.get(name)||0})).filter(x=>x.value>0 || ['Large Cap','Mid Cap','Small Cap'].includes(x.name));
+       const caps=capOrder.map(name=>({name,value:rawCaps.get(name)||0})).filter(x=>x.value>0);
        renderDonut('logbookMarketCapDonut','logbookMarketCapLegend',caps,caps.reduce((a,x)=>a+Math.abs(x.value),0),'cap');
 
        const industriesFromServer=(data.industries||[]).map(x=>({name:x.name,value:Number(x.invested)||0}));
-       renderDonut('logbookIndustryDonut','logbookIndustryLegend',industriesFromServer,industriesFromServer.reduce((a,x)=>a+Math.abs(x.value),0),'industry');
-     }).catch(()=>{});
+       if(industriesFromServer.length){
+         renderDonut('logbookIndustryDonut','logbookIndustryLegend',industriesFromServer,industriesFromServer.reduce((a,x)=>a+Math.abs(x.value),0),'industry');
+       }
+     }).catch(()=>{
+       if(String(selectedLogbookClient||'').trim().toUpperCase()!==requestedClient) return;
+       const cHost=document.getElementById('logbookMarketCapDonut');
+       const cLeg=document.getElementById('logbookMarketCapLegend');
+       if(cHost) cHost.innerHTML='<div class="logbook-empty" style="width:100%">Market Cap unavailable</div>';
+       if(cLeg) cLeg.innerHTML='<div class="logbook-empty">Could not load market cap.</div>';
+     });
  }
 
  window.refreshTradeLogbook=renderLogbookClients;
