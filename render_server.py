@@ -9,6 +9,7 @@ import csv
 import re
 import uuid
 import traceback
+import xml.etree.ElementTree as ET
 from datetime import datetime, timedelta
 import pandas as pd
 import requests
@@ -2751,6 +2752,81 @@ def _fetch_nse_market_movers(group, limit=5):
             return list(cached["rows"][:limit])
     print(f"[MARKET PULSE] NSE {group} unavailable after retry: {last_error}")
     return []
+
+
+# Live business-news RSS aggregation for the Admin dashboard ticker.
+_MARKET_NEWS_CACHE = {"at": 0, "news": []}
+_MARKET_NEWS_LOCK = threading.Lock()
+_MARKET_NEWS_FEEDS = [
+    ("CNBC TV18", "https://www.cnbctv18.com/commonfeeds/v1/cne/rss/market.xml"),
+    ("ZEE BUSINESS", "https://www.zeebiz.com/latest.xml"),
+    ("NDTV PROFIT", "https://prod-qt-images.s3.amazonaws.com/production/bloombergquint/feed.xml"),
+]
+
+
+def _market_news_feed_items(source, feed_url, limit=8):
+    """Read a publisher RSS/Atom feed and return headline-only items with attribution."""
+    response = requests.get(
+        feed_url,
+        headers={"User-Agent": "Mozilla/5.0 (compatible; LMSMarketNews/1.0)", "Accept": "application/rss+xml, application/atom+xml, application/xml, text/xml"},
+        timeout=9,
+    )
+    response.raise_for_status()
+    root = ET.fromstring(response.content)
+    rows = []
+    # Supports RSS (<item>) and Atom (<entry>) feeds, including namespaced Atom.
+    entries = root.findall('.//item')
+    if not entries:
+        entries = [node for node in root.iter() if node.tag.rsplit('}', 1)[-1] == 'entry']
+    for entry in entries:
+        fields = {}
+        for child in list(entry):
+            fields[child.tag.rsplit('}', 1)[-1].lower()] = (child.text or '').strip()
+        title = fields.get('title', '').strip()
+        link = fields.get('link', '').strip()
+        if not link:
+            for child in list(entry):
+                if child.tag.rsplit('}', 1)[-1].lower() == 'link':
+                    link = child.attrib.get('href', '') or (child.text or '').strip()
+                    if link:
+                        break
+        if title:
+            rows.append({"source": source, "text": title[:260], "url": link})
+        if len(rows) >= limit:
+            break
+    return rows
+
+
+@app.route("/api/market-news", methods=["GET"])
+def market_news_api():
+    """Return recent headlines from CNBC TV18, Zee Business and NDTV Profit RSS."""
+    if not _get_supervisor(session.get("supervisor_id")):
+        return jsonify({"success": False, "message": "Login required."}), 401
+
+    now = time.time()
+    with _MARKET_NEWS_LOCK:
+        if _MARKET_NEWS_CACHE["news"] and now - _MARKET_NEWS_CACHE["at"] < 45:
+            return jsonify({"success": True, "news": _MARKET_NEWS_CACHE["news"], "cached": True})
+
+    import concurrent.futures
+    news = []
+    with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
+        jobs = [executor.submit(_market_news_feed_items, source, url, 8) for source, url in _MARKET_NEWS_FEEDS]
+        for (source, _), job in zip(_MARKET_NEWS_FEEDS, jobs):
+            try:
+                news.extend(job.result(timeout=11))
+            except Exception as exc:
+                print(f"[MARKET NEWS] {source} feed unavailable: {exc}")
+
+    # Keep provider headlines in a predictable source mix; never substitute invented copy.
+    if news:
+        with _MARKET_NEWS_LOCK:
+            _MARKET_NEWS_CACHE.update({"at": now, "news": news[:24]})
+        return jsonify({"success": True, "news": news[:24], "cached": False})
+
+    with _MARKET_NEWS_LOCK:
+        cached = list(_MARKET_NEWS_CACHE.get("news") or [])
+    return jsonify({"success": bool(cached), "news": cached, "stale": bool(cached)}), (200 if cached else 503)
 
 
 @app.route("/api/market-pulse", methods=["GET"])
