@@ -4544,138 +4544,91 @@ def api_screener_live(symbol):
     }), 502
 
 
-def _swot_number(value):
-    """Parse a numeric financial ratio from Screener/Yahoo display text."""
-    if isinstance(value, (int, float)):
-        return float(value)
-    text = str(value or "").replace(",", "")
-    match = re.search(r"[-+]?\d+(?:\.\d+)?", text)
-    return float(match.group(0)) if match else None
+def _fetch_trendlyne_swot_valuation(nse_symbol):
+    """Read Trendlyne's public stock overview payload; never synthesize SWOT/PE values."""
+    symbol = re.sub(r"[^A-Z0-9&._-]", "", str(nse_symbol or "").upper())
+    if not symbol:
+        return {"success": False, "message": "Invalid symbol"}
 
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                      "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "en-IN,en;q=0.9",
+    }
+    # Trendlyne's stock-page route resolves the symbol to its canonical stock ID/slug.
+    candidates = [
+        f"https://trendlyne.com/equity/{quote(symbol, safe='&._-')}/stock-page",
+        f"https://trendlyne.com/equity/{quote(symbol, safe='&._-')}/",
+    ]
+    last_error = "Trendlyne stock overview is unavailable"
+    for url in candidates:
+        try:
+            response = requests.get(url, headers=headers, timeout=18, allow_redirects=True)
+            if response.status_code != 200:
+                last_error = f"Trendlyne returned HTTP {response.status_code}"
+                continue
+            match = re.search(r'<script[^>]+id=[\"\']__NEXT_DATA__[\"\'][^>]*>(.*?)</script>', response.text, re.S | re.I)
+            if not match:
+                last_error = "Trendlyne response did not contain its stock data payload"
+                continue
+            payload = json.loads(match.group(1))
+            page = ((payload.get("props") or {}).get("pageProps") or {})
+            security = ((page.get("fullStockInfo") or {}).get("security") or {})
+            page_symbol = str(security.get("nseSymbol") or security.get("id") or "").upper()
+            if page_symbol and page_symbol != symbol:
+                last_error = f"Trendlyne resolved {symbol} to a different symbol ({page_symbol})"
+                continue
 
-def _derive_company_swot(ratios):
-    """Create transparent indicator counts from actual company financial ratios.
+            checklist = page.get("swotChecklist") or {}
+            swot = checklist.get("swot") or {}
+            pe = checklist.get("pe") or {}
+            current = pe.get("current") or {}
+            forward = pe.get("forward") or {}
+            metrics = ((page.get("keyMetrics") or {}).get("metrics") or [])
+            metric_rows = []
+            for metric in metrics:
+                if not isinstance(metric, dict):
+                    continue
+                metric_rows.append({
+                    "title": metric.get("title"),
+                    "value": metric.get("value"),
+                    "color": metric.get("color"),
+                    "shorttext": metric.get("shorttext"),
+                    "longtext": metric.get("longtext"),
+                })
 
-    These are rule-based financial indicators, not analyst opinions or investment advice.
-    A category remains unavailable when its source indicators are missing.
-    """
-    values = {}
-    for row in ratios or []:
-        label = re.sub(r"[^a-z0-9]+", " ", str(row.get("label", "")).lower()).strip()
-        number = _swot_number(row.get("value"))
-        if number is None:
-            continue
-        if label in {"roe", "return on equity", "return on equity latest year"}:
-            values["roe"] = number
-        elif label in {"roce", "return on capital employed"}:
-            values["roce"] = number
-        elif "operating profit margin" in label or label == "opm":
-            values["opm"] = number
-        elif "net profit margin" in label or label == "npm":
-            values["npm"] = number
-        elif "current ratio" in label:
-            values["current_ratio"] = number
-        elif "debt to equity" in label or "debt equity" in label:
-            values["debt_equity"] = number
-        elif "sales growth" in label or "revenue growth" in label:
-            values["revenue_growth"] = number
-        elif "profit growth" in label or "earnings growth" in label:
-            values["earnings_growth"] = number
-        elif "interest coverage" in label:
-            values["interest_coverage"] = number
-        elif "free cash flow" in label:
-            values["free_cash_flow"] = number
-
-    groups = {"strengths": [], "weaknesses": [], "opportunities": [], "threats": []}
-    if "roe" in values:
-        (groups["strengths"] if values["roe"] >= 15 else groups["weaknesses"] if values["roe"] < 8 else []).append("ROE " + str(values["roe"]) + "%") if values["roe"] >= 15 or values["roe"] < 8 else None
-    if "roce" in values:
-        if values["roce"] >= 15: groups["strengths"].append("ROCE " + str(values["roce"]) + "%")
-        elif values["roce"] < 8: groups["weaknesses"].append("ROCE " + str(values["roce"]) + "%")
-    for key, label in (("opm", "Operating margin"), ("npm", "Net margin")):
-        if key in values:
-            if values[key] >= 12: groups["strengths"].append(f"{label} {values[key]}%")
-            elif values[key] < 5: groups["weaknesses"].append(f"{label} {values[key]}%")
-    if "current_ratio" in values:
-        if values["current_ratio"] >= 1.5: groups["strengths"].append(f"Current ratio {values['current_ratio']}")
-        elif values["current_ratio"] < 1: groups["weaknesses"].append(f"Current ratio {values['current_ratio']}")
-    if "debt_equity" in values:
-        if values["debt_equity"] <= 50: groups["strengths"].append(f"Debt/equity {values['debt_equity']}")
-        elif values["debt_equity"] >= 150: groups["weaknesses"].append(f"Debt/equity {values['debt_equity']}")
-    if "interest_coverage" in values:
-        if values["interest_coverage"] >= 4: groups["strengths"].append(f"Interest cover {values['interest_coverage']}")
-        elif values["interest_coverage"] < 1.5: groups["weaknesses"].append(f"Interest cover {values['interest_coverage']}")
-    for key, label in (("revenue_growth", "Revenue growth"), ("earnings_growth", "Profit growth")):
-        if key in values:
-            if values[key] >= 10: groups["opportunities"].append(f"{label} {values[key]}%")
-            elif values[key] < 0: groups["threats"].append(f"{label} {values[key]}%")
-    if "free_cash_flow" in values:
-        if values["free_cash_flow"] > 0: groups["strengths"].append("Positive free cash flow")
-        elif values["free_cash_flow"] < 0: groups["weaknesses"].append("Negative free cash flow")
-    # No unsupported guesses: only return categories with at least one measured indicator.
-    if not any(groups.values()):
-        return None
-    return {key: {"count": len(items), "items": items} if items else None for key, items in groups.items()}
-
-
-def _yahoo_fundamentals_fallback(symbol):
-    """Fetch company fundamentals from Yahoo quoteSummary when Screener.in is unreachable."""
-    clean = re.sub(r"[^A-Za-z0-9&._-]", "", str(symbol or "").upper())
-    base = clean[:-3] if clean.endswith((".NS", ".BO")) else clean
-    tickers = [clean] if clean.endswith((".NS", ".BO")) else [base + ".NS", base + ".BO"]
-    modules = "assetProfile,price,financialData,defaultKeyStatistics,incomeStatementHistory,balanceSheetHistory,cashflowStatementHistory"
-    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124.0 Safari/537.36", "Accept": "application/json"}
-    errors = []
-    def raw(obj, key):
-        item = (obj or {}).get(key)
-        if isinstance(item, dict): return item.get("raw")
-        return item
-    def fmt(value, suffix=""):
-        if value is None: return None
-        if isinstance(value, (int, float)):
-            return f"{value * 100:.2f}%" if suffix == "%" and abs(value) <= 1 else f"{value:,.2f}{suffix}"
-        return str(value)
-    for ticker in tickers:
-        for host in ("query1.finance.yahoo.com", "query2.finance.yahoo.com"):
-            try:
-                url = f"https://{host}/v10/finance/quoteSummary/{quote(ticker, safe='')}"
-                response = requests.get(url, params={"modules": modules}, headers=headers, timeout=12)
-                response.raise_for_status()
-                result = ((response.json().get("quoteSummary") or {}).get("result") or [])
-                if not result: raise ValueError("Yahoo returned no fundamentals for " + ticker)
-                data = result[0]
-                fin = data.get("financialData") or {}
-                stats = data.get("defaultKeyStatistics") or {}
-                price = data.get("price") or {}
-                profile = data.get("assetProfile") or {}
-                ratios = []
-                mapping = [
-                    ("returnOnEquity", "Return on Equity", "%"), ("returnOnAssets", "Return on Assets", "%"),
-                    ("profitMargins", "Net Profit Margin", "%"), ("operatingMargins", "Operating Profit Margin", "%"),
-                    ("currentRatio", "Current Ratio", ""), ("debtToEquity", "Debt to Equity", ""),
-                    ("revenueGrowth", "Sales Growth", "%"), ("earningsGrowth", "Profit Growth", "%"),
-                    ("totalRevenue", "Total Revenue", ""), ("grossProfits", "Gross Profit", ""),
-                    ("ebitda", "EBITDA", ""), ("totalDebt", "Total Debt", ""),
-                    ("totalCash", "Total Cash", ""), ("freeCashflow", "Free Cash Flow", ""),
-                    ("operatingCashflow", "Operating Cash Flow", ""), ("trailingPE", "Stock P/E", ""),
-                    ("forwardPE", "Forward P/E", ""), ("priceToBook", "Price to Book", ""),
-                    ("marketCap", "Market Cap", ""), ("beta", "Beta", ""),
-                ]
-                for source_key, label, suffix in mapping:
-                    source = fin if source_key in fin else stats if source_key in stats else price
-                    value = raw(source, source_key)
-                    if value is not None:
-                        ratios.append({"label": label, "value": fmt(value, suffix)})
-                # Add cash-flow indicator for transparent SWOT rule calculation.
-                swot_input = list(ratios)
-                swot = _derive_company_swot(swot_input)
-                company_name = ((price.get("longName") or {}).get("raw") or (price.get("shortName") or {}).get("raw") or base)
-                about = str(profile.get("longBusinessSummary") or "")[:1200]
-                if not ratios: raise ValueError("Yahoo fundamentals modules were empty for " + ticker)
-                return {"success": True, "symbol": base, "company_name": company_name, "url": f"https://finance.yahoo.com/quote/{ticker}", "source": "Yahoo Finance fundamentals", "fetched_at": datetime.utcnow().isoformat(timespec="seconds") + "Z", "ratios": ratios, "tables": {}, "about": about, "swot": swot}
-            except Exception as exc:
-                errors.append(f"{ticker} ({host}): {exc}")
-    return None, "; ".join(errors[-4:])
+            if not swot and not current and not forward:
+                last_error = "Trendlyne page loaded but did not supply SWOT or PE valuation fields"
+                continue
+            return {
+                "success": True,
+                "source": "Trendlyne",
+                "fetched_at": datetime.utcnow().isoformat(timespec="seconds") + "Z",
+                "company_name": security.get("name") or page.get("seo", {}).get("title"),
+                "symbol": page_symbol or symbol,
+                "canonical_url": page.get("canonicalUrl") or response.url,
+                "swot": {
+                    "strengths": swot.get("strengths"),
+                    "weaknesses": swot.get("weaknesses"),
+                    "opportunities": swot.get("opportunities"),
+                    "threats": swot.get("threats"),
+                    "url": swot.get("url"),
+                },
+                "checklist": checklist.get("checklist") or {},
+                "pe": {
+                    "current": current,
+                    "forward": forward,
+                    "insight": pe.get("insight"),
+                    "insightColor": pe.get("insightColor"),
+                    "pe": pe.get("pe"),
+                    "buySellZoneUrl": pe.get("buySellZoneUrl"),
+                },
+                "metrics": metric_rows,
+            }
+        except Exception as exc:
+            last_error = str(exc)
+    return {"success": False, "source": "Trendlyne", "message": last_error}
 
 
 @app.route("/api/screener/<path:symbol>", methods=["GET"])
@@ -4709,20 +4662,9 @@ def api_screener_proxy(symbol):
             last_error = f"Screener.in returned HTTP {resp.status_code}"
         except Exception as exc:
             last_error = str(exc)
-    if not html_body:
-        fallback = _yahoo_fundamentals_fallback(clean_sym)
-        if isinstance(fallback, tuple):
-            fallback_data, fallback_error = fallback
-        else:
-            fallback_data, fallback_error = fallback, ""
-        if fallback_data:
-            response = jsonify(fallback_data)
-            response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
-            return response
-        combined_error = f"Screener.in unavailable: {last_error}. Yahoo Finance fallback unavailable: {fallback_error}"
-        return jsonify({"success": False, "symbol": clean_sym, "message": combined_error}), 502
-
-    soup = BeautifulSoup(html_body, "html.parser")
+    # Keep the Trendlyne request independent: it can still supply SWOT/PE even
+    # when Screener.in is temporarily blocked or unavailable.
+    soup = BeautifulSoup(html_body or "", "html.parser")
     h1 = soup.find("h1")
     company_name = h1.get_text(" ", strip=True) if h1 else clean_sym
 
@@ -4767,6 +4709,19 @@ def api_screener_proxy(symbol):
 
     about_el = soup.select_one('div.sub.show-more-box.about') or soup.select_one('#about')
     about_txt = about_el.get_text(" ", strip=True)[:1200] if about_el else ""
+    # Trendlyne supplies the company-specific SWOT checklist counts and PE Buy/Sell
+    # Zone valuation used in the reference dashboard. Keep it a separate source
+    # payload so a Trendlyne outage never breaks the existing Screener fundamentals.
+    trendlyne_data = _fetch_trendlyne_swot_valuation(clean_sym)
+    if not html_body and not trendlyne_data.get("success"):
+        return jsonify({
+            "success": False,
+            "symbol": clean_sym,
+            "message": f"Screener.in: {last_error}; Trendlyne: {trendlyne_data.get('message', 'unavailable')}",
+            "trendlyne": trendlyne_data,
+        }), 502
+    if trendlyne_data.get("success") and trendlyne_data.get("company_name"):
+        company_name = trendlyne_data["company_name"]
     response = jsonify({
         "success": True,
         "symbol": clean_sym,
@@ -4777,7 +4732,7 @@ def api_screener_proxy(symbol):
         "ratios": ratios,
         "tables": tables,
         "about": about_txt,
-        "swot": _derive_company_swot(ratios),
+        "trendlyne": trendlyne_data,
     })
     response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
     return response
