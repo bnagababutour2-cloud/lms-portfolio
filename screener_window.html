@@ -79,19 +79,6 @@
     .btn-tradingview { background: #131722; color: #fff; border-color: #131722; }
     .btn-tradingview:hover { background: #2a2e39; border-color: #2a2e39; }
 
-    /* Sticky wrapper for the first two boxes */
-    .top-fixed-boxes {
-      position: sticky;
-      top: 0;
-      z-index: 50;
-      background-color: var(--bg-page);
-      padding-top: 10px;
-      padding-bottom: 4px;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-
     /* Top Header Card */
     .header-card {
       background: var(--bg-card);
@@ -99,6 +86,9 @@
       border-radius: var(--radius);
       padding: 14px 20px 16px;
       box-shadow: var(--shadow);
+      position: sticky;
+      top: 10px;
+      z-index: 50;
     }
 
     /* First Line: Screener Direct Section Links Bar */
@@ -299,7 +289,7 @@
     .market-snapshot-wrap {
       width:100%;
       overflow-x:auto;
-      margin:0;
+      margin:0 0 12px;
       border:1px solid var(--border);
       border-radius:9px;
       background:#fff;
@@ -600,7 +590,7 @@
     .workspace-card {
       background: var(--bg-card); border: 1px solid var(--border);
       border-radius: var(--radius); padding: 18px 20px 22px; box-shadow: var(--shadow);
-      scroll-margin-top: 245px;
+      scroll-margin-top: 180px;
     }
     .workspace-heading {
       display:flex; justify-content:space-between; align-items:center; gap:12px;
@@ -902,7 +892,6 @@
 <body>
 
   <div class="container">
-    <div class="top-fixed-boxes">
     <!-- Sticky Header & Controls -->
     <header class="header-card">
 
@@ -959,7 +948,6 @@
       </div>
       <div class="market-snapshot-note">The 11 quote and technical metrics are shown in one horizontal line. Click any metric to open the selected company on Screener.in. Quote and technical values are refreshed from Yahoo Finance daily candles and quote metadata (may be delayed). Trend uses 50 EMA and 200 SMA; Momentum uses RSI(14), following the Python scanner. If Yahoo or its browser-access relay is unavailable, the dashboard will show Unavailable rather than fabricated values.</div>
     </section>
-    </div>
 
 
 
