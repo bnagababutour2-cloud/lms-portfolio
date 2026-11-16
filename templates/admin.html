@@ -594,6 +594,47 @@ body.tradelogs-split-open #tradeLogsSplitDrawer{display:flex;}
 }
 </style>
 
+
+<style id="compact-client-symbol-product-search-v2">
+/* Compact single-row Client / Symbol / Product search toolbar */
+.card:has(> .title + .filters) > .title {
+  font-size: 13px !important; line-height: 1.1 !important;
+  margin: 0 0 5px !important; white-space: nowrap;
+}
+.card:has(> .title + .filters) > .filters {
+  display: flex !important; flex-flow: row nowrap !important;
+  align-items: center !important; gap: 6px !important;
+  width: 100%; min-width: 0; overflow-x: auto; padding: 1px 0 3px;
+}
+.card:has(> .title + .filters) > .filters > input,
+.card:has(> .title + .filters) > .filters > select {
+  flex: 1 1 0 !important; width: auto !important; min-width: 72px;
+  height: 32px !important; box-sizing: border-box;
+  padding: 5px 7px !important; font-size: 11px !important;
+  line-height: 1.1 !important; border-radius: 6px !important;
+}
+.card:has(> .title + .filters) > .filters > #clientSearch { flex-basis: 105px !important; }
+.card:has(> .title + .filters) > .filters > #symbolSearch { flex-basis: 105px !important; }
+.card:has(> .title + .filters) > .filters > #productSearch { flex-basis: 130px !important; }
+.card:has(> .title + .filters) > .filters > #exchangeSearch { flex-basis: 88px !important; }
+.card:has(> .title + .filters) > .filters .multi-client-wrap {
+  flex: 0 0 130px !important; min-width: 0 !important;
+}
+.card:has(> .title + .filters) > .filters .btn {
+  flex: 0 0 auto !important; height: 32px !important;
+  min-height: 32px !important; padding: 5px 9px !important;
+  font-size: 10px !important; line-height: 1 !important;
+  white-space: nowrap !important; border-radius: 6px !important;
+}
+@media (max-width: 760px) {
+  .card:has(> .title + .filters) > .title { font-size: 12px !important; }
+  .card:has(> .title + .filters) > .filters { gap: 4px !important; }
+  .card:has(> .title + .filters) > .filters .multi-client-wrap { flex-basis: 112px !important; }
+  .card:has(> .title + .filters) > .filters > input,
+  .card:has(> .title + .filters) > .filters > select { font-size: 10px !important; }
+}
+</style>
+
 </head>
 <body>
 <header class="top"><div class="header-overlay"><div class="header-subtitle">ADMIN / SUPERVISOR PORTFOLIO &amp; DAILY CONTROL PANEL</div><div class="header-login">Logged in: {{ supervisor_name }} ({{ supervisor_id }}){% if not can_manage %} · VIEW ONLY{% endif %}</div></div></header>
