@@ -12,7 +12,6 @@ import traceback
 from datetime import datetime, timedelta
 import pandas as pd
 import requests
-from bs4 import BeautifulSoup
 import threading
 import time
 import fcntl
@@ -2501,6 +2500,328 @@ def _get_yahoo_ltp(symbol, exchange):
     return None
 
 
+
+def _fetch_yahoo_market_quote(yahoo_symbol):
+    """Fetch a live Yahoo quote, using chart data and quote API as fallbacks."""
+    last_error = None
+    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/131.0 Safari/537.36"}
+
+    # Chart endpoint supplies current price and previous close for indices and stocks.
+    for base_url in (
+        "https://query2.finance.yahoo.com/v8/finance/chart/",
+        "https://query1.finance.yahoo.com/v8/finance/chart/",
+    ):
+        try:
+            response = _get_ltp_session().get(
+                base_url + quote(yahoo_symbol, safe=""),
+                params={"range": "1d", "interval": "1m", "includePrePost": "false"},
+                timeout=8,
+            )
+            response.raise_for_status()
+            payload = response.json()
+            results = ((payload.get("chart") or {}).get("result") or [])
+            if not results:
+                last_error = (payload.get("chart") or {}).get("error") or "No chart quote data"
+                continue
+            meta = results[0].get("meta") or {}
+            price = meta.get("regularMarketPrice")
+            previous = meta.get("chartPreviousClose") or meta.get("previousClose")
+            if price not in (None, ""):
+                price = float(price)
+                previous = float(previous) if previous not in (None, "") else price
+                change = price - previous
+                pct = (change / previous * 100.0) if previous else 0.0
+                return {"price": price, "change": change, "pct": pct}
+        except Exception as exc:
+            last_error = exc
+
+    # Yahoo's quote endpoint is an independent fallback, particularly useful for ^BSESN.
+    try:
+        response = _get_ltp_session().get(
+            "https://query1.finance.yahoo.com/v7/finance/quote",
+            params={"symbols": yahoo_symbol},
+            headers=headers,
+            timeout=8,
+        )
+        response.raise_for_status()
+        items = (response.json().get("quoteResponse") or {}).get("result") or []
+        if items:
+            item = items[0]
+            price = item.get("regularMarketPrice")
+            previous = item.get("regularMarketPreviousClose") or item.get("regularMarketOpen")
+            change = item.get("regularMarketChange")
+            pct = item.get("regularMarketChangePercent")
+            if price not in (None, ""):
+                price = float(price)
+                if change in (None, ""):
+                    previous = float(previous) if previous not in (None, "") else price
+                    change = price - previous
+                if pct in (None, ""):
+                    previous = float(previous) if previous not in (None, "") else price
+                    pct = (float(change) / previous * 100.0) if previous else 0.0
+                return {"price": price, "change": float(change), "pct": float(pct)}
+    except Exception as exc:
+        last_error = exc
+
+    print(f"[MARKET PULSE] Yahoo quote failed for {yahoo_symbol}: {last_error}")
+    return None
+
+
+_NSE_MOVER_CACHE = {"gainers": {"at": 0, "rows": []}, "losers": {"at": 0, "rows": []}, "active": {"at": 0, "rows": []}}
+_NSE_MOVER_LOCK = threading.Lock()
+_NSE_SESSION_LOCK = threading.Lock()
+_NSE_SESSION = None
+
+
+def _nse_market_session(force_refresh=False):
+    """Create/refresh an NSE session with homepage cookies and browser-like headers."""
+    global _NSE_SESSION
+    with _NSE_SESSION_LOCK:
+        if _NSE_SESSION is not None and not force_refresh:
+            return _NSE_SESSION
+        sess = requests.Session()
+        sess.headers.update({
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+            "Accept": "application/json, text/plain, */*",
+            "Accept-Language": "en-IN,en;q=0.9",
+            "Referer": "https://www.nseindia.com/market-data/top-gainers-losers",
+            "X-Requested-With": "XMLHttpRequest",
+            "Connection": "keep-alive",
+        })
+        # NSE checks cookies created by visiting its public pages before API calls.
+        for page_url in (
+            "https://www.nseindia.com/",
+            "https://www.nseindia.com/market-data/top-gainers-losers",
+        ):
+            try:
+                sess.get(page_url, timeout=8)
+            except Exception as exc:
+                print(f"[MARKET PULSE] NSE cookie warm-up failed for {page_url}: {exc}")
+        _NSE_SESSION = sess
+        return _NSE_SESSION
+
+
+def _nse_rows_from_payload(payload):
+    """Extract rows from NSE's changing JSON envelopes without losing allSec data."""
+    if isinstance(payload, list):
+        return [row for row in payload if isinstance(row, dict)]
+    if not isinstance(payload, dict):
+        return []
+
+    # The variations endpoint normally returns seven named buckets. Prefer allSec
+    # (the broad market list) rather than accidentally restricting to NIFTY only.
+    all_sec = payload.get("allSec")
+    if isinstance(all_sec, dict):
+        rows = all_sec.get("data") or all_sec.get("rows") or all_sec.get("allSec")
+        if isinstance(rows, list) and rows:
+            return [row for row in rows if isinstance(row, dict)]
+    elif isinstance(all_sec, list) and all_sec:
+        return [row for row in all_sec if isinstance(row, dict)]
+
+    # Most-active endpoints return a direct data array.
+    direct = payload.get("data")
+    if isinstance(direct, list) and direct:
+        return [row for row in direct if isinstance(row, dict)]
+    if isinstance(direct, dict):
+        rows = direct.get("data") or direct.get("rows")
+        if isinstance(rows, list) and rows:
+            return [row for row in rows if isinstance(row, dict)]
+
+    # If allSec is omitted by an NSE response variant, combine the available
+    # market buckets and de-duplicate symbols instead of returning only NIFTY.
+    combined = []
+    seen = set()
+    for key in ("NIFTY", "BANKNIFTY", "NIFTYNEXT50", "SecGtr20", "SecLwr20", "FOSec", "equities", "stocks"):
+        value = payload.get(key)
+        rows = value if isinstance(value, list) else (
+            value.get("data") or value.get("rows") if isinstance(value, dict) else []
+        )
+        if isinstance(rows, list):
+            for row in rows:
+                if isinstance(row, dict):
+                    symbol = str(row.get("symbol") or "").upper()
+                    key_value = symbol or repr(sorted(row.items()))
+                    if key_value not in seen:
+                        seen.add(key_value)
+                        combined.append(row)
+    if combined:
+        return combined
+
+    # Last-resort recursive envelope handling for future NSE response wrappers.
+    for value in payload.values():
+        if isinstance(value, (dict, list)):
+            rows = _nse_rows_from_payload(value)
+            if rows:
+                return rows
+    return []
+
+
+def _nse_number(row, *keys):
+    for key in keys:
+        value = row.get(key)
+        if value not in (None, "", "-", "NA", "N/A"):
+            try:
+                return float(str(value).replace(",", "").replace("%", "").strip())
+            except (TypeError, ValueError):
+                continue
+    return None
+
+
+def _fetch_nse_market_movers(group, limit=5):
+    """Fetch today's actual NSE gainers, losers and most-active-by-volume rows."""
+    now = time.time()
+    with _NSE_MOVER_LOCK:
+        cached = _NSE_MOVER_CACHE.get(group, {})
+        if cached.get("rows") and now - cached.get("at", 0) < 20:
+            return list(cached["rows"][:limit])
+
+    if group in ("gainers", "losers"):
+        url = "https://www.nseindia.com/api/live-analysis-variations"
+        # NSE's API uses the historical spelling `loosers` for this parameter.
+        params = {"index": "gainers" if group == "gainers" else "loosers"}
+    elif group == "active":
+        url = "https://www.nseindia.com/api/live-analysis-most-active-securities"
+        params = {"index": "volume"}
+    else:
+        return []
+
+    last_error = None
+    for attempt in range(2):
+        try:
+            sess = _nse_market_session(force_refresh=(attempt > 0))
+            response = sess.get(url, params=params, timeout=12)
+            if response.status_code in (401, 403, 429) and attempt == 0:
+                last_error = f"NSE HTTP {response.status_code}; refreshing session cookies"
+                continue
+            response.raise_for_status()
+            payload = response.json()
+            rows = _nse_rows_from_payload(payload)
+            normalized = []
+            for row in rows:
+                if not isinstance(row, dict):
+                    continue
+                symbol = str(row.get("symbol") or row.get("symbolName") or row.get("ticker") or "").strip().upper()
+                if not symbol or not re.fullmatch(r"[A-Z0-9&._-]+", symbol):
+                    continue
+                price = _nse_number(row, "ltp", "lastPrice", "last_price", "lastTradedPrice", "lastPriceValue", "closePrice")
+                pct = _nse_number(row, "perChange", "pChange", "pchange", "changePercent", "percentChange")
+                if price is None or price <= 0 or pct is None:
+                    continue
+                if group == "gainers" and pct <= 0:
+                    continue
+                if group == "losers" and pct >= 0:
+                    continue
+                volume = _nse_number(row, "totalTradedVolume", "quantityTraded", "tradedQuantity", "volume", "qty", "noOfShares") or 0
+                if volume >= 10000000:
+                    volume_text = f"{volume / 10000000:.2f} Cr"
+                elif volume >= 100000:
+                    volume_text = f"{volume / 100000:.2f} L"
+                else:
+                    volume_text = f"{int(volume):,}"
+                normalized.append({
+                    "symbol": symbol,
+                    "name": str(row.get("companyName") or row.get("comapnyName") or row.get("meta") or row.get("name") or symbol),
+                    "price": price,
+                    "pct": pct,
+                    "vol": volume_text,
+                    "volume_raw": volume,
+                })
+
+            if group == "gainers":
+                normalized.sort(key=lambda item: item["pct"], reverse=True)
+            elif group == "losers":
+                normalized.sort(key=lambda item: item["pct"])
+            else:
+                normalized.sort(key=lambda item: item["volume_raw"], reverse=True)
+            result = normalized[:limit]
+            if result:
+                with _NSE_MOVER_LOCK:
+                    _NSE_MOVER_CACHE[group] = {"at": now, "rows": result}
+                return result
+            last_error = "NSE returned no valid rows"
+            print(f"[MARKET PULSE] NSE {group}: {last_error}; payload keys={list(payload) if isinstance(payload, dict) else type(payload).__name__}")
+        except Exception as exc:
+            last_error = exc
+            print(f"[MARKET PULSE] NSE {group} attempt {attempt + 1} failed: {exc}")
+
+    # Retain only a recent, genuine NSE response during short source outages.
+    with _NSE_MOVER_LOCK:
+        cached = _NSE_MOVER_CACHE.get(group, {})
+        if cached.get("rows") and now - cached.get("at", 0) < 180:
+            return list(cached["rows"][:limit])
+    print(f"[MARKET PULSE] NSE {group} unavailable after retry: {last_error}")
+    return []
+
+
+@app.route("/api/market-pulse", methods=["GET"])
+def market_pulse_api():
+    """Return live index and requested sidebar stock quotes; read-only endpoint."""
+    supervisor_id = session.get("supervisor_id")
+    if not _get_supervisor(supervisor_id):
+        return jsonify({"success": False, "message": "Login required."}), 401
+
+    requested = []
+    for raw_symbol in request.args.get("symbols", "").split(","):
+        symbol = re.sub(r"[^A-Z0-9&._-]", "", raw_symbol.strip().upper())
+        if symbol and symbol not in requested:
+            requested.append(symbol)
+    # Keep this endpoint bounded even if a client supplies an unusually long list.
+    requested = requested[:30]
+
+    yahoo_symbols = {
+        "nifty": "^NSEI",
+        "sensex": "^BSESN",
+    }
+    for symbol in requested:
+        yahoo_symbols[symbol] = symbol if symbol.endswith((".NS", ".BO")) else symbol + ".NS"
+
+    quotes = {}
+    movers = {"gainers": [], "losers": [], "active": []}
+    import concurrent.futures
+    with concurrent.futures.ThreadPoolExecutor(max_workers=12) as executor:
+        quote_futures = {
+            executor.submit(_fetch_yahoo_market_quote, ticker): key
+            for key, ticker in yahoo_symbols.items()
+        }
+        mover_futures = {
+            executor.submit(_fetch_nse_market_movers, group, 5): group
+            for group in ("gainers", "losers", "active")
+        }
+        for future in concurrent.futures.as_completed(quote_futures):
+            key = quote_futures[future]
+            try:
+                quote_data = future.result()
+                if quote_data:
+                    quotes[key] = quote_data
+            except Exception as exc:
+                print(f"[MARKET PULSE] Quote worker failed for {key}: {exc}")
+        for future in concurrent.futures.as_completed(mover_futures):
+            group = mover_futures[future]
+            try:
+                movers[group] = future.result() or []
+            except Exception as exc:
+                print(f"[MARKET PULSE] {group} worker failed: {exc}")
+
+    # Return partial data as well: NSE movers must still reach the browser even
+    # when Yahoo temporarily fails to quote NIFTY/SENSEX (or vice versa).
+    response = jsonify({
+        "success": True,
+        "data": {
+            "nifty": quotes.get("nifty"),
+            "sensex": quotes.get("sensex"),
+            "quotes": {k: v for k, v in quotes.items() if k not in ("nifty", "sensex")},
+            "gainers": movers["gainers"],
+            "losers": movers["losers"],
+            "active": movers["active"],
+            "updated_at": datetime.now().isoformat(),
+        },
+    })
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    return response
+
+
 def _get_bse_ltp_only(symbol):
     """BSE price through Yahoo .BO."""
     return _get_yahoo_ltp(symbol, "BSE")
@@ -4544,198 +4865,61 @@ def api_screener_live(symbol):
     }), 502
 
 
-def _fetch_trendlyne_swot_valuation(nse_symbol):
-    """Read Trendlyne's public stock overview payload; never synthesize SWOT/PE values."""
-    symbol = re.sub(r"[^A-Z0-9&._-]", "", str(nse_symbol or "").upper())
-    if not symbol:
-        return {"success": False, "message": "Invalid symbol"}
-
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-                      "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-        "Accept-Language": "en-IN,en;q=0.9",
-    }
-    # Trendlyne's stock-page route resolves the symbol to its canonical stock ID/slug.
-    candidates = [
-        f"https://trendlyne.com/equity/{quote(symbol, safe='&._-')}/stock-page",
-        f"https://trendlyne.com/equity/{quote(symbol, safe='&._-')}/",
-    ]
-    last_error = "Trendlyne stock overview is unavailable"
-    for url in candidates:
-        try:
-            response = requests.get(url, headers=headers, timeout=18, allow_redirects=True)
-            if response.status_code != 200:
-                last_error = f"Trendlyne returned HTTP {response.status_code}"
-                continue
-            match = re.search(r'<script[^>]+id=[\"\']__NEXT_DATA__[\"\'][^>]*>(.*?)</script>', response.text, re.S | re.I)
-            if not match:
-                last_error = "Trendlyne response did not contain its stock data payload"
-                continue
-            payload = json.loads(match.group(1))
-            page = ((payload.get("props") or {}).get("pageProps") or {})
-            security = ((page.get("fullStockInfo") or {}).get("security") or {})
-            page_symbol = str(security.get("nseSymbol") or security.get("id") or "").upper()
-            if page_symbol and page_symbol != symbol:
-                last_error = f"Trendlyne resolved {symbol} to a different symbol ({page_symbol})"
-                continue
-
-            checklist = page.get("swotChecklist") or {}
-            swot = checklist.get("swot") or {}
-            pe = checklist.get("pe") or {}
-            current = pe.get("current") or {}
-            forward = pe.get("forward") or {}
-            metrics = ((page.get("keyMetrics") or {}).get("metrics") or [])
-            metric_rows = []
-            for metric in metrics:
-                if not isinstance(metric, dict):
-                    continue
-                metric_rows.append({
-                    "title": metric.get("title"),
-                    "value": metric.get("value"),
-                    "color": metric.get("color"),
-                    "shorttext": metric.get("shorttext"),
-                    "longtext": metric.get("longtext"),
-                })
-
-            if not swot and not current and not forward:
-                last_error = "Trendlyne page loaded but did not supply SWOT or PE valuation fields"
-                continue
-            return {
-                "success": True,
-                "source": "Trendlyne",
-                "fetched_at": datetime.utcnow().isoformat(timespec="seconds") + "Z",
-                "company_name": security.get("name") or page.get("seo", {}).get("title"),
-                "symbol": page_symbol or symbol,
-                "canonical_url": page.get("canonicalUrl") or response.url,
-                "swot": {
-                    "strengths": swot.get("strengths"),
-                    "weaknesses": swot.get("weaknesses"),
-                    "opportunities": swot.get("opportunities"),
-                    "threats": swot.get("threats"),
-                    "url": swot.get("url"),
-                },
-                "checklist": checklist.get("checklist") or {},
-                "pe": {
-                    "current": current,
-                    "forward": forward,
-                    "insight": pe.get("insight"),
-                    "insightColor": pe.get("insightColor"),
-                    "pe": pe.get("pe"),
-                    "buySellZoneUrl": pe.get("buySellZoneUrl"),
-                },
-                "metrics": metric_rows,
-            }
-        except Exception as exc:
-            last_error = str(exc)
-    return {"success": False, "source": "Trendlyne", "message": last_error}
-
-
 @app.route("/api/screener/<path:symbol>", methods=["GET"])
 def api_screener_proxy(symbol):
-    """Return company-specific Screener.in ratios and financial statement tables."""
+    """Fetch live Screener.in company fundamentals & URL for desktop split-screen."""
     account, auth_error = _require_supervisor()
     if auth_error:
         return auth_error
-    clean_sym = re.sub(r"[^A-Za-z0-9&._-]", "", (symbol or "").upper())
+    clean_sym = re.sub(r"[^A-Za-z0-9]", "", (symbol or "").upper())
     if not clean_sym:
         return jsonify({"success": False, "message": "Invalid stock symbol."}), 400
 
     urls = [
-        f"https://www.screener.in/company/{quote(clean_sym, safe='&._-')}/consolidated/",
-        f"https://www.screener.in/company/{quote(clean_sym, safe='&._-')}/",
+        f"https://www.screener.in/company/{clean_sym}/consolidated/",
+        f"https://www.screener.in/company/{clean_sym}/",
     ]
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-                      "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+                      "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
     }
     html_body = ""
     final_url = urls[0]
-    last_error = "Screener.in did not return company data"
     for candidate in urls:
         try:
-            resp = requests.get(candidate, headers=headers, timeout=15)
-            if resp.status_code == 200 and "<html" in resp.text.lower():
-                html_body, final_url = resp.text, candidate
+            resp = requests.get(candidate, headers=headers, timeout=8)
+            if resp.status_code == 200 and "<h1" in resp.text:
+                html_body = resp.text
+                final_url = candidate
                 break
-            last_error = f"Screener.in returned HTTP {resp.status_code}"
-        except Exception as exc:
-            last_error = str(exc)
-    # Keep the Trendlyne request independent: it can still supply SWOT/PE even
-    # when Screener.in is temporarily blocked or unavailable.
-    soup = BeautifulSoup(html_body or "", "html.parser")
-    h1 = soup.find("h1")
-    company_name = h1.get_text(" ", strip=True) if h1 else clean_sym
+        except Exception:
+            continue
 
-    # Ratios at the top of the Screener company page. Return every parsed ratio,
-    # not an arbitrary first 12, and retain the source's original labels/values.
+    title_m = re.search(r"<h1[^>]*>(.*?)</h1>", html_body, re.S | re.I)
+    company_name = re.sub(r"\s+", " ", re.sub(r"<[^>]+>", "", title_m.group(1))).strip() if title_m else clean_sym
+
     ratios = []
-    for li in soup.select('li.flex.flex-space-between'):
-        name_el = li.select_one('span.name')
-        value_el = li.select_one('span.nowrap.value')
-        if name_el and value_el:
-            label = name_el.get_text(" ", strip=True)
-            value = value_el.get_text(" ", strip=True)
-            if label and value:
-                ratios.append({"label": label, "value": value})
+    for li_m in re.finditer(r'<li class="flex flex-space-between"[^>]*>(.*?)</li>', html_body, re.S):
+        block = li_m.group(1)
+        nm = re.search(r'<span class="name"[^>]*>(.*?)</span>', block, re.S)
+        vl = re.search(r'<span class="nowrap value"[^>]*>(.*?)</span>', block, re.S)
+        if nm and vl:
+            k = re.sub(r"\s+", " ", re.sub(r"<[^>]+>", "", nm.group(1))).strip()
+            v = re.sub(r"\s+", " ", re.sub(r"<[^>]+>", "", vl.group(1))).strip()
+            if k:
+                ratios.append({"label": k, "value": v})
 
-    # Parse Screener's financial statement tables by their section/table IDs.
-    # Keep the original headings and values; no synthetic or estimated rows.
-    tables = {}
-    section_aliases = {
-        "quarters": "quarterly", "quarterly-results": "quarterly",
-        "profit-loss": "profit_loss", "balance-sheet": "balance_sheet",
-        "cash-flow": "cash_flow", "ratios": "ratios",
-        "shareholding": "shareholding", "documents": "documents",
-    }
-    for section_id, key in section_aliases.items():
-        section = soup.find(id=section_id)
-        if not section:
-            continue
-        table = section.find("table")
-        if not table:
-            continue
-        headers_row = table.find("thead")
-        headers_out = [th.get_text(" ", strip=True) for th in headers_row.select("th")] if headers_row else []
-        rows_out = []
-        tbody = table.find("tbody") or table
-        for tr in tbody.find_all("tr"):
-            cells = [cell.get_text(" ", strip=True) for cell in tr.find_all(["th", "td"], recursive=False)]
-            if cells:
-                rows_out.append(cells)
-        if headers_out or rows_out:
-            tables[key] = {"headers": headers_out, "rows": rows_out}
+    about_m = re.search(r'<div class="sub show-more-box about"[^>]*>(.*?)</div>', html_body, re.S)
+    about_txt = re.sub(r"\s+", " ", re.sub(r"<[^>]+>", "", about_m.group(1))).strip() if about_m else ""
 
-    about_el = soup.select_one('div.sub.show-more-box.about') or soup.select_one('#about')
-    about_txt = about_el.get_text(" ", strip=True)[:1200] if about_el else ""
-    # Trendlyne supplies the company-specific SWOT checklist counts and PE Buy/Sell
-    # Zone valuation used in the reference dashboard. Keep it a separate source
-    # payload so a Trendlyne outage never breaks the existing Screener fundamentals.
-    trendlyne_data = _fetch_trendlyne_swot_valuation(clean_sym)
-    if not html_body and not trendlyne_data.get("success"):
-        return jsonify({
-            "success": False,
-            "symbol": clean_sym,
-            "message": f"Screener.in: {last_error}; Trendlyne: {trendlyne_data.get('message', 'unavailable')}",
-            "trendlyne": trendlyne_data,
-        }), 502
-    if trendlyne_data.get("success") and trendlyne_data.get("company_name"):
-        company_name = trendlyne_data["company_name"]
-    response = jsonify({
+    return jsonify({
         "success": True,
         "symbol": clean_sym,
         "company_name": company_name,
         "url": final_url,
-        "source": "Screener.in",
-        "fetched_at": datetime.utcnow().isoformat(timespec="seconds") + "Z",
-        "ratios": ratios,
-        "tables": tables,
-        "about": about_txt,
-        "trendlyne": trendlyne_data,
+        "ratios": ratios[:12],
+        "about": about_txt[:420],
     })
-    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
-    return response
 
 
 if __name__ == "__main__":
