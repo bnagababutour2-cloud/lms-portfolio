@@ -668,6 +668,21 @@ body.tradelogs-split-open #tradeLogsSplitDrawer{display:flex;}
     z-index: 1;
   }
 
+
+  /* 4. Stretch Matching Clients panel & list to match full height of the analytics box */
+  .logbook-layout {
+    align-items: stretch !important;
+  }
+  .logbook-client-panel {
+    display: flex !important;
+    flex-direction: column !important;
+  }
+  .logbook-client-list {
+    flex: 1 1 auto !important;
+    max-height: none !important;
+    min-height: 430px !important;
+  }
+
   /* Ensure dropdowns (like Multi-Clients) stay above page cards but below drawers */
   .multi-client-menu {
     z-index: 950 !important;
