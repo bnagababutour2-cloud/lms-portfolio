@@ -5084,7 +5084,9 @@ def api_screener_proxy(symbol):
         "symbol": clean_sym,
         "company_name": company_name,
         "url": final_url,
-        "ratios": ratios[:12],
+        # Return every company-specific ratio found on the selected Screener page.
+        # The browser uses these rows to refresh all categories and the four summary cards.
+        "ratios": ratios,
         "about": about_txt[:420],
     })
 
