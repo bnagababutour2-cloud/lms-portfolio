@@ -813,7 +813,14 @@ body.tradelogs-split-open #tradeLogsSplitDrawer{display:flex;}
 
 <div class="card logbook-desktop-card" id="tradeLogbookCard">
   <div class="logbook-filter-row" id="lms-recency-bar" aria-label="Trade recency logbook filters" style="margin-bottom:12px;padding:9px 12px;background:#f4f8fd;border:1px solid #d8e4f0;border-radius:9px"><span style="font-size:11px;font-weight:900;color:#052d70;margin-right:4px">Logbook:</span><button type="button" class="btn light" data-logbook-filter="all" onclick="setLogbookFilter('all',this)">ALL</button><button type="button" class="btn light" data-logbook-filter="0-9" onclick="setLogbookFilter('0-9',this)">TRADED IN LAST 10 DAYS</button><button type="button" class="btn light" data-logbook-filter="10-29" onclick="setLogbookFilter('10-29',this)">10–30 DAYS</button><button type="button" class="btn light" data-logbook-filter="30-59" onclick="setLogbookFilter('30-59',this)">30–60 DAYS</button><button type="button" class="btn light" data-logbook-filter="60+" onclick="setLogbookFilter('60+',this)">ABOVE 60 DAYS</button><button type="button" class="btn light" onclick="clearLogbookFilterState()">CLEAR</button></div>
-  <div class="logbook-summary"><div><div class="title" style="margin:0 0 3px">Trade Logbook &amp; Client Analytics</div><div class="sub" id="logbookFilterDescription">Choose one of the four recency filters above to list matching clients.</div></div><div class="logbook-category-buttons" style="display:flex;gap:4px;flex-wrap:wrap;align-items:center;margin:4px 8px"><button type="button" class="btn light" style="padding:6px 9px;font-size:10px" data-logcat="all" onclick="setLogbookCatFilter('all',this)">ALL</button><button type="button" class="btn light" style="padding:6px 9px;font-size:10px" data-logcat="prime" onclick="setLogbookCatFilter('prime',this)">PRIME</button><button type="button" class="btn light" style="padding:6px 9px;font-size:10px" data-logcat="active" onclick="setLogbookCatFilter('active',this)">ACTIVE</button><button type="button" class="btn light" style="padding:6px 9px;font-size:10px" data-logcat="inactive" onclick="setLogbookCatFilter('inactive',this)">INACTIVE</button><button type="button" class="btn light" style="padding:6px 9px;font-size:10px" data-logcat="dormat" onclick="setLogbookCatFilter('dormat',this)">DORMAT</button><button type="button" class="btn light" style="padding:6px 9px;font-size:10px" data-logcat="10" onclick="setLogbookCatFilter('10',this)">10</button><button type="button" class="btn light" style="padding:6px 9px;font-size:10px" data-logcat="12" onclick="setLogbookCatFilter('12',this)">12</button><button type="button" class="btn light" style="padding:6px 9px;font-size:10px" data-logcat="13" onclick="setLogbookCatFilter('13',this)">13</button><button type="button" class="btn light" style="padding:6px 9px;font-size:10px" data-logcat="01" onclick="setLogbookCatFilter('01',this)">01</button><button type="button" class="btn light" style="padding:6px 9px;font-size:10px" data-logcat="03" onclick="setLogbookCatFilter('03',this)">03</button><button type="button" class="btn light" style="padding:6px 9px;font-size:10px" data-logcat="04" onclick="setLogbookCatFilter('04',this)">04</button><button type="button" class="btn light" style="padding:6px 9px;font-size:10px" data-logcat="23" onclick="setLogbookCatFilter('23',this)">23</button></div><span class="pill" id="logbookClientCount">0 clients</span></div>
+  <div class="logbook-summary"><div><div class="title" style="margin:0 0 3px">Trade Logbook &amp; Client Analytics</div><div class="sub" id="logbookFilterDescription">Choose one of the four recency filters above to list matching clients.</div></div><div class="logbook-category-buttons" style="display:flex;gap:4px;flex-wrap:wrap;align-items:center;margin:4px 8px"><button type="button" class="btn light" style="padding:6px 9px;font-size:10px" data-logcat="all" onclick="setLogbookCatFilter('all',this)">ALL</button><button type="button" class="btn light" style="padding:6px 9px;font-size:10px" data-logcat="prime" onclick="setLogbookCatFilter('prime',this)">PRIME</button><button type="button" class="btn light" style="padding:6px 9px;font-size:10px" data-logcat="active" onclick="setLogbookCatFilter('active',this)">ACTIVE</button><button type="button" class="btn light" style="padding:6px 9px;font-size:10px" data-logcat="inactive" onclick="setLogbookCatFilter('inactive',this)">INACTIVE</button><button type="button" class="btn light" style="padding:6px 9px;font-size:10px" data-logcat="dormat" onclick="setLogbookCatFilter('dormat',this)">DORMAT</button><button type="button" class="btn light" style="padding:6px 9px;font-size:10px" data-logcat="10" onclick="setLogbookCatFilter('10',this)">10</button><button type="button" class="btn light" style="padding:6px 9px;font-size:10px" data-logcat="12" onclick="setLogbookCatFilter('12',this)">12</button><button type="button" class="btn light" style="padding:6px 9px;font-size:10px" data-logcat="13" onclick="setLogbookCatFilter('13',this)">13</button><button type="button" class="btn light" style="padding:6px 9px;font-size:10px" data-logcat="01" onclick="setLogbookCatFilter('01',this)">01</button><button type="button" class="btn light" style="padding:6px 9px;font-size:10px" data-logcat="03" onclick="setLogbookCatFilter('03',this)">03</button><button type="button" class="btn light" style="padding:6px 9px;font-size:10px" data-logcat="04" onclick="setLogbookCatFilter('04',this)">04</button><button type="button" class="btn light" style="padding:6px 9px;font-size:10px" data-logcat="23" onclick="setLogbookCatFilter('23',this)">23</button>
+<button type="button" class="btn light" style="padding:6px 9px;font-size:10px;background:#fef08a;color:#854d0e;border-color:#eab308" data-logcat="inv-0" onclick="setLogbookCatFilter('inv-0',this)">0</button>
+<button type="button" class="btn light" style="padding:6px 9px;font-size:10px;background:#fef08a;color:#854d0e;border-color:#eab308" data-logcat="inv-0-1" onclick="setLogbookCatFilter('inv-0-1',this)">0-1</button>
+<button type="button" class="btn light" style="padding:6px 9px;font-size:10px;background:#fef08a;color:#854d0e;border-color:#eab308" data-logcat="inv-1-5" onclick="setLogbookCatFilter('inv-1-5',this)">1-5</button>
+<button type="button" class="btn light" style="padding:6px 9px;font-size:10px;background:#fef08a;color:#854d0e;border-color:#eab308" data-logcat="inv-5-10" onclick="setLogbookCatFilter('inv-5-10',this)">5-10</button>
+<button type="button" class="btn light" style="padding:6px 9px;font-size:10px;background:#fef08a;color:#854d0e;border-color:#eab308" data-logcat="inv-10-25" onclick="setLogbookCatFilter('inv-10-25',this)">10-25</button>
+<button type="button" class="btn light" style="padding:6px 9px;font-size:10px;background:#fef08a;color:#854d0e;border-color:#eab308" data-logcat="inv-25-50" onclick="setLogbookCatFilter('inv-25-50',this)">25-50</button>
+<button type="button" class="btn light" style="padding:6px 9px;font-size:10px;background:#fef08a;color:#854d0e;border-color:#eab308" data-logcat="inv-50" onclick="setLogbookCatFilter('inv-50',this)">50</button></div><span class="pill" id="logbookClientCount">0 clients</span></div>
   <div class="logbook-layout">
     <div class="logbook-client-panel"><b style="color:#052d70;font-size:13px">Matching Clients</b><div class="sub" style="margin-top:4px">Search or select a client code to view portfolio analytics.</div><div class="logbook-client-search-row"><input id="logbookClientSearchInput" type="text" placeholder="Client ID or name..." onkeydown="if(event.key==='Enter'){event.preventDefault();window.searchLogbookClients();}"><button type="button" class="btn" id="logbookClientSearchBtn" onclick="window.searchLogbookClients()">SEARCH</button></div><div class="logbook-client-list" id="logbookClientList"><div class="logbook-empty">Select a trade-recency filter above.</div></div></div>
     <div class="logbook-chart-panel">
@@ -1629,8 +1636,32 @@ async function setSelectedPasswords(){
    renderLogbookClients();
  };
 
+ function getClientTotalInvestment(clientObj){
+   let total = 0;
+   (clientObj.rows || []).forEach(r => {
+     const qty = Number(String(r.cells[7]?.textContent || '0').replace(/,/g, '')) || 0;
+     const buy = Number(String(r.cells[8]?.textContent || '0').replace(/,/g, '')) || 0;
+     total += qty * buy;
+   });
+   return total;
+ }
+
  function matchesCategoryFilter(clientObj){
    if(!currentLogbookCatFilter || currentLogbookCatFilter==='all') return true;
+   if(currentLogbookCatFilter.startsWith('inv-')){
+     const inv = getClientTotalInvestment(clientObj);
+     const lakh = 100000;
+     switch(currentLogbookCatFilter){
+       case 'inv-0': return inv === 0;
+       case 'inv-0-1': return inv > 0 && inv <= 1 * lakh;
+       case 'inv-1-5': return inv > 1 * lakh && inv <= 5 * lakh;
+       case 'inv-5-10': return inv > 5 * lakh && inv <= 10 * lakh;
+       case 'inv-10-25': return inv > 10 * lakh && inv <= 25 * lakh;
+       case 'inv-25-50': return inv > 25 * lakh && inv <= 50 * lakh;
+       case 'inv-50': return inv > 50 * lakh;
+       default: return true;
+     }
+   }
    const cid=String(clientObj.id||'').trim().toLowerCase();
    const status=String(typeof getEffectiveClientStatus==='function'?getEffectiveClientStatus(cid):'active').trim().toLowerCase();
    switch(currentLogbookCatFilter){
