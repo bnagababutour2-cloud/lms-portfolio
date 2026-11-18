@@ -1676,8 +1676,28 @@ def admin_portfolio():
         const ageTxt=c.last_trade_date ? (c.days_since_trade+'d ago') : 'Older (>60d)';
         return `<button type="button" data-cid="${esc(c.client_id)}" style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px;border:1px solid #d5e2f2;border-radius:8px;background:#fff;cursor:pointer;text-align:left;font-size:12px;font-weight:700;color:#07377b"><span>${esc(c.client_id)}${c.client_name?' · '+esc(c.client_name):''}</span><span style="font-size:11px;color:#5f748d">${esc(ageTxt)}</span></button>`;
       }).join('');
+      let activeDrawerCid = null;
       listWrap.querySelectorAll('button[data-cid]').forEach(btn=>{
-        btn.addEventListener('click',()=>showClient(btn.dataset.cid));
+        let hoverTimer = null;
+        btn.addEventListener('click',(e)=>{
+          e.preventDefault();
+          if(hoverTimer) clearTimeout(hoverTimer);
+          activeDrawerCid = btn.dataset.cid;
+          showClient(btn.dataset.cid);
+        });
+        btn.addEventListener('mouseenter',()=>{
+          const cid = btn.dataset.cid;
+          if(activeDrawerCid !== cid){
+            if(hoverTimer) clearTimeout(hoverTimer);
+            hoverTimer = setTimeout(()=>{
+              activeDrawerCid = cid;
+              showClient(cid);
+            }, 120);
+          }
+        });
+        btn.addEventListener('mouseleave',()=>{
+          if(hoverTimer) clearTimeout(hoverTimer);
+        });
       });
       emptyBox.replaceWith(listWrap);
     }
