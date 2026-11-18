@@ -781,7 +781,7 @@ body.tradelogs-split-open #tradeLogsSplitDrawer{display:flex;}
 </div>
 
 <div class="card">
-<div class="logbook-title-row portfolio-heading-row"><div class="portfolio-heading-left"><div class="title">Portfolio — Click ▲ / ▼ in any header to sort</div><button type="button" class="btn gold" id="primeClientsBtn" onclick="togglePrimeClients(this)">PRIME</button><div class="prime-quick-filters" aria-label="Portfolio status and star filters"><button class="btn light" id="adminStatusActiveBtn" onclick="handleAdminStatusAction('active', this)">ACTIVE</button><button class="btn light" id="adminStatusInactiveBtn" onclick="handleAdminStatusAction('inactive', this)">INACTIVE</button><button class="btn light" id="adminStatusDormantBtn" onclick="handleAdminStatusAction('dormant', this)">DORMAT</button><button class="btn light" id="adminStar10Btn" onclick="toggleAdminStarFilter('10', this)">10</button><button class="btn light" id="adminStar12Btn" onclick="toggleAdminStarFilter('12', this)">12</button><button class="btn light" id="adminStar13Btn" onclick="toggleAdminStarFilter('13', this)">13</button><button class="btn light" id="adminStar01Btn" onclick="toggleAdminStarFilter('01', this)">01</button><button class="btn light" id="adminStar03Btn" onclick="toggleAdminStarFilter('03', this)">03</button><button class="btn light" id="adminStar04Btn" onclick="toggleAdminStarFilter('04', this)">04</button><button class="btn light" id="adminStar23Btn" onclick="toggleAdminStarFilter('23', this)">23</button></div></div></div>
+<div class="logbook-title-row portfolio-heading-row"><div class="portfolio-heading-left"><div class="title">Portfolio — Click ▲ / ▼ in any header to sort</div><button type="button" class="btn light" id="allClientsPortfolioBtn" onclick="clearSearch()">ALL</button><button type="button" class="btn gold" id="primeClientsBtn" onclick="togglePrimeClients(this)">PRIME</button><div class="prime-quick-filters" aria-label="Portfolio status and star filters"><button class="btn light" id="adminStatusActiveBtn" onclick="handleAdminStatusAction('active', this)">ACTIVE</button><button class="btn light" id="adminStatusInactiveBtn" onclick="handleAdminStatusAction('inactive', this)">INACTIVE</button><button class="btn light" id="adminStatusDormantBtn" onclick="handleAdminStatusAction('dormant', this)">DORMAT</button><button class="btn light" id="adminStar10Btn" onclick="toggleAdminStarFilter('10', this)">10</button><button class="btn light" id="adminStar12Btn" onclick="toggleAdminStarFilter('12', this)">12</button><button class="btn light" id="adminStar13Btn" onclick="toggleAdminStarFilter('13', this)">13</button><button class="btn light" id="adminStar01Btn" onclick="toggleAdminStarFilter('01', this)">01</button><button class="btn light" id="adminStar03Btn" onclick="toggleAdminStarFilter('03', this)">03</button><button class="btn light" id="adminStar04Btn" onclick="toggleAdminStarFilter('04', this)">04</button><button class="btn light" id="adminStar23Btn" onclick="toggleAdminStarFilter('23', this)">23</button></div></div></div>
 <div class="selectbar portfolio-bar"><span class="metric"><b>Visible MTM:</b> <strong id="totalMtm">0.00</strong></span><span class="metric"><b>Investment:</b> <strong id="totalInvestment">0.00</strong></span><span class="metric"><b>Total Clients:</b> <strong>{{ clients|length }}</strong></span><span class="metric"><b>Portfolio Rows:</b> <strong>{{ holdings|length }}</strong></span><span class="metric"><b>Live LTP:</b> <strong id="liveLtpStatus">STARTING...</strong></span><button class="btn light" onclick="selectAllRows()">SELECT ALL ROWS</button><button class="btn light" onclick="clearRowSelection()">CLEAR</button><button class="btn light" onclick="setLiveViewAll()">SHOW HIDDEN</button><span class="live-control"><span class="live-label">LIVE VIEW:</span><button class="btn light" id="liveAllBtn" onclick="setLiveViewAll()">ALL</button><button class="btn light" id="liveHideBtn" onclick="hideSelectedFromLive()">HIDE SELECTED</button><button class="btn light" id="liveFocusBtn" onclick="focusSelectedLive()">FOCUS SELECTED</button><button class="btn light" onclick="clearLiveView()">SHOW ALL</button></span><button class="btn green" onclick="downloadSelectedRows()">DOWNLOAD SELECTED</button>{% if can_manage %}<button class="btn red" onclick="deleteSelectedRows()">DELETE SELECTED</button>{% endif %}<span class="pill" id="rowCount">0 selected</span><span class="pill" id="liveViewStatus">LIVE VIEW: ALL</span><div class="logbook-filter-row logbook-filter-duplicate" aria-label="Trade recency quick filters"><span class="logbook-filter-label">Logbook:</span><button type="button" class="btn light" data-logbook-filter="all" onclick="setLogbookFilter('all',this)">ALL</button><button type="button" class="btn light" data-logbook-filter="0-9" onclick="setLogbookFilter('0-9',this)">TRADED IN LAST 10 DAYS</button><button type="button" class="btn light" data-logbook-filter="10-29" onclick="setLogbookFilter('10-29',this)">10–30 DAYS</button><button type="button" class="btn light" data-logbook-filter="30-59" onclick="setLogbookFilter('30-59',this)">30–60 DAYS</button><button type="button" class="btn light" data-logbook-filter="60+" onclick="setLogbookFilter('60+',this)">ABOVE 60 DAYS</button><button type="button" class="btn light" onclick="clearLogbookFilterState()">CLEAR</button></div></div>
 <div class="table-wrap"><table id="portfolioTable"><thead><tr>
 <th><input class="check" type="checkbox" onchange="toggleAllRows(this)"></th>
@@ -822,6 +822,7 @@ body.tradelogs-split-open #tradeLogsSplitDrawer{display:flex;}
     <strong id="logbookSelectedClient">No client selected</strong>
     <button type="button" class="btn green" id="logbookCurrentProfitBtn" style="padding:6px 11px;font-size:11px;cursor:default">Current Profit: ₹0.00</button>
     <button type="button" class="btn red" id="logbookCurrentLossBtn" style="padding:6px 11px;font-size:11px;cursor:default">Current Loss: ₹0.00</button>
+    <button type="button" class="btn" id="logbookPresentValueBtn" style="padding:6px 11px;font-size:11px;cursor:default">Present Value: ₹0.00</button>
   </div>
   <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span class="pill" id="logbookLastTrade">Last trade: —</span>{% if can_manage %}<button type="button" class="btn" style="padding:6px 10px;font-size:11px;background:#052d70" onclick="window.openTradeLogsSplit(document.getElementById('logbookSelectedClient').textContent.replace('Client: ','').trim())">VIEW CLIENT LOGS ▸</button>{% endif %}</div>
 </div>
@@ -1600,7 +1601,13 @@ async function setSelectedPasswords(){
 
  window.setLogbookCatFilter=function(cat,button){
    if(cat==='all'){
-     currentLogbookCatFilter=(currentLogbookCatFilter==='all')?null:'all';
+     currentLogbookCatFilter='all';
+     currentLogbookFilter='all';
+     document.querySelectorAll('[data-logbook-filter]').forEach(b=>{
+       b.classList.toggle('active',b.dataset.logbookFilter==='all');
+     });
+     const desc=document.getElementById('logbookFilterDescription');
+     if(desc) desc.textContent='Showing all active clients. Click any recency button to narrow by last trade date.';
    }else{
      currentLogbookCatFilter=(currentLogbookCatFilter===cat)?null:cat;
    }
@@ -1822,6 +1829,8 @@ window.setLogbookFilter=async function(filter,button){
    if(profBtn) profBtn.textContent='Current Profit: ₹0.00';
    const lossBtn=document.getElementById('logbookCurrentLossBtn');
    if(lossBtn) lossBtn.textContent='Current Loss: ₹0.00';
+   const pvBtn=document.getElementById('logbookPresentValueBtn');
+   if(pvBtn) pvBtn.textContent='Present Value: ₹0.00';
  }
 
  function renderDonut(donutId,legendId,items,total,kind){
@@ -1943,6 +1952,11 @@ window.setLogbookFilter=async function(filter,button){
    const pnlEl=document.getElementById('logbookPnl');
    pnlEl.textContent=(pnl>=0?'+':'−')+moneyExact(pnl);
    pnlEl.style.color=pnl>=0?'#128a43':'#d62828';
+   const pvBtn=document.getElementById('logbookPresentValueBtn');
+   if(pvBtn){
+     const presentValue=investment+pnl;
+     pvBtn.textContent='Present Value: '+(presentValue<0?'−':'')+moneyExact(presentValue);
+   }
    document.getElementById('logbookCompanyCount').textContent=companies.size;
    const totalProfitAmt = [...companies.values()].filter(x => x.pnl > 0).reduce((s, x) => s + x.pnl, 0);
    const totalLossAmt = [...companies.values()].filter(x => x.pnl < 0).reduce((s, x) => s + Math.abs(x.pnl), 0);
