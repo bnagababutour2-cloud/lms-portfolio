@@ -1800,14 +1800,24 @@ window.setLogbookFilter=async function(filter,button){
      return '<button type="button" class="logbook-client-btn '+(selectedLogbookClient===c.id?'active':'')+'" data-logbook-client="'+safeText(c.id)+'"><span>'+safeText(c.id)+'</span><small>'+badge+'</small></button>';
    }).join('');
    list.querySelectorAll('[data-logbook-client]').forEach(b=>{
-     b.addEventListener('click',()=>{
+     let hoverTimer = null;
+     b.addEventListener('click',(e)=>{
+       e.preventDefault();
+       if(hoverTimer) clearTimeout(hoverTimer);
        b.focus();
        selectLogbookClient(b.dataset.logbookClient);
      });
      b.addEventListener('mouseenter',()=>{
-       if(selectedLogbookClient!==b.dataset.logbookClient){
-         selectLogbookClient(b.dataset.logbookClient);
+       const cid = b.dataset.logbookClient;
+       if(selectedLogbookClient!==cid){
+         if(hoverTimer) clearTimeout(hoverTimer);
+         hoverTimer = setTimeout(()=>{
+           selectLogbookClient(cid);
+         }, 110);
        }
+     });
+     b.addEventListener('mouseleave',()=>{
+       if(hoverTimer) clearTimeout(hoverTimer);
      });
    });
    if(!list.dataset.keyNavAttached){
@@ -1984,6 +1994,34 @@ window.setLogbookFilter=async function(filter,button){
      pvBtn.textContent='Present Value: '+(presentValue<0?'−':'')+moneyExact(presentValue);
    }
    document.getElementById('logbookCompanyCount').textContent=companies.size;
+   // Immediate traded-days fallback calculation from DOM rows so metrics appear instantly on hover/click
+   const uniqueDates = new Set();
+   rows.forEach(r=>{
+     const rawDate = (r.cells[10]?.textContent||'').trim();
+     if(/^\d{4}-\d{2}-\d{2}/.test(rawDate)) uniqueDates.add(rawDate.slice(0,10));
+   });
+   const now = new Date(); now.setHours(0,0,0,0);
+   const startOfWeek = new Date(now);
+   startOfWeek.setDate(now.getDate() - ((now.getDay() + 6) % 7));
+   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+   const qMonth = Math.floor(now.getMonth() / 3) * 3;
+   const startOfQuarter = new Date(now.getFullYear(), qMonth, 1);
+   const fyYear = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
+   const startOfFY = new Date(fyYear, 3, 1);
+   let wDays=0, mDays=0, qDays=0, fyDays=0;
+   uniqueDates.forEach(ds=>{
+     const d = new Date(ds + 'T00:00:00');
+     if(!Number.isNaN(d.getTime())){
+       if(d >= startOfWeek) wDays++;
+       if(d >= startOfMonth) mDays++;
+       if(d >= startOfQuarter) qDays++;
+       if(d >= startOfFY) fyDays++;
+     }
+   });
+   [['daysWeek',wDays],['daysMonth',mDays],['daysQuarter',qDays],['daysFY',fyDays]].forEach(([id,v])=>{
+     const el = document.getElementById(id);
+     if(el) el.textContent = v + ' days';
+   });
    const totalProfitAmt = [...companies.values()].filter(x => x.pnl > 0).reduce((s, x) => s + x.pnl, 0);
    const totalLossAmt = [...companies.values()].filter(x => x.pnl < 0).reduce((s, x) => s + Math.abs(x.pnl), 0);
    const profBtn = document.getElementById('logbookCurrentProfitBtn');
