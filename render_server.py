@@ -717,7 +717,7 @@ def _resolve_symbols_metadata_parallel(symbols):
     if not to_fetch:
         return
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=12) as executor:
         futures = [executor.submit(_yahoo_symbol_metadata, s) for s in to_fetch]
         concurrent.futures.wait(futures, timeout=7)
 
@@ -743,13 +743,9 @@ class _DBResponse:
         self.count = count
 
 
-# Keep each Gunicorn worker's PostgreSQL footprint small.  A semaphore
-# makes callers wait for a free connection instead of allowing a burst of
-# background LTP jobs to exhaust the Supabase session pool.
+# Keep this process below Supabase's session-pooler client limit.
 _PG_POOL = None
 _PG_POOL_LOCK = threading.Lock()
-_PG_POOL_MAX = max(1, min(2, int(os.environ.get("DB_POOL_MAX_CONNECTIONS", "2") or 2)))
-_PG_CONNECTION_SEMAPHORE = threading.BoundedSemaphore(_PG_POOL_MAX)
 
 
 def _get_postgres_connection_pool(db_url):
@@ -760,7 +756,7 @@ def _get_postgres_connection_pool(db_url):
                 from psycopg2.pool import ThreadedConnectionPool
                 _PG_POOL = ThreadedConnectionPool(
                     minconn=1,
-                    maxconn=_PG_POOL_MAX,
+                    maxconn=3,
                     dsn=db_url,
                     connect_timeout=10,
                 )
@@ -862,13 +858,8 @@ class _PostgresQuery:
             raise RuntimeError(f"Unsupported table: {self.table}")
 
         pool = _get_postgres_connection_pool(self.db_url)
-        # Wait briefly for an available pooled connection.  This prevents
-        # concurrent background tasks from opening excess PostgreSQL sessions.
-        if not _PG_CONNECTION_SEMAPHORE.acquire(timeout=25):
-            raise TimeoutError("Timed out waiting for an available database connection")
-        con = None
+        con = pool.getconn()
         try:
-            con = pool.getconn()
             with con.cursor(cursor_factory=RealDictCursor) as cur:
                 if self._op == "select":
                     sql = f"SELECT {self._columns} FROM \"{self.table}\"" + self._where_sql()
@@ -926,17 +917,12 @@ class _PostgresQuery:
         finally:
             # Ensure no open/failed transaction is retained by the pool.
             try:
-                if con is not None and not con.closed:
-                    con.rollback()
+                con.rollback()
             except Exception:
                 pass
-            # Discard broken connections; return healthy ones to the bounded
-            # pool. Always release the semaphore, including on query failures.
-            try:
-                if con is not None:
-                    pool.putconn(con, close=bool(getattr(con, "closed", 1)))
-            finally:
-                _PG_CONNECTION_SEMAPHORE.release()
+            # Return the connection to the bounded pool instead of opening and
+            # closing a new session for every small query.
+            pool.putconn(con)
 
 
 class _PostgresClient:
@@ -1273,8 +1259,7 @@ def _load_all_holdings():
     page_size = 1000
     start = 0
     while True:
-        result = (supabase.table("holdings")
-                  .select("id,portfolio_id,client_id,symbol,exchange,quantity,buy_price,ltp,product")
+        result = (supabase.table("holdings").select("*")
                   .range(start, start + page_size - 1).execute())
         page = result.data or []
         rows_db.extend(page)
@@ -2604,7 +2589,7 @@ BSE_LTP_UPDATE_INTERVAL = 5
 
 # Number of simultaneous market-data requests.
 # 8 is deliberately kept moderate to avoid excessive exchange requests.
-LTP_FETCH_WORKERS = 8
+LTP_FETCH_WORKERS = 32
 
 # Number of simultaneous database updates.
 LTP_DB_WORKERS = 2
@@ -3130,7 +3115,7 @@ def market_pulse_api():
     quotes = {}
     movers = {"gainers": [], "losers": [], "active": []}
     import concurrent.futures
-    with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=12) as executor:
         quote_futures = {
             executor.submit(_fetch_yahoo_market_quote, ticker): key
             for key, ticker in yahoo_symbols.items()
