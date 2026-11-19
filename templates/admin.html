@@ -889,16 +889,16 @@ body.tradelogs-split-open #tradeLogsSplitDrawer{display:flex;}
   <div class="logbook-layout">
     <div class="logbook-client-panel"><b style="color:#052d70;font-size:13px">Matching Clients</b><div class="sub" style="margin-top:4px">Search or select a client code to view portfolio analytics.</div><div class="logbook-client-search-row"><input id="logbookClientSearchInput" type="text" placeholder="Client ID or name..." onkeydown="if(event.key==='Enter'){event.preventDefault();window.searchLogbookClients();}"><button type="button" class="btn" id="logbookClientSearchBtn" onclick="window.searchLogbookClients()">SEARCH</button></div><div class="logbook-client-list" id="logbookClientList"><div class="logbook-empty">Select a trade-recency filter above.</div></div></div>
     <div class="logbook-chart-panel">
-      <div class="logbook-summary logbook-single-line-header" style="display:flex;align-items:center;justify-content:space-between;gap:6px;flex-wrap:nowrap;overflow-x:auto;white-space:nowrap;padding-bottom:2px">
-  <div style="display:flex;align-items:center;gap:6px;flex-wrap:nowrap;flex:0 0 auto">
-    <strong id="logbookSelectedClient" style="font-size:13.5px;white-space:nowrap">No client selected</strong>
-    <button type="button" class="btn green" id="logbookCurrentProfitBtn" style="padding:4px 8px;font-size:10px;line-height:1.15;border-radius:6px;white-space:nowrap;cursor:default">Current Profit: ₹0.00</button>
-    <button type="button" class="btn red" id="logbookCurrentLossBtn" style="padding:4px 8px;font-size:10px;line-height:1.15;border-radius:6px;white-space:nowrap;cursor:default">Current Loss: ₹0.00</button>
-    <button type="button" class="btn" id="logbookPresentValueBtn" style="padding:4px 8px;font-size:10px;line-height:1.15;border-radius:6px;white-space:nowrap;cursor:default">Present Value: ₹0.00</button>
-<button type="button" class="btn light logbook-fin-mini-btn" id="logbookAvailCashBtn">Available Cash: ₹0.00</button>
-<button type="button" class="btn light logbook-fin-mini-btn" id="logbookAvailMarginBtn">Available Margin: ₹0.00</button>
+      <div class="logbook-summary logbook-single-line-header" style="display:flex;align-items:center;justify-content:space-between;gap:4px;flex-wrap:nowrap;overflow-x:hidden;white-space:nowrap;width:100%;box-sizing:border-box">
+  <div style="display:flex;align-items:center;gap:4px;flex-wrap:nowrap;min-width:0;flex:1 1 auto">
+    <strong id="logbookSelectedClient" style="font-size:11.5px;white-space:nowrap;flex-shrink:0">No client selected</strong>
+    <button type="button" class="btn green" id="logbookCurrentProfitBtn" style="padding:3px 6px;font-size:9px;line-height:1.15;border-radius:5px;white-space:nowrap;cursor:default;min-width:0;overflow:hidden;text-overflow:ellipsis">Current Profit: ₹0.00</button>
+    <button type="button" class="btn red" id="logbookCurrentLossBtn" style="padding:3px 6px;font-size:9px;line-height:1.15;border-radius:5px;white-space:nowrap;cursor:default;min-width:0;overflow:hidden;text-overflow:ellipsis">Current Loss: ₹0.00</button>
+    <button type="button" class="btn" id="logbookPresentValueBtn" style="padding:3px 6px;font-size:9px;line-height:1.15;border-radius:5px;white-space:nowrap;cursor:default;min-width:0;overflow:hidden;text-overflow:ellipsis">Present Value: ₹0.00</button>
+    <button type="button" class="btn light logbook-fin-mini-btn" id="logbookAvailCashBtn" style="padding:3px 6px;font-size:9px;line-height:1.15;border-radius:5px;white-space:nowrap;cursor:default;min-width:0;overflow:hidden;text-overflow:ellipsis">Available Cash: ₹0.00</button>
+    <button type="button" class="btn light logbook-fin-mini-btn" id="logbookAvailMarginBtn" style="padding:3px 6px;font-size:9px;line-height:1.15;border-radius:5px;white-space:nowrap;cursor:default;min-width:0;overflow:hidden;text-overflow:ellipsis">Available Margin: ₹0.00</button>
   </div>
-  <div style="display:flex;align-items:center;gap:6px;flex-wrap:nowrap;flex:0 0 auto"><span class="pill" id="logbookLastTrade" style="padding:4px 8px;font-size:10px;line-height:1.15;white-space:nowrap">Last trade: —</span></div>
+  <div style="display:flex;align-items:center;gap:4px;flex-wrap:nowrap;flex-shrink:0;min-width:0"><span class="pill" id="logbookLastTrade" style="padding:3px 6px;font-size:9px;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Last trade: —</span></div>
 </div>
 <div class="logbook-metrics-7" id="logbookTradingDays">
         <div class="logbook-kpi"><small>TOTAL INVESTMENT</small><strong id="logbookInvestment">—</strong></div>
