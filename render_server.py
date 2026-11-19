@@ -1946,17 +1946,32 @@ def admin_trade_recency():
 def _extract_client_financials(client_row):
     row = client_row or {}
 
-    def _pick(*keys):
+    def _norm_key(value):
+        return re.sub(r"[^a-z0-9]", "", str(value or "").lower())
+
+    normalized_row = {_norm_key(k): v for k, v in row.items()}
+
+    def _pick(*keys, fuzzy=None):
         for k in keys:
-            if k in row and row.get(k) not in (None, ""):
-                return _clean_number(row.get(k), 0.0)
+            nk = _norm_key(k)
+            if nk in normalized_row and normalized_row[nk] not in (None, ""):
+                return _clean_number(normalized_row[nk], 0.0)
+        if fuzzy:
+            for nk, value in normalized_row.items():
+                if value not in (None, "") and fuzzy(nk):
+                    return _clean_number(value, 0.0)
         return 0.0
 
     net_debit = _pick("net_debit", "debit", "client_debit")
     net_credit = _pick("net_credit", "credit", "client_credit")
-    mtf_debit = _pick("mtf_debit", "mtf_deb")
-    mtf_cash = _pick("mtf_cash")
-    pledge_val = _pick("pledge_value", "pledge", "collateral_value")
+    # Accept common broker/import headings such as MTF Deb, MTF Debit Amt,
+    # MTF-Debit, MTF Debit Amount, or abbreviated MTFDEB columns.
+    mtf_debit = _pick(
+        "mtf_debit", "mtf_deb", "mtf_debit_amount", "mtf_debit_amt", "mtfdeb", "mtfdebamount",
+        fuzzy=lambda key: key.startswith("mtf") and ("debit" in key or "deb" in key)
+    )
+    mtf_cash = _pick("mtf_cash", "mtf_cash_amount", "mtf_cash_amt", fuzzy=lambda key: key.startswith("mtf") and "cash" in key)
+    pledge_val = _pick("pledge_value", "pledge", "collateral_value", "pledge_amount", "pledge_amt", fuzzy=lambda key: "pledge" in key or "collateral" in key)
 
     avail_cash_raw = row.get("available_cash") if "available_cash" in row else row.get("avail_cash")
     if avail_cash_raw not in (None, ""):
