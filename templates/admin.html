@@ -857,12 +857,12 @@ body.tradelogs-split-open #tradeLogsSplitDrawer{display:flex;}
 
 <div class="card logbook-desktop-card" id="tradeLogbookCard">
   <div class="logbook-filter-row" id="lms-recency-bar" aria-label="Trade recency logbook filters" style="margin-bottom:12px;padding:9px 12px;background:#f4f8fd;border:1px solid #d8e4f0;border-radius:9px"><span style="font-size:11px;font-weight:900;color:#052d70;margin-right:4px">Logbook:</span><button type="button" class="btn light" data-logbook-filter="all" onclick="setLogbookFilter('all',this)">ALL</button><button type="button" class="btn light" data-logbook-filter="0-9" onclick="setLogbookFilter('0-9',this)">TRADED IN LAST 10 DAYS</button><button type="button" class="btn light" data-logbook-filter="10-29" onclick="setLogbookFilter('10-29',this)">10–30 DAYS</button><button type="button" class="btn light" data-logbook-filter="30-59" onclick="setLogbookFilter('30-59',this)">30–60 DAYS</button><button type="button" class="btn light" data-logbook-filter="60+" onclick="setLogbookFilter('60+',this)">ABOVE 60 DAYS</button><button type="button" class="btn light" onclick="clearLogbookFilterState()">CLEAR</button></div>
-  <div class="logbook-summary" style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:nowrap;margin-bottom:10px">
+  <div class="logbook-summary" style="display:flex;align-items:center;justify-content:flex-start;gap:10px;flex-wrap:nowrap;margin-bottom:10px">
     <div style="flex:0 0 auto">
       <div class="title" style="margin:0 0 2px;font-size:15px">Trade Logbook &amp; Client Analytics</div>
       <div class="sub" id="logbookFilterDescription" style="font-size:11px">Choose one of the four recency filters above to list matching clients.</div>
     </div>
-    <div class="logbook-category-buttons" style="display:flex;gap:3px;flex-wrap:nowrap;align-items:center;overflow-x:auto;white-space:nowrap;flex:1 1 auto;justify-content:flex-end">
+    <div class="logbook-category-buttons" style="display:flex;gap:3px;flex-wrap:nowrap;align-items:center;overflow-x:auto;white-space:nowrap;flex:1 1 auto;justify-content:flex-start">
       <button type="button" class="btn light" style="padding:3px 6px;font-size:9.5px;border-radius:5px;line-height:1.15" data-logcat="all" onclick="setLogbookCatFilter('all',this)">ALL</button>
       <button type="button" class="btn light" style="padding:3px 6px;font-size:9.5px;border-radius:5px;line-height:1.15" data-logcat="prime" onclick="setLogbookCatFilter('prime',this)">PRIME</button>
       <button type="button" class="btn light" style="padding:3px 6px;font-size:9.5px;border-radius:5px;line-height:1.15" data-logcat="active" onclick="setLogbookCatFilter('active',this)">ACTIVE</button>
