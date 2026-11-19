@@ -1943,6 +1943,33 @@ def admin_trade_recency():
         return jsonify({"success": False, "message": "Could not calculate trade recency.", "error": str(exc)}), 500
 
 
+def _merge_latest_nonempty_financial_rows(rows):
+    """Merge partial daily imports: newest non-empty value wins per field.
+
+    NULL/blank in a newer import is treated as missing data, not as an
+    instruction to erase a previously imported financial value. Numeric zero
+    remains a valid value and is preserved.
+    """
+    rows = list(rows or [])
+    def sort_key(row):
+        row = row or {}
+        return (
+            str(row.get("record_date") or ""),
+            str(row.get("created_at") or ""),
+            int(row.get("id") or 0) if str(row.get("id") or "").isdigit() else 0,
+        )
+    ordered = sorted(rows, key=sort_key)
+    merged = {}
+    for row in ordered:
+        if not isinstance(row, dict):
+            continue
+        for key, value in row.items():
+            if value not in (None, ""):
+                merged[key] = value
+    latest = ordered[-1] if ordered else {}
+    return merged, (latest.get("record_date") if isinstance(latest, dict) else None)
+
+
 def _extract_client_financials(client_row):
     row = client_row or {}
 
@@ -2018,12 +2045,8 @@ def admin_client_financials_fast(client_id):
         try:
             result = supabase.table("client_financial_details").select("*").ilike("client_id", cid).limit(500).execute()
             rows = list(result.data or [])
-            def _financial_sort_key(row):
-                row = row or {}
-                return (str(row.get("record_date") or ""), str(row.get("created_at") or ""), int(row.get("id") or 0) if str(row.get("id") or "").isdigit() else 0)
             if rows:
-                financial_row = max(rows, key=_financial_sort_key) or {}
-                record_date = financial_row.get("record_date")
+                financial_row, record_date = _merge_latest_nonempty_financial_rows(rows)
                 source = "client_financial_details"
         except Exception as exc:
             print(f"[CLIENT FINANCIALS FAST] Details table read failed for {cid}: {exc}")
@@ -2149,21 +2172,11 @@ def admin_client_analytics(client_id):
             )
             financial_rows = list(fin_res.data or [])
 
-            # Sort locally rather than calling query.order(): older deployed
-            # adapters and some client versions do not implement that method.
-            # ISO date/timestamp strings sort chronologically as strings.
-            def _financial_sort_key(row):
-                row = row or {}
-                return (
-                    str(row.get("record_date") or ""),
-                    str(row.get("created_at") or ""),
-                    int(row.get("id") or 0) if str(row.get("id") or "").isdigit() else 0,
-                )
-
+            # Merge partial imports field-by-field. A newer row's NULL/blank
+            # should not hide an older valid MTF/pledge value; zero is valid.
             if financial_rows:
-                financial_row = max(financial_rows, key=_financial_sort_key) or {}
+                financial_row, financial_record_date = _merge_latest_nonempty_financial_rows(financial_rows)
                 financial_source = "client_financial_details"
-                financial_record_date = financial_row.get("record_date")
         except Exception as fin_exc:
             # Keep the existing clients-table fallback for installations where
             # the financial-details table has not been created or is unavailable.
