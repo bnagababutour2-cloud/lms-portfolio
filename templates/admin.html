@@ -65,36 +65,24 @@
   cursor: default;
 }
 
-.logbook-pnl-fin-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  flex-wrap: nowrap;
-  overflow-x: auto;
-  white-space: nowrap;
-  margin-bottom: 10px;
-  padding: 6px 8px;
-  background: #f4f8fd;
-  border: 1px solid #d8e4f0;
-  border-radius: 8px;
+.logbook-metrics-7 {
+  grid-template-columns: minmax(110px, 1.05fr) minmax(115px, 1.1fr) auto repeat(5, minmax(78px, 0.85fr)) !important;
+  gap: 6px !important;
+  align-items: stretch !important;
 }
 
-.logbook-pnl-summary-tag {
-  font-size: 11px;
-  font-weight: 800;
-  color: #052d70;
-  white-space: nowrap;
-  flex: 0 0 auto;
-}
-
-.logbook-fin-five-line {
+.logbook-fin-five-inline {
   display: inline-flex;
   align-items: center;
   gap: 4px;
   flex-wrap: nowrap !important;
   white-space: nowrap !important;
-  flex: 0 0 auto;
+}
+
+.logbook-fin-five-inline .logbook-fin-mini-btn {
+  padding: 4px 6px !important;
+  font-size: 9px !important;
+  line-height: 1.15 !important;
 }
 
 </style>
@@ -891,19 +879,16 @@ body.tradelogs-split-open #tradeLogsSplitDrawer{display:flex;}
   </div>
   <div style="display:flex;align-items:center;gap:6px;flex-wrap:nowrap;flex:0 0 auto"><span class="pill" id="logbookLastTrade" style="padding:4px 8px;font-size:10px;line-height:1.15;white-space:nowrap">Last trade: —</span>{% if can_manage %}<button type="button" class="btn" style="padding:4px 8px;font-size:10px;line-height:1.15;border-radius:6px;background:#052d70;white-space:nowrap" onclick="window.openTradeLogsSplit(document.getElementById('logbookSelectedClient').textContent.replace('Client: ','').trim())">VIEW CLIENT LOGS ▸</button>{% endif %}</div>
 </div>
-      <div class="logbook-pnl-fin-row" id="logbookUnrealizedFinBar">
-  <span class="logbook-pnl-summary-tag" id="logbookUnrealizedInline">Unrealized P/L: —</span>
-  <div class="logbook-fin-five-line" aria-label="Client financial details">
-    <button type="button" class="btn light logbook-fin-mini-btn" id="finBtnDebit">Debit: ₹0.00</button>
-    <button type="button" class="btn light logbook-fin-mini-btn" id="finBtnCredit">Credit: ₹0.00</button>
-    <button type="button" class="btn light logbook-fin-mini-btn" id="finBtnMtfDebit">MTF Debit: ₹0.00</button>
-    <button type="button" class="btn light logbook-fin-mini-btn" id="finBtnMtfCash">MTF Cash: ₹0.00</button>
-    <button type="button" class="btn light logbook-fin-mini-btn" id="finBtnPledge">Pledge: ₹0.00</button>
-  </div>
-</div>
 <div class="logbook-metrics-7" id="logbookTradingDays">
         <div class="logbook-kpi"><small>TOTAL INVESTMENT</small><strong id="logbookInvestment">—</strong></div>
         <div class="logbook-kpi"><small>UNREALIZED PROFIT / LOSS</small><strong id="logbookPnl">—</strong></div>
+        <div class="logbook-fin-five-inline" aria-label="Client financial details">
+          <button type="button" class="btn light logbook-fin-mini-btn" id="finBtnDebit">Debit: ₹0.00</button>
+          <button type="button" class="btn light logbook-fin-mini-btn" id="finBtnCredit">Credit: ₹0.00</button>
+          <button type="button" class="btn light logbook-fin-mini-btn" id="finBtnMtfDebit">MTF Debit: ₹0.00</button>
+          <button type="button" class="btn light logbook-fin-mini-btn" id="finBtnMtfCash">MTF Cash: ₹0.00</button>
+          <button type="button" class="btn light logbook-fin-mini-btn" id="finBtnPledge">Pledge: ₹0.00</button>
+        </div>
         <div class="logbook-kpi"><small>COMPANIES HELD</small><strong id="logbookCompanyCount">—</strong></div>
         <div class="logbook-kpi"><small>THIS WEEK</small><strong id="daysWeek">—</strong></div>
         <div class="logbook-kpi"><small>THIS MONTH</small><strong id="daysMonth">—</strong></div>
