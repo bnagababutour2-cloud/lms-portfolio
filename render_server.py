@@ -732,15 +732,35 @@ load_dotenv()
 # DATABASE_URL. This avoids relying on the *.supabase.co REST hostname,
 # which may be unavailable on some networks. Local development can still
 # use SUPABASE_URL + SUPABASE_KEY when DATABASE_URL is not configured.
-SUPABASE_URL = os.environ.get("SUPABASE_URL", "https://jrooyhmbnkukvwsgsrqr.supabase.co").strip()
-SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "sb_secret_yFcS-NCpzblWs2TCgt9Idg_PWKY3n4b").strip()
-DATABASE_URL = os.environ.get("DATABASE_URL", "postgresql://postgres.jrooyhmbnkukvwsgsrqr:Adityashrivardhan123@aws-0-ap-southeast-1.pooler.supabase.com:5432/postgres").strip()
+SUPABASE_URL = os.environ.get("SUPABASE_URL", "").strip()
+SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "").strip()
+DATABASE_URL = os.environ.get("DATABASE_URL", "").strip()
 
 
 class _DBResponse:
     def __init__(self, data=None, count=None):
         self.data = data or []
         self.count = count
+
+
+# Keep this process below Supabase's session-pooler client limit.
+_PG_POOL = None
+_PG_POOL_LOCK = threading.Lock()
+
+
+def _get_postgres_connection_pool(db_url):
+    global _PG_POOL
+    if _PG_POOL is None:
+        with _PG_POOL_LOCK:
+            if _PG_POOL is None:
+                from psycopg2.pool import ThreadedConnectionPool
+                _PG_POOL = ThreadedConnectionPool(
+                    minconn=1,
+                    maxconn=3,
+                    dsn=db_url,
+                    connect_timeout=10,
+                )
+    return _PG_POOL
 
 
 class _PostgresQuery:
@@ -756,6 +776,8 @@ class _PostgresQuery:
         self._limit = None
         self._offset = None
         self._payload = None
+        self._order_by = []
+
 
     def select(self, columns="*"):
         self._op = "select"
@@ -779,6 +801,15 @@ class _PostgresQuery:
             return self
         self._filters.append(f'"{column}" IN ({", ".join(["%s"] * len(vals))})')
         self._params.extend(vals)
+        return self
+
+    def order(self, column, desc=False):
+        # Match the Supabase/PostgREST .order(column, desc=True) interface.
+        # Column names are validated and quoted before being added to SQL.
+        if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", str(column)):
+            raise ValueError("Invalid order column")
+        direction = "DESC" if desc else "ASC"
+        self._order_by.append(f'"{column}" {direction}')
         return self
 
     def limit(self, count):
@@ -822,15 +853,18 @@ class _PostgresQuery:
         except ImportError as exc:
             raise RuntimeError("psycopg2-binary is required for DATABASE_URL mode") from exc
 
-        allowed_tables = {"clients", "holdings"}
+        allowed_tables = {"clients", "holdings", "client_financial_details"}
         if self.table not in allowed_tables:
             raise RuntimeError(f"Unsupported table: {self.table}")
 
-        con = psycopg2.connect(self.db_url, connect_timeout=15)
+        pool = _get_postgres_connection_pool(self.db_url)
+        con = pool.getconn()
         try:
             with con.cursor(cursor_factory=RealDictCursor) as cur:
                 if self._op == "select":
                     sql = f"SELECT {self._columns} FROM \"{self.table}\"" + self._where_sql()
+                    if self._order_by:
+                        sql += " ORDER BY " + ", ".join(self._order_by)
                     params = list(self._params)
                     if self._limit is not None:
                         sql += " LIMIT %s"
@@ -881,7 +915,14 @@ class _PostgresQuery:
 
                 raise RuntimeError(f"Unsupported operation: {self._op}")
         finally:
-            con.close()
+            # Ensure no open/failed transaction is retained by the pool.
+            try:
+                con.rollback()
+            except Exception:
+                pass
+            # Return the connection to the bounded pool instead of opening and
+            # closing a new session for every small query.
+            pool.putconn(con)
 
 
 class _PostgresClient:
@@ -897,14 +938,14 @@ supabase_config_error = None
 if DATABASE_URL:
     supabase = _PostgresClient(DATABASE_URL)
     print("Database mode: PostgreSQL DATABASE_URL")
-elif SUPABASE_KEY:
+elif SUPABASE_URL and SUPABASE_KEY:
     try:
         supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
         print("Database mode: Supabase Data API")
     except Exception as exc:
         supabase_config_error = f"Supabase configuration error: {exc}"
 else:
-    supabase_config_error = "Configure DATABASE_URL or SUPABASE_KEY in the environment."
+    supabase_config_error = "Configure DATABASE_URL, or both SUPABASE_URL and SUPABASE_KEY, in the Render environment."
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "lms-local-test-secret")
@@ -2042,13 +2083,24 @@ def admin_client_analytics(client_id):
                 supabase.table("client_financial_details")
                 .select("*")
                 .ilike("client_id", cid)
-                .order("record_date", desc=True)
-                .order("created_at", desc=True)
-                .limit(1)
+                .limit(500)
                 .execute()
             )
-            if fin_res.data:
-                financial_row = fin_res.data[0] or {}
+            financial_rows = list(fin_res.data or [])
+
+            # Sort locally rather than calling query.order(): older deployed
+            # adapters and some client versions do not implement that method.
+            # ISO date/timestamp strings sort chronologically as strings.
+            def _financial_sort_key(row):
+                row = row or {}
+                return (
+                    str(row.get("record_date") or ""),
+                    str(row.get("created_at") or ""),
+                    int(row.get("id") or 0) if str(row.get("id") or "").isdigit() else 0,
+                )
+
+            if financial_rows:
+                financial_row = max(financial_rows, key=_financial_sort_key) or {}
                 financial_source = "client_financial_details"
                 financial_record_date = financial_row.get("record_date")
         except Exception as fin_exc:
@@ -2540,7 +2592,7 @@ BSE_LTP_UPDATE_INTERVAL = 5
 LTP_FETCH_WORKERS = 32
 
 # Number of simultaneous database updates.
-LTP_DB_WORKERS = 8
+LTP_DB_WORKERS = 2
 
 _BSE_CODE_MAP = None
 _BSE_CODE_MAP_LOCK = threading.Lock()
