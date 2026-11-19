@@ -1918,17 +1918,20 @@ window.setLogbookFilter=async function(filter,button){
        e.preventDefault();
        if(hoverTimer) clearTimeout(hoverTimer);
        b.focus();
+       window.refreshClientFinancialsFast(b.dataset.logbookClient);
        selectLogbookClient(b.dataset.logbookClient);
      });
      b.addEventListener('mouseenter',()=>{
        const cid = b.dataset.logbookClient;
+       window.refreshClientFinancialsFast(cid);
        if(selectedLogbookClient!==cid){
          if(hoverTimer) clearTimeout(hoverTimer);
          hoverTimer = setTimeout(()=>{
            selectLogbookClient(cid);
-         }, 110);
+         }, 35);
        }
      });
+     b.addEventListener('focus',()=>window.refreshClientFinancialsFast(b.dataset.logbookClient));
      b.addEventListener('mouseleave',()=>{
        if(hoverTimer) clearTimeout(hoverTimer);
      });
@@ -2077,6 +2080,7 @@ window.setLogbookFilter=async function(filter,button){
 
  function selectLogbookClient(clientId){
    selectedLogbookClient=clientId;
+   if(typeof window.refreshClientFinancialsFast==='function') window.refreshClientFinancialsFast(clientId);
    document.querySelectorAll('[data-logbook-client]').forEach(b=>b.classList.toggle('active',b.dataset.logbookClient===clientId));
    const rows=allPortfolioRows().filter(r=>(r.dataset.client||r.cells[1]?.textContent.trim()).toUpperCase()===clientId.toUpperCase());
    if(!rows.length){clearLogbookCharts();return;}
@@ -2993,6 +2997,20 @@ body.bse-alerts-split-open #bseAlertsSplitDrawer{display: flex;}
       unrlEl.textContent = 'Unrealized P/L: ' + (p >= 0 ? '+' : '−') + fmtFin(p);
       unrlEl.style.color = p >= 0 ? '#128a43' : '#d62828';
     }
+  };
+
+  // Fast, independent financial refresh: don't wait for full portfolio analytics.
+  let financialRefreshSeq = 0;
+  window.refreshClientFinancialsFast = async function(clientId){
+    const cid = String(clientId || '').trim();
+    if(!cid) return;
+    const seq = ++financialRefreshSeq;
+    try{
+      const response = await fetch('/api/admin/client-financials/'+encodeURIComponent(cid), {credentials:'same-origin', cache:'no-store'});
+      const data = await response.json();
+      if(seq !== financialRefreshSeq || !data || !data.success) return;
+      window.renderClientFinancialButtons(data.financial_details || data.financials || data, data.total_pnl);
+    }catch(err){ /* retain last values on network errors */ }
   };
 
   const origFetch = window.fetch;
