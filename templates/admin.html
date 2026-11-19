@@ -2954,21 +2954,26 @@ body.bse-alerts-split-open #bseAlertsSplitDrawer{display: flex;}
 
   window.renderClientFinancialButtons = function(fin, unrealizedPnl){
     const d = fin || {};
-    const netDebit   = Number(d.net_debit ?? d.debit ?? 0) || 0;
-    const netCredit  = Number(d.net_credit ?? d.credit ?? 0) || 0;
-    const mtfDebit   = Number(d.mtf_debit ?? 0) || 0;
-    const mtfCash    = Number(d.mtf_cash ?? 0) || 0;
-    const pledgeVal  = Number(d.pledge_value ?? d.pledge ?? 0) || 0;
+    const asFinNumber = function(value){
+      if(value === null || value === undefined || value === '') return 0;
+      const n = Number(String(value).replace(/,/g, '').trim());
+      return Number.isFinite(n) ? n : 0;
+    };
+    const netDebit   = asFinNumber(d.net_debit ?? d.debit ?? d.client_debit);
+    const netCredit  = asFinNumber(d.net_credit ?? d.credit ?? d.client_credit);
+    const mtfDebit   = asFinNumber(d.mtf_debit ?? d.mtf_deb);
+    const mtfCash    = asFinNumber(d.mtf_cash);
+    const pledgeVal  = asFinNumber(d.pledge_value ?? d.pledge ?? d.collateral_value);
 
     // Prefer broker/imported balances when explicitly supplied. Otherwise
     // calculate them from the component balances using the existing formulas.
     const suppliedCash = d.available_cash ?? d.avail_cash;
     const suppliedMargin = d.available_margin ?? d.avail_margin;
     const availableCash = suppliedCash !== undefined && suppliedCash !== null && suppliedCash !== ''
-      ? (Number(suppliedCash) || 0)
+      ? asFinNumber(suppliedCash)
       : netCredit + mtfCash - netDebit - mtfDebit;
     const availableMargin = suppliedMargin !== undefined && suppliedMargin !== null && suppliedMargin !== ''
-      ? (Number(suppliedMargin) || 0)
+      ? asFinNumber(suppliedMargin)
       : netCredit - netDebit - mtfDebit + mtfCash + pledgeVal;
 
     const acBtn = document.getElementById('logbookAvailCashBtn');
