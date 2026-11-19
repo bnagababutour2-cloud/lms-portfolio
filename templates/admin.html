@@ -1928,7 +1928,7 @@ window.setLogbookFilter=async function(filter,button){
          if(selectedLogbookClient!==cid) selectLogbookClient(cid,{skipServerAnalytics:true});
          // Only request financials after selectedLogbookClient has been updated.
          window.refreshClientFinancialsFast(cid);
-       }, 45);
+       }, 0);
      });
      b.addEventListener('focus',()=>{
        const cid=b.dataset.logbookClient;
@@ -3019,29 +3019,55 @@ body.bse-alerts-split-open #bseAlertsSplitDrawer{display: flex;}
   let financialRefreshSeq = 0;
   const financialInFlight = new Map();
   const financialRecent = new Map();
-  window.refreshClientFinancialsFast = async function(clientId, force=false){
+  window.refreshClientFinancialsFast = async function(clientId, force = false) {
     const cid = String(clientId || '').trim();
-    if(!cid) return;
+    if (!cid) return;
+
     const now = Date.now();
     const recent = financialRecent.get(cid);
-    // Avoid duplicate hover/focus/click requests for the same client within a short interval.
-    if(!force && recent && (now-recent.time)<450){
-      if(recent.data && cid===String(selectedLogbookClient||'')) window.renderClientFinancialButtons(recent.data.financial_details || recent.data.financials || recent.data, recent.data.total_pnl);
+
+    // 1. If we already fetched this client earlier, show their numbers IMMEDIATELY on screen
+    if (recent && recent.data && cid === String(selectedLogbookClient || '')) {
+      window.renderClientFinancialButtons(
+        recent.data.financial_details || recent.data.financials || recent.data,
+        recent.data.total_pnl
+      );
+    }
+
+    // 2. Only skip server check if we checked less than 100ms ago (instead of 450ms)
+    if (!force && recent && (now - recent.time) < 100) {
       return;
     }
-    if(financialInFlight.has(cid)) return financialInFlight.get(cid);
+
+    if (financialInFlight.has(cid)) return financialInFlight.get(cid);
+
     const seq = ++financialRefreshSeq;
-    const task = (async()=>{
-      try{
-        const response = await fetch('/api/admin/client-financials/'+encodeURIComponent(cid), {credentials:'same-origin', cache:'no-store'});
+    const task = (async () => {
+      try {
+        const response = await fetch(
+          '/api/admin/client-financials/' + encodeURIComponent(cid),
+          { credentials: 'same-origin', cache: 'no-store' }
+        );
         const data = await response.json();
-        financialRecent.set(cid,{time:Date.now(),data});
-        if(seq !== financialRefreshSeq || !data || !data.success || cid!==String(selectedLogbookClient||'')) return;
-        window.renderClientFinancialButtons(data.financial_details || data.financials || data, data.total_pnl);
-      }catch(err){ /* retain last values on network errors */ }
-      finally{ financialInFlight.delete(cid); }
+        financialRecent.set(cid, { time: Date.now(), data });
+
+        // Only update screen if the mouse is STILL on this same client
+        if (seq !== financialRefreshSeq || !data || !data.success || cid !== String(selectedLogbookClient || '')) {
+          return;
+        }
+
+        window.renderClientFinancialButtons(
+          data.financial_details || data.financials || data,
+          data.total_pnl
+        );
+      } catch (err) {
+        // Keep existing values if network hiccups
+      } finally {
+        financialInFlight.delete(cid);
+      }
     })();
-    financialInFlight.set(cid,task);
+
+    financialInFlight.set(cid, task);
     return task;
   };
 
