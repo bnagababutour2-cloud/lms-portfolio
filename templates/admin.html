@@ -1980,6 +1980,9 @@ window.setLogbookFilter=async function(filter,button){
    if(lossBtn) lossBtn.textContent='Current Loss: ₹0.00';
    const pvBtn=document.getElementById('logbookPresentValueBtn');
    if(pvBtn) pvBtn.textContent='Present Value: ₹0.00';
+   if(typeof window.renderClientFinancialButtons === 'function'){
+     window.renderClientFinancialButtons({}, 0);
+   }
  }
 
  function renderDonut(donutId,legendId,items,total,kind){
