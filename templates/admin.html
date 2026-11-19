@@ -54,6 +54,49 @@
 
 /* Market-cap panel: separate full-width card on mobile too. */
 @media(max-width:700px){.m-analytics-charts .m-ana-chart:last-child{grid-column:1/-1}}
+
+/* Compact Client Financial Buttons */
+.logbook-fin-mini-btn {
+  padding: 3px 7px !important;
+  font-size: 9.5px !important;
+  line-height: 1.15 !important;
+  border-radius: 5px !important;
+  white-space: nowrap !important;
+  cursor: default;
+}
+
+.logbook-pnl-fin-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  white-space: nowrap;
+  margin-bottom: 10px;
+  padding: 6px 8px;
+  background: #f4f8fd;
+  border: 1px solid #d8e4f0;
+  border-radius: 8px;
+}
+
+.logbook-pnl-summary-tag {
+  font-size: 11px;
+  font-weight: 800;
+  color: #052d70;
+  white-space: nowrap;
+  flex: 0 0 auto;
+}
+
+.logbook-fin-five-line {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: nowrap !important;
+  white-space: nowrap !important;
+  flex: 0 0 auto;
+}
+
 </style>
 
 <style id="mobile-only-summary-fit-fix">
@@ -843,10 +886,22 @@ body.tradelogs-split-open #tradeLogsSplitDrawer{display:flex;}
     <button type="button" class="btn green" id="logbookCurrentProfitBtn" style="padding:4px 8px;font-size:10px;line-height:1.15;border-radius:6px;white-space:nowrap;cursor:default">Current Profit: ₹0.00</button>
     <button type="button" class="btn red" id="logbookCurrentLossBtn" style="padding:4px 8px;font-size:10px;line-height:1.15;border-radius:6px;white-space:nowrap;cursor:default">Current Loss: ₹0.00</button>
     <button type="button" class="btn" id="logbookPresentValueBtn" style="padding:4px 8px;font-size:10px;line-height:1.15;border-radius:6px;white-space:nowrap;cursor:default">Present Value: ₹0.00</button>
+<button type="button" class="btn light logbook-fin-mini-btn" id="logbookAvailCashBtn">Available Cash: ₹0.00</button>
+<button type="button" class="btn light logbook-fin-mini-btn" id="logbookAvailMarginBtn">Available Margin: ₹0.00</button>
   </div>
   <div style="display:flex;align-items:center;gap:6px;flex-wrap:nowrap;flex:0 0 auto"><span class="pill" id="logbookLastTrade" style="padding:4px 8px;font-size:10px;line-height:1.15;white-space:nowrap">Last trade: —</span>{% if can_manage %}<button type="button" class="btn" style="padding:4px 8px;font-size:10px;line-height:1.15;border-radius:6px;background:#052d70;white-space:nowrap" onclick="window.openTradeLogsSplit(document.getElementById('logbookSelectedClient').textContent.replace('Client: ','').trim())">VIEW CLIENT LOGS ▸</button>{% endif %}</div>
 </div>
-      <div class="logbook-metrics-7" id="logbookTradingDays">
+      <div class="logbook-pnl-fin-row" id="logbookUnrealizedFinBar">
+  <span class="logbook-pnl-summary-tag" id="logbookUnrealizedInline">Unrealized P/L: —</span>
+  <div class="logbook-fin-five-line" aria-label="Client financial details">
+    <button type="button" class="btn light logbook-fin-mini-btn" id="finBtnDebit">Debit: ₹0.00</button>
+    <button type="button" class="btn light logbook-fin-mini-btn" id="finBtnCredit">Credit: ₹0.00</button>
+    <button type="button" class="btn light logbook-fin-mini-btn" id="finBtnMtfDebit">MTF Debit: ₹0.00</button>
+    <button type="button" class="btn light logbook-fin-mini-btn" id="finBtnMtfCash">MTF Cash: ₹0.00</button>
+    <button type="button" class="btn light logbook-fin-mini-btn" id="finBtnPledge">Pledge: ₹0.00</button>
+  </div>
+</div>
+<div class="logbook-metrics-7" id="logbookTradingDays">
         <div class="logbook-kpi"><small>TOTAL INVESTMENT</small><strong id="logbookInvestment">—</strong></div>
         <div class="logbook-kpi"><small>UNREALIZED PROFIT / LOSS</small><strong id="logbookPnl">—</strong></div>
         <div class="logbook-kpi"><small>COMPANIES HELD</small><strong id="logbookCompanyCount">—</strong></div>
@@ -2876,6 +2931,74 @@ body.bse-alerts-split-open #bseAlertsSplitDrawer{display: flex;}
 })();
 </script>
 
+<script id="client-financial-buttons-script">
+
+(function(){
+  const fmtFin = v => {
+    const n = Number(v);
+    const val = Number.isFinite(n) ? n : 0;
+    return (val < 0 ? '−₹' : '₹') + Math.abs(val).toLocaleString('en-IN', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
+  };
+
+  window.renderClientFinancialButtons = function(fin, unrealizedPnl){
+    const d = fin || {};
+    const netDebit   = Number(d.net_debit ?? d.debit ?? 0) || 0;
+    const netCredit  = Number(d.net_credit ?? d.credit ?? 0) || 0;
+    const mtfDebit   = Number(d.mtf_debit ?? 0) || 0;
+    const mtfCash    = Number(d.mtf_cash ?? 0) || 0;
+    const pledgeVal  = Number(d.pledge_value ?? d.pledge ?? 0) || 0;
+
+    // 1. Available Cash = Net credit + mtf cash - net debit - mtf debit
+    const availableCash = netCredit + mtfCash - netDebit - mtfDebit;
+
+    // 2. Available Margin = Net credit - net debit - mtf debit + mtf cash + pledge value
+    const availableMargin = netCredit - netDebit - mtfDebit + mtfCash + pledgeVal;
+
+    const acBtn = document.getElementById('logbookAvailCashBtn');
+    const amBtn = document.getElementById('logbookAvailMarginBtn');
+    if(acBtn) acBtn.textContent = 'Available Cash: ' + fmtFin(availableCash);
+    if(amBtn) amBtn.textContent = 'Available Margin: ' + fmtFin(availableMargin);
+
+    const bDebit    = document.getElementById('finBtnDebit');
+    const bCredit   = document.getElementById('finBtnCredit');
+    const bMtfDebit = document.getElementById('finBtnMtfDebit');
+    const bMtfCash  = document.getElementById('finBtnMtfCash');
+    const bPledge   = document.getElementById('finBtnPledge');
+    if(bDebit)    bDebit.textContent    = 'Debit: ' + fmtFin(netDebit);
+    if(bCredit)   bCredit.textContent   = 'Credit: ' + fmtFin(netCredit);
+    if(bMtfDebit) bMtfDebit.textContent = 'MTF Debit: ' + fmtFin(mtfDebit);
+    if(bMtfCash)  bMtfCash.textContent  = 'MTF Cash: ' + fmtFin(mtfCash);
+    if(bPledge)   bPledge.textContent   = 'Pledge: ' + fmtFin(pledgeVal);
+
+    const unrlEl = document.getElementById('logbookUnrealizedInline');
+    if(unrlEl && unrealizedPnl !== undefined && unrealizedPnl !== null){
+      const p = Number(unrealizedPnl) || 0;
+      unrlEl.textContent = 'Unrealized P/L: ' + (p >= 0 ? '+' : '−') + fmtFin(p);
+      unrlEl.style.color = p >= 0 ? '#128a43' : '#d62828';
+    }
+  };
+
+  const origFetch = window.fetch;
+  window.fetch = async function(url, opts){
+    const res = await origFetch.apply(this, arguments);
+    if(typeof url === 'string' && url.includes('/api/admin/client-analytics/')){
+      try {
+        const clone = res.clone();
+        const data = await clone.json();
+        if(data && data.success){
+          const finObj = data.financial_details || data.client_financial || data;
+          window.renderClientFinancialButtons(finObj, data.total_pnl);
+        }
+      } catch(e){}
+    }
+    return res;
+  };
+})();
+
+</script>
 </body></html>
 
 
