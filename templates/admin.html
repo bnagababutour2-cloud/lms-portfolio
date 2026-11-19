@@ -1917,21 +1917,24 @@ window.setLogbookFilter=async function(filter,button){
      b.addEventListener('click',(e)=>{
        e.preventDefault();
        if(hoverTimer) clearTimeout(hoverTimer);
-       b.focus();
-       window.refreshClientFinancialsFast(b.dataset.logbookClient);
        selectLogbookClient(b.dataset.logbookClient);
+       // Refresh after selection so the response is not discarded as stale.
+       window.refreshClientFinancialsFast(b.dataset.logbookClient);
      });
      b.addEventListener('mouseenter',()=>{
        const cid = b.dataset.logbookClient;
-       window.refreshClientFinancialsFast(cid);
-       if(selectedLogbookClient!==cid){
-         if(hoverTimer) clearTimeout(hoverTimer);
-         hoverTimer = setTimeout(()=>{
-           selectLogbookClient(cid,{skipServerAnalytics:true});
-         }, 45);
-       }
+       if(hoverTimer) clearTimeout(hoverTimer);
+       hoverTimer = setTimeout(()=>{
+         if(selectedLogbookClient!==cid) selectLogbookClient(cid,{skipServerAnalytics:true});
+         // Only request financials after selectedLogbookClient has been updated.
+         window.refreshClientFinancialsFast(cid);
+       }, 45);
      });
-     b.addEventListener('focus',()=>window.refreshClientFinancialsFast(b.dataset.logbookClient));
+     b.addEventListener('focus',()=>{
+       const cid=b.dataset.logbookClient;
+       if(selectedLogbookClient!==cid) selectLogbookClient(cid,{skipServerAnalytics:true});
+       window.refreshClientFinancialsFast(cid);
+     });
      b.addEventListener('mouseleave',()=>{
        if(hoverTimer) clearTimeout(hoverTimer);
      });
@@ -2958,11 +2961,24 @@ body.bse-alerts-split-open #bseAlertsSplitDrawer{display: flex;}
 
   window.renderClientFinancialButtons = function(fin, unrealizedPnl){
     const d = fin || {};
-    const netDebit   = Number(d.net_debit ?? d.debit ?? 0) || 0;
-    const netCredit  = Number(d.net_credit ?? d.credit ?? 0) || 0;
-    const mtfDebit   = Number(d.mtf_debit ?? 0) || 0;
-    const mtfCash    = Number(d.mtf_cash ?? 0) || 0;
-    const pledgeVal  = Number(d.pledge_value ?? d.pledge ?? 0) || 0;
+    const normKey = key => String(key || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    const pickFinancial = (keys, fuzzy) => {
+      for (const key of keys) {
+        const wanted = normKey(key);
+        const actual = Object.keys(d).find(k => normKey(k) === wanted);
+        if (actual !== undefined && d[actual] !== null && d[actual] !== '') return Number(d[actual]) || 0;
+      }
+      if (fuzzy) {
+        const actual = Object.keys(d).find(k => fuzzy(normKey(k)) && d[k] !== null && d[k] !== '');
+        if (actual !== undefined) return Number(d[actual]) || 0;
+      }
+      return 0;
+    };
+    const netDebit   = pickFinancial(['net_debit','debit','client_debit']);
+    const netCredit  = pickFinancial(['net_credit','credit','client_credit']);
+    const mtfDebit   = pickFinancial(['mtf_debit','mtf_deb','mtf_debit_amount','mtf_debit_amt','mtfdeb','mtfdebamount'], key => key.startsWith('mtf') && (key.includes('debit') || key.includes('deb')));
+    const mtfCash    = pickFinancial(['mtf_cash','mtf_cash_amount','mtf_cash_amt'], key => key.startsWith('mtf') && key.includes('cash'));
+    const pledgeVal  = pickFinancial(['pledge_value','pledge','collateral_value','pledge_amount','pledge_amt'], key => key.includes('pledge') || key.includes('collateral'));
 
     // Prefer broker/imported balances when explicitly supplied. Otherwise
     // calculate them from the component balances using the existing formulas.
