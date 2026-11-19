@@ -1397,6 +1397,85 @@ def logout():
     return redirect(url_for("login"))
 
 
+
+import html as _html
+
+FINANCIAL_XLSX_FILENAME = "client_financial_details.xlsx"
+FINANCIAL_COLUMNS = ["record_date", "client_id", "net_debit", "net_credit", "mtf_debit", "pledge_value"]
+
+
+def _financial_xlsx_path():
+    return Path(__file__).resolve().parent / FINANCIAL_XLSX_FILENAME
+
+
+def _load_bottom_financial_rows(supervisor_id):
+    """Load static client financial rows from client_financial_details.xlsx for authorized clients."""
+    xlsx_path = _financial_xlsx_path()
+    if not xlsx_path.is_file():
+        return [], False
+
+    df = pd.read_excel(xlsx_path)
+    if df is None or df.empty:
+        return [], True
+
+    if "client_id" in df.columns:
+        df = df[
+            df["client_id"].notna()
+            & (df["client_id"].astype(str).str.strip().str.upper() != "TOTAL")
+        ]
+
+    rows = []
+    for _, r in df.iterrows():
+        cid = _clean_client_id(r.get("client_id"))
+        if not cid:
+            continue
+        if not _supervisor_can_view(supervisor_id, cid):
+            continue
+        rec_dt = r.get("record_date")
+        rec_dt_str = (
+            rec_dt.strftime("%Y-%m-%d")
+            if hasattr(rec_dt, "strftime")
+            else str(rec_dt or "").strip()
+        )
+        rows.append({
+            "record_date": rec_dt_str,
+            "client_id": cid,
+            "net_debit": _clean_number(r.get("net_debit"), 0.0),
+            "net_credit": _clean_number(r.get("net_credit"), 0.0),
+            "mtf_debit": _clean_number(r.get("mtf_debit"), 0.0),
+            "pledge_value": _clean_number(r.get("pledge_value"), 0.0),
+        })
+    return rows, True
+
+
+@app.post("/api/admin/financial-details/clear")
+def api_admin_clear_financial_details():
+    account, auth_error = _require_supervisor(can_manage=True)
+    if auth_error:
+        return auth_error
+    xlsx_path = _financial_xlsx_path()
+    pd.DataFrame(columns=FINANCIAL_COLUMNS).to_excel(
+        xlsx_path, index=False, sheet_name="Client Financial Details"
+    )
+    return jsonify({"success": True, "message": "Cleared client_financial_details.xlsx"})
+
+
+@app.post("/api/admin/financial-details/upload")
+def api_admin_upload_financial_details():
+    account, auth_error = _require_supervisor(can_manage=True)
+    if auth_error:
+        return auth_error
+    upload = request.files.get("file")
+    if not upload or not upload.filename:
+        return jsonify({"success": False, "message": "Please select client_financial_details.xlsx"}), 400
+    if not upload.filename.lower().endswith(".xlsx"):
+        return jsonify({"success": False, "message": "Only .xlsx files are supported"}), 400
+
+    xlsx_path = _financial_xlsx_path()
+    upload.save(str(xlsx_path))
+    df = pd.read_excel(xlsx_path)
+    return jsonify({"success": True, "rows": len(df), "file": FINANCIAL_XLSX_FILENAME})
+
 @app.route("/admin")
 def admin_portfolio():
     if supabase is None:
@@ -1869,11 +1948,78 @@ def admin_portfolio():
 })();
 </script>
 """
+        scoped_fin_rows, fin_file_exists = _load_bottom_financial_rows(supervisor_id)
+        fin_rows_html = "\n".join(
+            "<tr>"
+            + f"<td style='padding:7px 10px;border-bottom:1px solid #eef3f8;'>{_html.escape(row['record_date'])}</td>"
+            + f"<td style='padding:7px 10px;border-bottom:1px solid #eef3f8;font-weight:700;color:#07377b;'>{_html.escape(row['client_id'])}</td>"
+            + f"<td style='padding:7px 10px;border-bottom:1px solid #eef3f8;text-align:right;'>{row['net_debit']:,.2f}</td>"
+            + f"<td style='padding:7px 10px;border-bottom:1px solid #eef3f8;text-align:right;'>{row['net_credit']:,.2f}</td>"
+            + f"<td style='padding:7px 10px;border-bottom:1px solid #eef3f8;text-align:right;'>{row['mtf_debit']:,.2f}</td>"
+            + f"<td style='padding:7px 10px;border-bottom:1px solid #eef3f8;text-align:right;'>{row['pledge_value']:,.2f}</td>"
+            + "</tr>"
+            for row in scoped_fin_rows
+        )
+        fin_label_date = scoped_fin_rows[0]["record_date"] if scoped_fin_rows else "No Data"
+        fin_status_text = "active" if fin_file_exists else "missing"
+
+        bottom_financial_section = (
+            '<section id="lms-bottom-financial-details" data-static-snapshot="true" '
+            'style="max-width:100%;margin:24px 12px 18px;padding:14px 16px;background:#ffffff;'
+            'border:1px solid #d8e4f0;border-radius:12px;">'
+            '<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:12px;">'
+            '<div>'
+            + f'<h3 style="margin:0;color:#07377b;font-size:15px;">Client Financial Details ({_html.escape(fin_label_date)} — {len(scoped_fin_rows)} clients)</h3>'
+            + f'<span style="font-size:11px;color:#637895;">File: client_financial_details.xlsx ({fin_status_text}) · Not updated with live prices</span>'
+            + '</div>'
+            '<div style="display:flex;align-items:center;flex-wrap:wrap;gap:8px;">'
+            '<button type="button" id="lmsClearFinancialBtn" style="padding:6px 12px;border-radius:8px;'
+            'border:1px solid #d9534f;background:#fff5f5;color:#b42318;font-size:12px;font-weight:600;cursor:pointer;">Clear Table</button>'
+            '<label for="lmsFinancialFileInput" style="padding:6px 12px;border-radius:8px;'
+            'border:1px solid #07377b;background:#07377b;color:#ffffff;font-size:12px;font-weight:600;cursor:pointer;">Update / Replace XLSX</label>'
+            '<input type="file" id="lmsFinancialFileInput" accept=".xlsx" style="display:none;" />'
+            '</div>'
+            '</div>'
+            '<div style="overflow-x:auto;max-height:420px;overflow-y:auto;">'
+            '<table style="width:100%;border-collapse:collapse;font-size:12px;">'
+            '<thead style="position:sticky;top:0;background:#f5f8fd;z-index:1;">'
+            '<tr style="color:#07377b;text-align:left;border-bottom:1px solid #d8e4f0;">'
+            '<th style="padding:8px 10px;">Record Date</th>'
+            '<th style="padding:8px 10px;">Client ID</th>'
+            '<th style="padding:8px 10px;text-align:right;">Net Debit</th>'
+            '<th style="padding:8px 10px;text-align:right;">Net Credit</th>'
+            '<th style="padding:8px 10px;text-align:right;">MTF Debit</th>'
+            '<th style="padding:8px 10px;text-align:right;">Pledge Value</th>'
+            '</tr>'
+            '</thead>'
+            '<tbody id="lmsBottomFinancialTbody">'
+            + (fin_rows_html or '<tr><td colspan="6" style="padding:14px;text-align:center;color:#637895;">Table is empty. Click "Update / Replace XLSX" above to load new data.</td></tr>')
+            + '</tbody>'
+            '</table>'
+            '</div>'
+            '</section>'
+            '<script>(function(){'
+            'var clearBtn=document.getElementById("lmsClearFinancialBtn");'
+            'var fileInput=document.getElementById("lmsFinancialFileInput");'
+            'if(clearBtn){clearBtn.addEventListener("click",async function(){'
+            'if(!confirm("Clear existing client_financial_details.xlsx data?"))return;'
+            'var res=await fetch("/api/admin/financial-details/clear",{method:"POST",credentials:"same-origin"});'
+            'if(res.ok)window.location.reload();'
+            '});}'
+            'if(fileInput){fileInput.addEventListener("change",async function(){'
+            'var file=fileInput.files&&fileInput.files[0];if(!file)return;'
+            'var fd=new FormData();fd.append("file",file);'
+            'var res=await fetch("/api/admin/financial-details/upload",{method:"POST",body:fd,credentials:"same-origin"});'
+            'if(res.ok)window.location.reload();'
+            '});}'
+            '})();</script>'
+        )
+
         if "</body>" in admin_html.lower():
             body_close = admin_html.lower().rfind("</body>")
-            admin_html = admin_html[:body_close] + selection_limit_script + desktop_analytics_script + admin_html[body_close:]
+            admin_html = admin_html[:body_close] + bottom_financial_section + selection_limit_script + desktop_analytics_script + admin_html[body_close:]
         else:
-            admin_html += selection_limit_script + desktop_analytics_script
+            admin_html += bottom_financial_section + selection_limit_script + desktop_analytics_script
 
         return Response(admin_html, mimetype="text/html")
     except Exception as exc:
