@@ -1902,6 +1902,47 @@ def admin_trade_recency():
         return jsonify({"success": False, "message": "Could not calculate trade recency.", "error": str(exc)}), 500
 
 
+def _extract_client_financials(client_row):
+    row = client_row or {}
+
+    def _pick(*keys):
+        for k in keys:
+            if k in row and row.get(k) not in (None, ""):
+                return _clean_number(row.get(k), 0.0)
+        return 0.0
+
+    net_debit = _pick("net_debit", "debit", "client_debit")
+    net_credit = _pick("net_credit", "credit", "client_credit")
+    mtf_debit = _pick("mtf_debit", "mtf_deb")
+    mtf_cash = _pick("mtf_cash")
+    pledge_val = _pick("pledge_value", "pledge", "collateral_value")
+
+    avail_cash_raw = row.get("available_cash") if "available_cash" in row else row.get("avail_cash")
+    if avail_cash_raw not in (None, ""):
+        available_cash = _clean_number(avail_cash_raw, 0.0)
+    else:
+        available_cash = net_credit + mtf_cash - net_debit - mtf_debit
+
+    avail_margin_raw = row.get("available_margin") if "available_margin" in row else row.get("avail_margin")
+    if avail_margin_raw not in (None, ""):
+        available_margin = _clean_number(avail_margin_raw, 0.0)
+    else:
+        available_margin = net_credit - net_debit - mtf_debit + mtf_cash + pledge_val
+
+    return {
+        "debit": net_debit,
+        "net_debit": net_debit,
+        "credit": net_credit,
+        "net_credit": net_credit,
+        "available_cash": available_cash,
+        "available_margin": available_margin,
+        "mtf_debit": mtf_debit,
+        "mtf_cash": mtf_cash,
+        "pledge": pledge_val,
+        "pledge_value": pledge_val,
+    }
+
+
 @app.route("/api/admin/client-analytics/<client_id>", methods=["GET"])
 def admin_client_analytics(client_id):
     """Supervisor-scoped portfolio analytics; keeps existing endpoint URL."""
@@ -1989,11 +2030,27 @@ def admin_client_analytics(client_id):
                 except Exception:
                     pass
 
+        client_financials = _extract_client_financials({})
+        try:
+            c_res = (
+                supabase.table("clients")
+                .select("*")
+                .ilike("client_id", cid)
+                .limit(1)
+                .execute()
+            )
+            if c_res.data:
+                client_financials = _extract_client_financials(c_res.data[0])
+        except Exception:
+            pass
+
         return jsonify({
             "success": True, "client_id": cid,
             "holdings_count": len(result.data or []),
             "total_invested": total_invested, "current_value": current_value,
             "total_pnl": total_pnl,
+            "financials": client_financials,
+            "financial_details": client_financials,
             "companies": sorted(company.values(), key=lambda x: x["invested"], reverse=True),
             "industries": [{"name": k, "invested": v} for k, v in sorted(industry.items(), key=lambda x: x[1], reverse=True)],
             "market_caps": [{"name": k, "invested": v} for k, v in sorted(market_cap.items(), key=lambda x: x[1], reverse=True)],
