@@ -884,6 +884,7 @@ body.tradelogs-split-open #tradeLogsSplitDrawer{display:flex;}
       <button type="button" class="btn light" style="padding:3px 5px;font-size:9.5px;border-radius:5px;line-height:1.15;background:#fef08a;color:#854d0e;border-color:#eab308" data-logcat="inv-50" onclick="setLogbookCatFilter('inv-50',this)">50</button>
       {% if can_manage %}<button type="button" class="btn" style="padding:3px 7px;font-size:9.5px;border-radius:5px;line-height:1.15;background:#052d70;color:#fff;white-space:nowrap" onclick="window.openTradeLogsSplit(document.getElementById('logbookSelectedClient').textContent.replace('Client: ','').trim())">VIEW CLIENT LOGS ▸</button>{% endif %}
       <span class="pill" id="logbookClientCount" style="padding:3px 8px;font-size:10px;line-height:1.15;white-space:nowrap">0 clients</span>
+      <button type="button" class="btn" style="padding:3px 8px;font-size:9.5px;border-radius:5px;line-height:1.15;background:#0b55b5;color:#fff;white-space:nowrap" onclick="window.scrollTo({top:0,behavior:'smooth'})">MAIN</button>
     </div>
   </div>
   <div class="logbook-layout">
