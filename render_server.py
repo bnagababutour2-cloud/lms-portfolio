@@ -1954,7 +1954,9 @@ def _extract_client_financials(client_row):
 
     net_debit = _pick("net_debit", "debit", "client_debit")
     net_credit = _pick("net_credit", "credit", "client_credit")
-    mtf_debit = _pick("mtf_debit", "mtf_deb")
+    # Accept both the standard MTF spelling and legacy/imported MFT typo variants.
+    # Some uploaded financial sheets/databases have used mft_debit/mft_deb.
+    mtf_debit = _pick("mtf_debit", "mft_debit", "mtf_deb", "mft_deb", "mtfdebit", "mftdebit")
     mtf_cash = _pick("mtf_cash")
     pledge_val = _pick("pledge_value", "pledge", "collateral_value")
 
@@ -1978,6 +1980,7 @@ def _extract_client_financials(client_row):
         "available_cash": available_cash,
         "available_margin": available_margin,
         "mtf_debit": mtf_debit,
+        "mft_debit": mtf_debit,  # compatibility alias for older UI/import variants
         "mtf_cash": mtf_cash,
         "pledge": pledge_val,
         "pledge_value": pledge_val,
