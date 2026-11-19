@@ -1984,6 +1984,52 @@ def _extract_client_financials(client_row):
     }
 
 
+@app.route("/api/admin/client-financials/<client_id>", methods=["GET"])
+def admin_client_financials_fast(client_id):
+    """Return only the latest financial snapshot for quick hover/click refresh."""
+    account, auth_error = _require_supervisor()
+    if auth_error:
+        return auth_error
+    db_error = _require_db()
+    if db_error:
+        return db_error
+    cid = str(client_id or "").strip()
+    if not cid or not _supervisor_can_view(session.get("supervisor_id"), cid):
+        return jsonify({"success": False, "message": "Client is outside your access scope."}), 403
+    try:
+        financial_row = {}
+        record_date = None
+        source = None
+        try:
+            result = supabase.table("client_financial_details").select("*").ilike("client_id", cid).limit(500).execute()
+            rows = list(result.data or [])
+            def _financial_sort_key(row):
+                row = row or {}
+                return (str(row.get("record_date") or ""), str(row.get("created_at") or ""), int(row.get("id") or 0) if str(row.get("id") or "").isdigit() else 0)
+            if rows:
+                financial_row = max(rows, key=_financial_sort_key) or {}
+                record_date = financial_row.get("record_date")
+                source = "client_financial_details"
+        except Exception as exc:
+            print(f"[CLIENT FINANCIALS FAST] Details table read failed for {cid}: {exc}")
+        fallback = {}
+        try:
+            result = supabase.table("clients").select("*").ilike("client_id", cid).limit(1).execute()
+            if result.data:
+                fallback = result.data[0] or {}
+        except Exception as exc:
+            print(f"[CLIENT FINANCIALS FAST] Clients fallback read failed for {cid}: {exc}")
+        merged = dict(fallback)
+        merged.update({k:v for k,v in financial_row.items() if v not in (None, "")})
+        financials = _extract_client_financials(merged)
+        financials["source"] = source or ("clients" if fallback else "default")
+        financials["record_date"] = record_date
+        return jsonify({"success": True, "client_id": cid, "financials": financials, "financial_details": financials})
+    except Exception as exc:
+        traceback.print_exc()
+        return jsonify({"success": False, "message": "Could not load client financial details.", "error": str(exc)}), 500
+
+
 @app.route("/api/admin/client-analytics/<client_id>", methods=["GET"])
 def admin_client_analytics(client_id):
     """Supervisor-scoped portfolio analytics; keeps existing endpoint URL."""
