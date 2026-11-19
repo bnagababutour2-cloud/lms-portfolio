@@ -1927,8 +1927,8 @@ window.setLogbookFilter=async function(filter,button){
        if(selectedLogbookClient!==cid){
          if(hoverTimer) clearTimeout(hoverTimer);
          hoverTimer = setTimeout(()=>{
-           selectLogbookClient(cid);
-         }, 35);
+           selectLogbookClient(cid,{skipServerAnalytics:true});
+         }, 45);
        }
      });
      b.addEventListener('focus',()=>window.refreshClientFinancialsFast(b.dataset.logbookClient));
@@ -2078,9 +2078,8 @@ window.setLogbookFilter=async function(filter,button){
    }).join('');
  }
 
- function selectLogbookClient(clientId){
+ function selectLogbookClient(clientId, options={}){
    selectedLogbookClient=clientId;
-   if(typeof window.refreshClientFinancialsFast==='function') window.refreshClientFinancialsFast(clientId);
    document.querySelectorAll('[data-logbook-client]').forEach(b=>b.classList.toggle('active',b.dataset.logbookClient===clientId));
    const rows=allPortfolioRows().filter(r=>(r.dataset.client||r.cells[1]?.textContent.trim()).toUpperCase()===clientId.toUpperCase());
    if(!rows.length){clearLogbookCharts();return;}
@@ -2163,6 +2162,7 @@ window.setLogbookFilter=async function(filter,button){
    renderDonut('logbookIndustryDonut','logbookIndustryLegend',byIndustry,byIndustry.reduce((a,x)=>a+Math.abs(x.value),0),'industry');
    renderDonut('logbookMarketCapDonut','logbookMarketCapLegend',byMarketCap,byMarketCap.reduce((a,x)=>a+Math.abs(x.value),0),'cap');
 
+   if(options.skipServerAnalytics) return; // Hover updates local charts only; avoid slow analytics request.
    fetch('/api/admin/client-analytics/'+encodeURIComponent(clientId),{credentials:'same-origin',cache:'no-store'})
      .then(r=>r.json())
      .then(data=>{
@@ -3001,16 +3001,32 @@ body.bse-alerts-split-open #bseAlertsSplitDrawer{display: flex;}
 
   // Fast, independent financial refresh: don't wait for full portfolio analytics.
   let financialRefreshSeq = 0;
-  window.refreshClientFinancialsFast = async function(clientId){
+  const financialInFlight = new Map();
+  const financialRecent = new Map();
+  window.refreshClientFinancialsFast = async function(clientId, force=false){
     const cid = String(clientId || '').trim();
     if(!cid) return;
+    const now = Date.now();
+    const recent = financialRecent.get(cid);
+    // Avoid duplicate hover/focus/click requests for the same client within a short interval.
+    if(!force && recent && (now-recent.time)<450){
+      if(recent.data && cid===String(selectedLogbookClient||'')) window.renderClientFinancialButtons(recent.data.financial_details || recent.data.financials || recent.data, recent.data.total_pnl);
+      return;
+    }
+    if(financialInFlight.has(cid)) return financialInFlight.get(cid);
     const seq = ++financialRefreshSeq;
-    try{
-      const response = await fetch('/api/admin/client-financials/'+encodeURIComponent(cid), {credentials:'same-origin', cache:'no-store'});
-      const data = await response.json();
-      if(seq !== financialRefreshSeq || !data || !data.success) return;
-      window.renderClientFinancialButtons(data.financial_details || data.financials || data, data.total_pnl);
-    }catch(err){ /* retain last values on network errors */ }
+    const task = (async()=>{
+      try{
+        const response = await fetch('/api/admin/client-financials/'+encodeURIComponent(cid), {credentials:'same-origin', cache:'no-store'});
+        const data = await response.json();
+        financialRecent.set(cid,{time:Date.now(),data});
+        if(seq !== financialRefreshSeq || !data || !data.success || cid!==String(selectedLogbookClient||'')) return;
+        window.renderClientFinancialButtons(data.financial_details || data.financials || data, data.total_pnl);
+      }catch(err){ /* retain last values on network errors */ }
+      finally{ financialInFlight.delete(cid); }
+    })();
+    financialInFlight.set(cid,task);
+    return task;
   };
 
   const origFetch = window.fetch;
