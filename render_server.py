@@ -2030,7 +2030,36 @@ def admin_client_analytics(client_id):
                 except Exception:
                     pass
 
-        client_financials = _extract_client_financials({})
+        # Financial balances are imported into client_financial_details.
+        # The previous implementation only checked the clients table, so the
+        # populated daily financial rows shown in Supabase were never used.
+        financial_row = {}
+        financial_source = None
+        financial_record_date = None
+
+        try:
+            fin_res = (
+                supabase.table("client_financial_details")
+                .select("*")
+                .ilike("client_id", cid)
+                .order("record_date", desc=True)
+                .order("created_at", desc=True)
+                .limit(1)
+                .execute()
+            )
+            if fin_res.data:
+                financial_row = fin_res.data[0] or {}
+                financial_source = "client_financial_details"
+                financial_record_date = financial_row.get("record_date")
+        except Exception as fin_exc:
+            # Keep the existing clients-table fallback for installations where
+            # the financial-details table has not been created or is unavailable.
+            print(f"[CLIENT FINANCIALS] Could not read client_financial_details for {cid}: {fin_exc}")
+
+        # Older deployments may still store some financial fields on clients.
+        # Use those as fallback values, while preserving valid values (including
+        # numeric zero) from the latest financial-details record.
+        fallback_row = {}
         try:
             c_res = (
                 supabase.table("clients")
@@ -2040,9 +2069,18 @@ def admin_client_analytics(client_id):
                 .execute()
             )
             if c_res.data:
-                client_financials = _extract_client_financials(c_res.data[0])
-        except Exception:
-            pass
+                fallback_row = c_res.data[0] or {}
+        except Exception as client_exc:
+            print(f"[CLIENT FINANCIALS] Could not read clients fallback for {cid}: {client_exc}")
+
+        merged_financial_row = dict(fallback_row)
+        merged_financial_row.update({
+            key: value for key, value in financial_row.items()
+            if value not in (None, "")
+        })
+        client_financials = _extract_client_financials(merged_financial_row)
+        client_financials["source"] = financial_source or ("clients" if fallback_row else "default")
+        client_financials["record_date"] = financial_record_date
 
         return jsonify({
             "success": True, "client_id": cid,
