@@ -855,6 +855,88 @@ body.tradelogs-split-open #tradeLogsSplitDrawer{display:flex;}
 </tbody></table></div></div>
 
 
+<div class="card" id="clientFinancialDetailsCard">
+  <div class="logbook-title-row" style="margin-bottom:10px">
+    <div>
+      <div class="title" style="margin:0">Client Financial Details</div>
+      <div class="sub">Ledger snapshot (Client ID, Net Debit, Net Credit, MTF Debit, MTF Cash, Pledge Value, Available Cash, Available Margin)</div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <div style="position:relative">
+        <button type="button" class="btn light" id="finMarginFilterToggle"
+                style="padding:7px 10px;font-size:11px" onclick="toggleFinMarginFilter(event)">FILTER ▾</button>
+        <div id="finMarginFilterMenu" style="display:none;position:absolute;right:0;top:calc(100% + 6px);z-index:1000;width:260px;max-width:85vw;background:#fff;border:1px solid #cbd9e8;border-radius:10px;padding:12px;box-shadow:0 10px 28px rgba(15,35,60,.18)">
+          <div style="font-size:12px;font-weight:800;margin-bottom:8px">Available Margin Filter</div>
+          <label for="finTableSearch" style="display:block;font-size:11px;font-weight:700;margin:7px 0 4px">Search Client ID</label>
+          <input id="finTableSearch" placeholder="Enter Client ID..." oninput="filterFinancialTable()"
+                 style="box-sizing:border-box;width:100%;padding:8px;border:1px solid #cbd9e8;border-radius:7px;font-size:12px">
+          <label for="finMarginCondition" style="display:block;font-size:11px;font-weight:700;margin:10px 0 4px">Available Margin</label>
+          <select id="finMarginCondition" onchange="updateFinMarginFilterFields();filterFinancialTable()"
+                  style="box-sizing:border-box;width:100%;padding:8px;border:1px solid #cbd9e8;border-radius:7px;font-size:12px">
+            <option value="">All amounts</option>
+            <option value="less">Less than</option>
+            <option value="greater">Greater than</option>
+            <option value="between">Between</option>
+          </select>
+          <input id="finMarginAmount1" type="number" step="any" placeholder="Enter amount"
+                 oninput="filterFinancialTable()" style="display:none;box-sizing:border-box;width:100%;margin-top:7px;padding:8px;border:1px solid #cbd9e8;border-radius:7px;font-size:12px">
+          <input id="finMarginAmount2" type="number" step="any" placeholder="To amount"
+                 oninput="filterFinancialTable()" style="display:none;box-sizing:border-box;width:100%;margin-top:7px;padding:8px;border:1px solid #cbd9e8;border-radius:7px;font-size:12px">
+          <div style="display:flex;gap:6px;margin-top:10px">
+            <button type="button" class="btn light" style="flex:1;padding:7px;font-size:11px" onclick="sortFinTable(7,false)">HIGH → LOW</button>
+            <button type="button" class="btn light" style="flex:1;padding:7px;font-size:11px" onclick="sortFinTable(7,true)">LOW → HIGH</button>
+          </div>
+          <button type="button" class="btn light" style="width:100%;margin-top:7px;padding:7px;font-size:11px"
+                  onclick="clearFinMarginFilter()">CLEAR FILTER</button>
+        </div>
+      </div>
+      <span class="pill" id="finTableCount">{{ (client_financial_details|length if client_financial_details is defined and client_financial_details else (client_financial_detail|length if client_financial_detail is defined and client_financial_detail else 0)) }} records</span>
+    </div>
+  </div>
+  <div class="table-wrap" style="max-height:460px">
+    <table id="clientFinancialTable">
+      <thead>
+        <tr>
+          <th>Client ID <span class="sortbtn"><button type="button" onclick="sortFinTable(0,true)">▲</button><button type="button" onclick="sortFinTable(0,false)">▼</button></span></th>
+          <th style="text-align:right">Net Debit <span class="sortbtn"><button type="button" onclick="sortFinTable(1,true)">▲</button><button type="button" onclick="sortFinTable(1,false)">▼</button></span></th>
+          <th style="text-align:right">Net Credit <span class="sortbtn"><button type="button" onclick="sortFinTable(2,true)">▲</button><button type="button" onclick="sortFinTable(2,false)">▼</button></span></th>
+          <th style="text-align:right">MTF Debit <span class="sortbtn"><button type="button" onclick="sortFinTable(3,true)">▲</button><button type="button" onclick="sortFinTable(3,false)">▼</button></span></th>
+          <th style="text-align:right">MTF Cash <span class="sortbtn"><button type="button" onclick="sortFinTable(4,true)">▲</button><button type="button" onclick="sortFinTable(4,false)">▼</button></span></th>
+          <th style="text-align:right">Pledge Value <span class="sortbtn"><button type="button" onclick="sortFinTable(5,true)">▲</button><button type="button" onclick="sortFinTable(5,false)">▼</button></span></th>
+          <th style="text-align:right">Available Cash <span class="sortbtn"><button type="button" onclick="sortFinTable(6,true)">▲</button><button type="button" onclick="sortFinTable(6,false)">▼</button></span></th>
+          <th style="text-align:right">Available Margin</th>
+        </tr>
+      </thead>
+      <tbody id="clientFinancialTableBody">
+        {% set fin_rows = client_financial_details if (client_financial_details is defined and client_financial_details) else (client_financial_detail if (client_financial_detail is defined and client_financial_detail) else []) %}
+        {% if fin_rows %}
+          {% for f in fin_rows %}
+          {% set nd = (f.net_debit or 0)|float %}
+          {% set nc = (f.net_credit or 0)|float %}
+          {% set md = (f.mtf_debit or 0)|float %}
+          {% set mc = (f.mtf_cash or 0)|float %}
+          {% set pv = (f.pledge_value or 0)|float %}
+          {% set ac = (f.available_cash|float) if (f.available_cash is not none and f.available_cash != '') else (nc + mc - nd - md) %}
+          {% set am = (f.available_margin|float) if (f.available_margin is not none and f.available_margin != '') else (nc - nd - md + mc + pv) %}
+          <tr data-fin-client="{{ (f.client_id or '')|lower }}" data-fin-date="{{ (f.record_date or '')|lower }}">
+            <td style="font-weight:800;color:#052d70">{{ f.client_id }}</td>
+            <td style="text-align:right" class="{{ 'loss' if nd > 0 else '' }}">{{ '%.2f'|format(nd) }}</td>
+            <td style="text-align:right" class="{{ 'profit' if nc > 0 else '' }}">{{ '%.2f'|format(nc) }}</td>
+            <td style="text-align:right">{{ '%.2f'|format(md) if f.mtf_debit is not none else 'NULL' }}</td>
+            <td style="text-align:right">{{ '%.2f'|format(mc) if f.mtf_cash is not none else 'NULL' }}</td>
+            <td style="text-align:right">{{ '%.2f'|format(pv) if f.pledge_value is not none else '0.00' }}</td>
+            <td style="text-align:right" class="{{ 'profit' if ac > 0 else ('loss' if ac < 0 else '') }}">{{ '%.2f'|format(ac) }}</td>
+            <td style="text-align:right" class="{{ 'profit' if am > 0 else ('loss' if am < 0 else '') }}">{{ '%.2f'|format(am) }}</td>
+          </tr>
+          {% endfor %}
+        {% else %}
+          <tr id="finEmptyRow"><td colspan="8" style="text-align:center;padding:18px;color:#60748a">Loading client financial details...</td></tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
 <div class="card logbook-desktop-card" id="tradeLogbookCard">
   <div class="logbook-filter-row" id="lms-recency-bar" aria-label="Trade recency logbook filters" style="margin-bottom:12px;padding:9px 12px;background:#f4f8fd;border:1px solid #d8e4f0;border-radius:9px"><span style="font-size:11px;font-weight:900;color:#052d70;margin-right:4px">Logbook:</span><button type="button" class="btn light" data-logbook-filter="all" onclick="setLogbookFilter('all',this)">ALL</button><button type="button" class="btn light" data-logbook-filter="0-9" onclick="setLogbookFilter('0-9',this)">TRADED IN LAST 10 DAYS</button><button type="button" class="btn light" data-logbook-filter="10-29" onclick="setLogbookFilter('10-29',this)">10–30 DAYS</button><button type="button" class="btn light" data-logbook-filter="30-59" onclick="setLogbookFilter('30-59',this)">30–60 DAYS</button><button type="button" class="btn light" data-logbook-filter="60+" onclick="setLogbookFilter('60+',this)">ABOVE 60 DAYS</button><button type="button" class="btn light" onclick="clearLogbookFilterState()">CLEAR</button></div>
   <div class="logbook-summary" style="display:flex;align-items:center;justify-content:flex-start;gap:10px;flex-wrap:nowrap;margin-bottom:10px">
@@ -927,64 +1009,6 @@ body.tradelogs-split-open #tradeLogsSplitDrawer{display:flex;}
       </div>
       <div class="logbook-note">Investment = quantity × buy price. Profit/Loss = current MTM from the portfolio. Industry and market-cap metadata are resolved from holding fields, company_classifications.json, and Yahoo Finance where available; unknown symbols remain Unclassified. Trade-recency is based on the Trade Date currently stored on portfolio rows.</div>
     </div>
-  </div>
-</div>
-
-<div class="card" id="clientFinancialDetailsCard">
-  <div class="logbook-title-row" style="margin-bottom:10px">
-    <div>
-      <div class="title" style="margin:0">Client Financial Details</div>
-      <div class="sub">Ledger snapshot (Client ID, Net Debit, Net Credit, MTF Debit, MTF Cash, Pledge Value, Available Cash, Available Margin)</div>
-    </div>
-    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-      <input id="finTableSearch" placeholder="Search Client ID..." oninput="filterFinancialTable()"
-             style="padding:7px 10px;border:1px solid #cbd9e8;border-radius:7px;font-size:12px;width:210px">
-      <button type="button" class="btn light" style="padding:7px 10px;font-size:11px"
-              onclick="document.getElementById('finTableSearch').value='';filterFinancialTable()">CLEAR</button>
-      <span class="pill" id="finTableCount">{{ (client_financial_details|length if client_financial_details is defined and client_financial_details else (client_financial_detail|length if client_financial_detail is defined and client_financial_detail else 0)) }} records</span>
-    </div>
-  </div>
-  <div class="table-wrap" style="max-height:460px">
-    <table id="clientFinancialTable">
-      <thead>
-        <tr>
-          <th>Client ID <span class="sortbtn"><button type="button" onclick="sortFinTable(0,true)">▲</button><button type="button" onclick="sortFinTable(0,false)">▼</button></span></th>
-          <th style="text-align:right">Net Debit <span class="sortbtn"><button type="button" onclick="sortFinTable(1,true)">▲</button><button type="button" onclick="sortFinTable(1,false)">▼</button></span></th>
-          <th style="text-align:right">Net Credit <span class="sortbtn"><button type="button" onclick="sortFinTable(2,true)">▲</button><button type="button" onclick="sortFinTable(2,false)">▼</button></span></th>
-          <th style="text-align:right">MTF Debit <span class="sortbtn"><button type="button" onclick="sortFinTable(3,true)">▲</button><button type="button" onclick="sortFinTable(3,false)">▼</button></span></th>
-          <th style="text-align:right">MTF Cash <span class="sortbtn"><button type="button" onclick="sortFinTable(4,true)">▲</button><button type="button" onclick="sortFinTable(4,false)">▼</button></span></th>
-          <th style="text-align:right">Pledge Value <span class="sortbtn"><button type="button" onclick="sortFinTable(5,true)">▲</button><button type="button" onclick="sortFinTable(5,false)">▼</button></span></th>
-          <th style="text-align:right">Available Cash <span class="sortbtn"><button type="button" onclick="sortFinTable(6,true)">▲</button><button type="button" onclick="sortFinTable(6,false)">▼</button></span></th>
-          <th style="text-align:right">Available Margin <span class="sortbtn"><button type="button" onclick="sortFinTable(7,true)">▲</button><button type="button" onclick="sortFinTable(7,false)">▼</button></span></th>
-        </tr>
-      </thead>
-      <tbody id="clientFinancialTableBody">
-        {% set fin_rows = client_financial_details if (client_financial_details is defined and client_financial_details) else (client_financial_detail if (client_financial_detail is defined and client_financial_detail) else []) %}
-        {% if fin_rows %}
-          {% for f in fin_rows %}
-          {% set nd = (f.net_debit or 0)|float %}
-          {% set nc = (f.net_credit or 0)|float %}
-          {% set md = (f.mtf_debit or 0)|float %}
-          {% set mc = (f.mtf_cash or 0)|float %}
-          {% set pv = (f.pledge_value or 0)|float %}
-          {% set ac = (f.available_cash|float) if (f.available_cash is not none and f.available_cash != '') else (nc + mc - nd - md) %}
-          {% set am = (f.available_margin|float) if (f.available_margin is not none and f.available_margin != '') else (nc - nd - md + mc + pv) %}
-          <tr data-fin-client="{{ (f.client_id or '')|lower }}" data-fin-date="{{ (f.record_date or '')|lower }}">
-            <td style="font-weight:800;color:#052d70">{{ f.client_id }}</td>
-            <td style="text-align:right" class="{{ 'loss' if nd > 0 else '' }}">{{ '%.2f'|format(nd) }}</td>
-            <td style="text-align:right" class="{{ 'profit' if nc > 0 else '' }}">{{ '%.2f'|format(nc) }}</td>
-            <td style="text-align:right">{{ '%.2f'|format(md) if f.mtf_debit is not none else 'NULL' }}</td>
-            <td style="text-align:right">{{ '%.2f'|format(mc) if f.mtf_cash is not none else 'NULL' }}</td>
-            <td style="text-align:right">{{ '%.2f'|format(pv) if f.pledge_value is not none else '0.00' }}</td>
-            <td style="text-align:right" class="{{ 'profit' if ac > 0 else ('loss' if ac < 0 else '') }}">{{ '%.2f'|format(ac) }}</td>
-            <td style="text-align:right" class="{{ 'profit' if am > 0 else ('loss' if am < 0 else '') }}">{{ '%.2f'|format(am) }}</td>
-          </tr>
-          {% endfor %}
-        {% else %}
-          <tr id="finEmptyRow"><td colspan="8" style="text-align:center;padding:18px;color:#60748a">Loading client financial details...</td></tr>
-        {% endif %}
-      </tbody>
-    </table>
   </div>
 </div>
 
@@ -3068,277 +3092,253 @@ body.bse-alerts-split-open #bseAlertsSplitDrawer{display: flex;}
     const unrlEl = document.getElementById('logbookUnrealizedInline');
     if(unrlEl && unrealizedPnl !== undefined && unrealizedPnl !== null){
       const p = Number(unrealizedPnl) || 0;
-      unrlEl.textContent = 'Unrealized P/L: ' + (p >= 0 ? '+' : '−') + fmtFin(p);
+      unrlEl.textContent = 'Unrealized P/L: ' + (p < 0 ? '−₹' : '+₹') + Math.abs(p).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
       unrlEl.style.color = p >= 0 ? '#128a43' : '#d62828';
     }
   };
 
-  // Fast, independent financial refresh: don't wait for full portfolio analytics.
-  let financialRefreshSeq = 0;
-  const financialInFlight = new Map();
-  const financialRecent = new Map();
-  window.refreshClientFinancialsFast = async function(clientId, force = false) {
+  let _finReqSeq = 0;
+  window.refreshClientFinancialsFast = function(clientId){
     const cid = String(clientId || '').trim();
-    if (!cid) return;
-    const reqKey = cid.toLowerCase();
-    const activeKey = () => String(selectedLogbookClient || '').trim().toLowerCase();
-
-    const now = Date.now();
-    const recent = financialRecent.get(reqKey);
-
-    // 1. If we already fetched this client earlier, show their numbers IMMEDIATELY on screen
-    if (recent && recent.data && reqKey === activeKey()) {
-      window.renderClientFinancialButtons(
-        recent.data.financial_details || recent.data.financials || recent.data,
-        recent.data.total_pnl
-      );
-    }
-
-    // 2. Only skip server check if we checked less than 100ms ago
-    if (!force && recent && (now - recent.time) < 100) {
+    if(!cid){
+      window.renderClientFinancialButtons({}, 0);
       return;
     }
+    const seq = ++_finReqSeq;
+    fetch('/api/admin/client-financials/' + encodeURIComponent(cid) + '?_=' + Date.now(), {
+      credentials: 'same-origin',
+      cache: 'no-store'
+    })
+    .then(r => r.json())
+    .then(data => {
+      if(seq !== _finReqSeq) return;
+      const activeText = (document.getElementById('logbookSelectedClient')?.textContent || '').replace(/^Client:\s*/i, '').trim().toUpperCase();
+      if(activeText && activeText !== 'NO CLIENT SELECTED' && activeText !== cid.toUpperCase()) return;
+      if(data && data.success){
+        window.renderClientFinancialButtons(data.financial || data.data || data, data.unrealized_pnl);
+      } else {
+        window.renderClientFinancialButtons({}, 0);
+      }
+    })
+    .catch(() => {
+      if(seq === _finReqSeq) window.renderClientFinancialButtons({}, 0);
+    });
+  };
 
-    if (financialInFlight.has(reqKey)) return financialInFlight.get(reqKey);
+  function hookClientSelection(){
+    const list = document.getElementById('logbookClientList');
+    if(!list || list.dataset.finHooked) return;
+    list.dataset.finHooked = '1';
 
-    const seq = ++financialRefreshSeq;
-    const task = (async () => {
-      try {
-        const response = await fetch(
-          '/api/admin/client-financials/' + encodeURIComponent(cid),
-          { credentials: 'same-origin', cache: 'no-store' }
-        );
-        const data = await response.json();
-        financialRecent.set(reqKey, { time: Date.now(), data });
+    const triggerFromTarget = (el) => {
+      const btn = el && el.closest ? el.closest('[data-logbook-client],[data-client-id],button,a,tr') : null;
+      if(!btn) return;
+      let cid = btn.dataset.logbookClient || btn.dataset.clientId || '';
+      if(!cid){
+        const span = btn.querySelector('span');
+        cid = (span ? span.textContent : btn.textContent || '').trim().split(/\s+/)[0];
+      }
+      if(cid && cid.toUpperCase() !== 'NO') window.refreshClientFinancialsFast(cid);
+    };
 
-        // Only update screen if the mouse/selection is STILL on this same client
-        if (seq !== financialRefreshSeq || !data || !data.success || reqKey !== activeKey()) {
+    list.addEventListener('click', e => triggerFromTarget(e.target), true);
+    list.addEventListener('mouseover', e => triggerFromTarget(e.target), true);
+    list.addEventListener('focusin', e => triggerFromTarget(e.target), true);
+
+    const selEl = document.getElementById('logbookSelectedClient');
+    if(selEl){
+      let lastObservedClient = '';
+      const syncFromHeader = () => {
+        const raw = (selEl.textContent || '').replace(/^Client:\s*/i, '').trim();
+        if(!raw || raw.toLowerCase() === 'no client selected'){
+          if(lastObservedClient !== ''){
+            lastObservedClient = '';
+            window.renderClientFinancialButtons({}, 0);
+          }
           return;
         }
-
-        window.renderClientFinancialButtons(
-          data.financial_details || data.financials || data,
-          data.total_pnl
-        );
-      } catch (err) {
-        // Keep existing values if network hiccups
-      } finally {
-        financialInFlight.delete(reqKey);
-      }
-    })();
-
-    financialInFlight.set(reqKey, task);
-    return task;
-  };
-
-  const origFetch = window.fetch;
-  window.fetch = async function(url, opts){
-    const res = await origFetch.apply(this, arguments);
-    if(typeof url === 'string' && url.includes('/api/admin/client-analytics/')){
-      try {
-        const clone = res.clone();
-        const data = await clone.json();
-        if(data && data.success){
-          const finObj = data.financial_details || data.client_financial || data;
-          window.renderClientFinancialButtons(finObj, data.total_pnl);
+        const cid = raw.split(/\s+/)[0];
+        if(cid && cid !== lastObservedClient){
+          lastObservedClient = cid;
+          window.refreshClientFinancialsFast(cid);
         }
-      } catch(e){}
+      };
+      new MutationObserver(syncFromHeader).observe(selEl, {childList:true, characterData:true, subtree:true});
+      syncFromHeader();
     }
-    return res;
-  };
+  }
+
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', hookClientSelection);
+  } else {
+    hookClientSelection();
+  }
+  setInterval(hookClientSelection, 1000);
 })();
 
 </script>
-<script id="client-financial-full-table-script">
-function filterFinancialTable() {
-  const q = (document.getElementById('finTableSearch')?.value || '').trim().toLowerCase();
-  const rows = document.querySelectorAll('#clientFinancialTable tbody tr[data-fin-client]');
-  let visible = 0;
-  rows.forEach(r => {
-    const match = !q ||
-      (r.dataset.finClient || '').includes(q) ||
-      (r.dataset.finDate || '').includes(q);
-    r.style.display = match ? '' : 'none';
-    if (match) visible++;
-  });
-  const badge = document.getElementById('finTableCount');
-  if (badge) badge.textContent = visible + ' records';
-}
 
-function sortFinTable(col, asc) {
-  const tbody = document.getElementById('clientFinancialTableBody');
-  if (!tbody) return;
-  const rows = [...tbody.querySelectorAll('tr[data-fin-client]')];
-  const isNumeric = [1, 2, 3, 4, 5, 6, 7].includes(col);
-  rows.sort((a, b) => {
-    const av = a.cells[col]?.innerText.trim() || '';
-    const bv = b.cells[col]?.innerText.trim() || '';
-    if (isNumeric) {
-      const an = parseFloat(av.replace(/,/g, '')) || 0;
-      const bn = parseFloat(bv.replace(/,/g, '')) || 0;
-      return asc ? an - bn : bn - an;
-    }
-    return asc
-      ? av.localeCompare(bv, undefined, { numeric: true, sensitivity: 'base' })
-      : bv.localeCompare(av, undefined, { numeric: true, sensitivity: 'base' });
-  });
-  rows.forEach(r => tbody.appendChild(r));
-}
 
-(async function loadAllClientFinancialsIfEmpty() {
-  const tbody = document.getElementById('clientFinancialTableBody');
-  if (!tbody || tbody.querySelector('tr[data-fin-client]')) return;
-  try {
-    const res = await fetch('/api/admin/client-financials-all?_=' + Date.now(), { credentials: 'same-origin' });
-    if (!res.ok) throw new Error('Endpoint unavailable');
-    const data = await res.json();
-    const list = data.records || data.data || data.financials || data.client_financial_details || [];
-    if (!Array.isArray(list) || !list.length) {
-      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:18px;color:#60748a">No financial records found.</td></tr>';
+<script id="client-financial-table-script">
+(function(){
+  const fmtFin = v => {
+    const n = Number(v);
+    const val = Number.isFinite(n) ? n : 0;
+    return (val < 0 ? '−' : '') + Math.abs(val).toLocaleString('en-IN', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
+  };
+
+  function getRowClientId(tr){
+    return (tr.dataset.finClient || tr.cells[0]?.textContent || '').trim();
+  }
+
+  window.toggleFinMarginFilter = function(event){
+    if(event) event.stopPropagation();
+    const menu = document.getElementById('finMarginFilterMenu');
+    if(!menu) return;
+    menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+  };
+
+  window.updateFinMarginFilterFields = function(){
+    const mode = document.getElementById('finMarginCondition')?.value || '';
+    const first = document.getElementById('finMarginAmount1');
+    const second = document.getElementById('finMarginAmount2');
+    if(first) first.style.display = mode ? 'block' : 'none';
+    if(second) second.style.display = mode === 'between' ? 'block' : 'none';
+    if(first) first.placeholder = mode === 'between' ? 'From amount' : 'Enter amount';
+  };
+
+  window.clearFinMarginFilter = function(){
+    ['finTableSearch','finMarginCondition','finMarginAmount1','finMarginAmount2'].forEach(id => {
+      const el = document.getElementById(id);
+      if(el) el.value = '';
+    });
+    updateFinMarginFilterFields();
+    filterFinancialTable();
+  };
+
+  window.filterFinancialTable = function(){
+    const q = (document.getElementById('finTableSearch')?.value || '').trim().toLowerCase();
+    const mode = document.getElementById('finMarginCondition')?.value || '';
+    const raw1 = document.getElementById('finMarginAmount1')?.value;
+    const raw2 = document.getElementById('finMarginAmount2')?.value;
+    const amount1 = raw1 === '' || raw1 == null ? null : Number(raw1);
+    const amount2 = raw2 === '' || raw2 == null ? null : Number(raw2);
+    const rows = [...document.querySelectorAll('#clientFinancialTableBody tr')].filter(r => r.id !== 'finEmptyRow');
+    let visible = 0;
+    rows.forEach(r => {
+      const cid = getRowClientId(r).toLowerCase();
+      const marginText = (r.cells[7]?.textContent || '').trim().replace(/,/g,'').replace(/[₹−]/g, m => m === '−' ? '-' : '');
+      const margin = Number(marginText);
+      let show = !q || cid.includes(q);
+      if(show && mode){
+        if(!Number.isFinite(margin) || amount1 === null || !Number.isFinite(amount1)) show = false;
+        else if(mode === 'less') show = margin < amount1;
+        else if(mode === 'greater') show = margin > amount1;
+        else if(mode === 'between'){
+          show = amount2 !== null && Number.isFinite(amount2) &&
+            margin >= Math.min(amount1, amount2) && margin <= Math.max(amount1, amount2);
+        }
+      }
+      r.style.display = show ? '' : 'none';
+      if(show) visible++;
+    });
+    const cnt = document.getElementById('finTableCount');
+    if(cnt) cnt.textContent = visible + ' records';
+  };
+
+  document.addEventListener('click', function(e){
+    const menu = document.getElementById('finMarginFilterMenu');
+    const wrap = document.getElementById('finMarginFilterToggle')?.parentElement;
+    if(menu && wrap && !wrap.contains(e.target)) menu.style.display = 'none';
+  });
+
+  window.sortFinTable = function(colIdx, asc){
+    const tbody = document.getElementById('clientFinancialTableBody');
+    if(!tbody) return;
+    const rows = [...tbody.querySelectorAll('tr')].filter(r => r.id !== 'finEmptyRow');
+    rows.sort((a,b) => {
+      if(colIdx === 0){
+        const av = (a.cells[0]?.textContent || '').trim();
+        const bv = (b.cells[0]?.textContent || '').trim();
+        return asc ? av.localeCompare(bv, undefined, {numeric:true}) : bv.localeCompare(av, undefined, {numeric:true});
+      }
+      const parseNum = cell => {
+        const txt = (cell?.textContent || '').trim().replace(/,/g,'').replace('−','-');
+        if(!txt || txt === 'NULL' || txt === '-') return -Infinity;
+        const n = Number(txt);
+        return Number.isFinite(n) ? n : -Infinity;
+      };
+      const av = parseNum(a.cells[colIdx]);
+      const bv = parseNum(b.cells[colIdx]);
+      return asc ? (av - bv) : (bv - av);
+    });
+    rows.forEach(r => tbody.appendChild(r));
+  };
+
+  function renderRows(items){
+    const tbody = document.getElementById('clientFinancialTableBody');
+    if(!tbody) return;
+    if(!Array.isArray(items) || !items.length){
+      tbody.innerHTML = '<tr id="finEmptyRow"><td colspan="8" style="text-align:center;padding:18px;color:#60748a">No client financial records available.</td></tr>';
+      const cnt = document.getElementById('finTableCount');
+      if(cnt) cnt.textContent = '0 records';
       return;
     }
-    const fmt = (v, nullLabel = '0.00') => (v === null || v === undefined || v === '') ? nullLabel : (Number(v) || 0).toFixed(2);
-    tbody.innerHTML = list.map(f => {
-      const nd = Number(f.net_debit) || 0;
-      const nc = Number(f.net_credit) || 0;
-      const md = Number(f.mtf_debit) || 0;
-      const mc = Number(f.mtf_cash) || 0;
-      const pv = Number(f.pledge_value) || 0;
+    tbody.innerHTML = items.map(f => {
+      const nd = Number(f.net_debit ?? 0) || 0;
+      const nc = Number(f.net_credit ?? 0) || 0;
+      const mdRaw = f.mtf_debit;
+      const mcRaw = f.mtf_cash;
+      const pvRaw = f.pledge_value;
+      const md = mdRaw !== null && mdRaw !== undefined && mdRaw !== '' ? (Number(mdRaw) || 0) : null;
+      const mc = mcRaw !== null && mcRaw !== undefined && mcRaw !== '' ? (Number(mcRaw) || 0) : null;
+      const pv = pvRaw !== null && pvRaw !== undefined && pvRaw !== '' ? (Number(pvRaw) || 0) : 0;
       const ac = (f.available_cash !== null && f.available_cash !== undefined && f.available_cash !== '')
-        ? Number(f.available_cash)
-        : (nc + mc - nd - md);
+        ? (Number(f.available_cash) || 0)
+        : (nc + (mc || 0) - nd - (md || 0));
       const am = (f.available_margin !== null && f.available_margin !== undefined && f.available_margin !== '')
-        ? Number(f.available_margin)
-        : (nc - nd - md + mc + pv);
-      return `<tr data-fin-client="${String(f.client_id || '').toLowerCase()}" data-fin-date="${String(f.record_date || '').toLowerCase()}">
-        <td style="font-weight:800;color:#052d70">${f.client_id || '-'}</td>
-        <td style="text-align:right" class="${nd > 0 ? 'loss' : ''}">${fmt(nd, '0.00')}</td>
-        <td style="text-align:right" class="${nc > 0 ? 'profit' : ''}">${fmt(nc, '0.00')}</td>
-        <td style="text-align:right">${fmt(f.mtf_debit, 'NULL')}</td>
-        <td style="text-align:right">${fmt(f.mtf_cash, 'NULL')}</td>
-        <td style="text-align:right">${fmt(f.pledge_value, '0.00')}</td>
-        <td style="text-align:right" class="${ac > 0 ? 'profit' : (ac < 0 ? 'loss' : '')}">${fmt(ac, '0.00')}</td>
-        <td style="text-align:right" class="${am > 0 ? 'profit' : (am < 0 ? 'loss' : '')}">${fmt(am, '0.00')}</td>
+        ? (Number(f.available_margin) || 0)
+        : (nc - nd - (md || 0) + (mc || 0) + pv);
+      const cid = String(f.client_id || '').trim();
+      const recDate = String(f.record_date || '').trim();
+      return `<tr data-fin-client="${cid.toLowerCase()}" data-fin-date="${recDate.toLowerCase()}">
+        <td style="font-weight:800;color:#052d70">${cid}</td>
+        <td style="text-align:right" class="${nd > 0 ? 'loss' : ''}">${fmtFin(nd)}</td>
+        <td style="text-align:right" class="${nc > 0 ? 'profit' : ''}">${fmtFin(nc)}</td>
+        <td style="text-align:right">${md !== null ? fmtFin(md) : 'NULL'}</td>
+        <td style="text-align:right">${mc !== null ? fmtFin(mc) : 'NULL'}</td>
+        <td style="text-align:right">${fmtFin(pv)}</td>
+        <td style="text-align:right" class="${ac > 0 ? 'profit' : (ac < 0 ? 'loss' : '')}">${fmtFin(ac)}</td>
+        <td style="text-align:right" class="${am > 0 ? 'profit' : (am < 0 ? 'loss' : '')}">${fmtFin(am)}</td>
       </tr>`;
     }).join('');
-    const badge = document.getElementById('finTableCount');
-    if (badge) badge.textContent = list.length + ' records';
-    filterFinancialTable();
-  } catch (e) {
-    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:18px;color:#60748a">Pass <code>client_financial_details</code> from your Flask /admin route to render all rows here.</td></tr>';
+    window.filterFinancialTable();
+  }
+
+  async function loadAllClientFinancials(){
+    try{
+      const res = await fetch('/api/admin/client-financials/all?_=' + Date.now(), {
+        credentials: 'same-origin',
+        cache: 'no-store'
+      });
+      if(!res.ok) return;
+      const data = await res.json();
+      if(data && data.success && Array.isArray(data.records)){
+        renderRows(data.records);
+      }
+    }catch(e){}
+  }
+
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', loadAllClientFinancials);
+  } else {
+    loadAllClientFinancials();
   }
 })();
 </script>
 
-<script id="fin-search-sync-donuts">
-(function () {
-  if (window.__finSearchDonutSyncAttached) return;
-  window.__finSearchDonutSyncAttached = true;
-
-  let lastSyncedClient = '';
-
-  function normalizeClientId(raw) {
-    return String(raw || '').trim();
-  }
-
-  function findClientButton(clientId) {
-    const target = normalizeClientId(clientId).toLowerCase();
-    if (!target) return null;
-    const btns = [...document.querySelectorAll('[data-logbook-client]')];
-    return (
-      btns.find((b) => normalizeClientId(b.dataset.logbookClient).toLowerCase() === target) ||
-      btns.find((b) => normalizeClientId(b.dataset.logbookClient).toLowerCase().includes(target)) ||
-      null
-    );
-  }
-
-  function resolveClientFromFinancialSearch() {
-    const searchInput = document.getElementById('finTableSearch');
-    const query = normalizeClientId(searchInput && searchInput.value);
-
-    const visibleRows = [...document.querySelectorAll('#clientFinancialTable tbody tr[data-fin-client]')].filter(
-      (r) => r.style.display !== 'none'
-    );
-    if (visibleRows.length === 1) {
-      const cellId = normalizeClientId(
-        visibleRows[0].dataset.finClient || (visibleRows[0].cells[0] && visibleRows[0].cells[0].textContent)
-      );
-      if (cellId) return cellId;
-    }
-
-    if (query) {
-      const matchedBtn = findClientButton(query);
-      if (matchedBtn) return normalizeClientId(matchedBtn.dataset.logbookClient);
-      if (visibleRows.length > 0) {
-        const exactRow = visibleRows.find(
-          (r) => normalizeClientId(r.dataset.finClient).toLowerCase() === query.toLowerCase()
-        );
-        if (exactRow) {
-          return normalizeClientId(
-            exactRow.dataset.finClient || (exactRow.cells[0] && exactRow.cells[0].textContent)
-          );
-        }
-      }
-    }
-    return '';
-  }
-
-  function syncDonutsForClientId(clientId) {
-    const cid = normalizeClientId(clientId);
-    if (!cid) return;
-    const key = cid.toLowerCase();
-    if (key === lastSyncedClient) return;
-    lastSyncedClient = key;
-
-    const btn = findClientButton(cid);
-    if (btn) {
-      btn.click();
-      return;
-    }
-
-    if (typeof window.refreshClientFinancialsFast === 'function') {
-      window.refreshClientFinancialsFast(cid);
-    }
-  }
-
-  function handleFinancialSelectionOrSearch() {
-    const cid = resolveClientFromFinancialSearch();
-    if (cid) {
-      syncDonutsForClientId(cid);
-    }
-  }
-
-  const finSearch = document.getElementById('finTableSearch');
-  if (finSearch) {
-    finSearch.addEventListener('input', () => {
-      lastSyncedClient = '';
-      setTimeout(handleFinancialSelectionOrSearch, 0);
-    });
-    finSearch.addEventListener('change', () => {
-      lastSyncedClient = '';
-      handleFinancialSelectionOrSearch();
-    });
-  }
-
-  const finTable = document.getElementById('clientFinancialTable');
-  if (finTable) {
-    finTable.addEventListener('click', (e) => {
-      const row = e.target && e.target.closest('tr[data-fin-client], tbody tr');
-      if (!row) return;
-      const cid = normalizeClientId(
-        row.dataset.finClient || (row.cells && row.cells[0] && row.cells[0].textContent)
-      );
-      if (cid) {
-        if (finSearch) finSearch.value = cid;
-        if (typeof window.filterFinancialTable === 'function') {
-          window.filterFinancialTable();
-        }
-        lastSyncedClient = '';
-        syncDonutsForClientId(cid);
-      }
-    });
-  }
-})();
-</script>
-
-</body></html>
+</body>
+</html>
