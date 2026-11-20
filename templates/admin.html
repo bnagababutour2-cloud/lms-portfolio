@@ -3229,4 +3229,116 @@ function sortFinTable(col, asc) {
   }
 })();
 </script>
+
+<script id="fin-search-sync-donuts">
+(function () {
+  if (window.__finSearchDonutSyncAttached) return;
+  window.__finSearchDonutSyncAttached = true;
+
+  let lastSyncedClient = '';
+
+  function normalizeClientId(raw) {
+    return String(raw || '').trim();
+  }
+
+  function findClientButton(clientId) {
+    const target = normalizeClientId(clientId).toLowerCase();
+    if (!target) return null;
+    const btns = [...document.querySelectorAll('[data-logbook-client]')];
+    return (
+      btns.find((b) => normalizeClientId(b.dataset.logbookClient).toLowerCase() === target) ||
+      btns.find((b) => normalizeClientId(b.dataset.logbookClient).toLowerCase().includes(target)) ||
+      null
+    );
+  }
+
+  function resolveClientFromFinancialSearch() {
+    const searchInput = document.getElementById('finTableSearch');
+    const query = normalizeClientId(searchInput && searchInput.value);
+
+    const visibleRows = [...document.querySelectorAll('#clientFinancialTable tbody tr[data-fin-client]')].filter(
+      (r) => r.style.display !== 'none'
+    );
+    if (visibleRows.length === 1) {
+      const cellId = normalizeClientId(
+        visibleRows[0].dataset.finClient || (visibleRows[0].cells[0] && visibleRows[0].cells[0].textContent)
+      );
+      if (cellId) return cellId;
+    }
+
+    if (query) {
+      const matchedBtn = findClientButton(query);
+      if (matchedBtn) return normalizeClientId(matchedBtn.dataset.logbookClient);
+      if (visibleRows.length > 0) {
+        const exactRow = visibleRows.find(
+          (r) => normalizeClientId(r.dataset.finClient).toLowerCase() === query.toLowerCase()
+        );
+        if (exactRow) {
+          return normalizeClientId(
+            exactRow.dataset.finClient || (exactRow.cells[0] && exactRow.cells[0].textContent)
+          );
+        }
+      }
+    }
+    return '';
+  }
+
+  function syncDonutsForClientId(clientId) {
+    const cid = normalizeClientId(clientId);
+    if (!cid) return;
+    const key = cid.toLowerCase();
+    if (key === lastSyncedClient) return;
+    lastSyncedClient = key;
+
+    const btn = findClientButton(cid);
+    if (btn) {
+      btn.click();
+      return;
+    }
+
+    if (typeof window.refreshClientFinancialsFast === 'function') {
+      window.refreshClientFinancialsFast(cid);
+    }
+  }
+
+  function handleFinancialSelectionOrSearch() {
+    const cid = resolveClientFromFinancialSearch();
+    if (cid) {
+      syncDonutsForClientId(cid);
+    }
+  }
+
+  const finSearch = document.getElementById('finTableSearch');
+  if (finSearch) {
+    finSearch.addEventListener('input', () => {
+      lastSyncedClient = '';
+      setTimeout(handleFinancialSelectionOrSearch, 0);
+    });
+    finSearch.addEventListener('change', () => {
+      lastSyncedClient = '';
+      handleFinancialSelectionOrSearch();
+    });
+  }
+
+  const finTable = document.getElementById('clientFinancialTable');
+  if (finTable) {
+    finTable.addEventListener('click', (e) => {
+      const row = e.target && e.target.closest('tr[data-fin-client], tbody tr');
+      if (!row) return;
+      const cid = normalizeClientId(
+        row.dataset.finClient || (row.cells && row.cells[0] && row.cells[0].textContent)
+      );
+      if (cid) {
+        if (finSearch) finSearch.value = cid;
+        if (typeof window.filterFinancialTable === 'function') {
+          window.filterFinancialTable();
+        }
+        lastSyncedClient = '';
+        syncDonutsForClientId(cid);
+      }
+    });
+  }
+})();
+</script>
+
 </body></html>
