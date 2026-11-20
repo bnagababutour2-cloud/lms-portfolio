@@ -1295,6 +1295,26 @@ def _load_all_holdings():
 
 
 @app.route("/", methods=["GET", "POST"])
+
+def _load_all_client_financial_details():
+    rows_db = []
+    page_size = 1000
+    start = 0
+    while True:
+        result = (
+            supabase.table("client_financial_details")
+            .select("*")
+            .order("id", desc=True)
+            .range(start, start + page_size - 1)
+            .execute()
+        )
+        page = result.data or []
+        rows_db.extend(page)
+        if len(page) < page_size:
+            break
+        start += page_size
+    return rows_db
+
 def login():
     if request.method == "GET":
         return render_template("index.html")
@@ -1411,10 +1431,16 @@ def admin_portfolio():
         # Render the existing desktop Admin page without changing its template,
         # portfolio data, API calls, or any mobile routes. The small script below
         # only limits desktop row selection to 11 rows.
+        all_financial_details = _load_all_client_financial_details()
+        client_financial_details = [
+            row for row in all_financial_details
+            if _supervisor_can_view(supervisor_id, row.get("client_id"))
+        ]
         admin_html = render_template(
             "admin.html",
             clients=clients,
             holdings=holdings,
+            client_financial_details=client_financial_details,
             supervisor_id=supervisor_id,
             supervisor_name=account.get("name"),
             can_manage=account.get("can_manage", False),
@@ -2026,6 +2052,35 @@ def _extract_client_financials(client_row):
     }
 
 
+@app.route("/api/admin/client-financials-all", methods=["GET"])
+def admin_client_financials_all():
+    """Return all supervisor-scoped client_financial_details rows for the Admin table."""
+    account, auth_error = _require_supervisor()
+    if auth_error:
+        return auth_error
+    db_error = _require_db()
+    if db_error:
+        return db_error
+    try:
+        supervisor_id = session.get("supervisor_id")
+        rows = [
+            row for row in _load_all_client_financial_details()
+            if _supervisor_can_view(supervisor_id, row.get("client_id"))
+        ]
+        return jsonify({
+            "success": True,
+            "records": rows,
+            "client_financial_details": rows,
+        })
+    except Exception as exc:
+        traceback.print_exc()
+        return jsonify({
+            "success": False,
+            "message": "Could not load client financial details.",
+            "error": str(exc),
+        }), 500
+
+
 @app.route("/api/admin/client-financials/<client_id>", methods=["GET"])
 def admin_client_financials_fast(client_id):
     """Return only the latest financial snapshot for quick hover/click refresh."""
@@ -2043,8 +2098,11 @@ def admin_client_financials_fast(client_id):
         record_date = None
         source = None
         try:
-            result = supabase.table("client_financial_details").select("*").ilike("client_id", cid).limit(500).execute()
-            rows = list(result.data or [])
+            result = supabase.table("client_financial_details").select("*").ilike("client_id", f"%{cid}%").limit(500).execute()
+            rows = [
+                r for r in (result.data or [])
+                if str(r.get("client_id") or "").strip().lower() == cid.lower()
+            ]
             if rows:
                 financial_row, record_date = _merge_latest_nonempty_financial_rows(rows)
                 source = "client_financial_details"
