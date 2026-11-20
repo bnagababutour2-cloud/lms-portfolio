@@ -880,7 +880,7 @@ body.tradelogs-split-open #tradeLogsSplitDrawer{display:flex;}
           <th style="text-align:right">MTF Cash <span class="sortbtn"><button type="button" onclick="sortFinTable(4,true)">▲</button><button type="button" onclick="sortFinTable(4,false)">▼</button></span></th>
           <th style="text-align:right">Pledge Value <span class="sortbtn"><button type="button" onclick="sortFinTable(5,true)">▲</button><button type="button" onclick="sortFinTable(5,false)">▼</button></span></th>
           <th style="text-align:right">Available Cash <span class="sortbtn"><button type="button" onclick="sortFinTable(6,true)">▲</button><button type="button" onclick="sortFinTable(6,false)">▼</button></span></th>
-          <th style="text-align:right">Available Margin <span class="sortbtn"><button type="button" onclick="sortFinTable(7,true)">▲</button><button type="button" onclick="sortFinTable(7,false)">▼</button></span></th>
+          <th style="text-align:right">Available Margin</th>
         </tr>
       </thead>
       <tbody id="clientFinancialTableBody">
@@ -1971,30 +1971,16 @@ window.setLogbookFilter=async function(filter,button){
      return '<button type="button" class="logbook-client-btn '+(selectedLogbookClient===c.id?'active':'')+'" data-logbook-client="'+safeText(c.id)+'"><span>'+safeText(c.id)+'</span><small>'+badge+'</small></button>';
    }).join('');
    list.querySelectorAll('[data-logbook-client]').forEach(b=>{
-     let hoverTimer = null;
      b.addEventListener('click',(e)=>{
        e.preventDefault();
-       if(hoverTimer) clearTimeout(hoverTimer);
-       selectLogbookClient(b.dataset.logbookClient);
-       // Refresh after selection so the response is not discarded as stale.
-       window.refreshClientFinancialsFast(b.dataset.logbookClient);
-     });
-     b.addEventListener('mouseenter',()=>{
-       const cid = b.dataset.logbookClient;
-       if(hoverTimer) clearTimeout(hoverTimer);
-       hoverTimer = setTimeout(()=>{
-         if(selectedLogbookClient!==cid) selectLogbookClient(cid,{skipServerAnalytics:true});
-         // Only request financials after selectedLogbookClient has been updated.
-         window.refreshClientFinancialsFast(cid);
-       }, 0);
-     });
-     b.addEventListener('focus',()=>{
-       const cid=b.dataset.logbookClient;
-       if(selectedLogbookClient!==cid) selectLogbookClient(cid,{skipServerAnalytics:true});
-       window.refreshClientFinancialsFast(cid);
-     });
-     b.addEventListener('mouseleave',()=>{
-       if(hoverTimer) clearTimeout(hoverTimer);
+       const clientId = String(b.dataset.logbookClient || '').trim();
+       if(!clientId) return;
+       // Rebuild all five donuts and the client summary from this exact client.
+       selectLogbookClient(clientId);
+       // Update the five financial summary values for the same selected client.
+       if(typeof window.refreshClientFinancialsFast === 'function'){
+         window.refreshClientFinancialsFast(clientId);
+       }
      });
    });
    if(!list.dataset.keyNavAttached){
@@ -2163,6 +2149,7 @@ window.setLogbookFilter=async function(filter,button){
    });
 
    document.getElementById('logbookSelectedClient').textContent='Client: '+clientId;
+   // All five desktop donuts are rebuilt below from this same selected client's portfolio rows.
    document.getElementById('logbookLastTrade').textContent='Last trade: '+lastDate+(lastDays===null?'':' ('+lastDays+' days ago)');
    document.getElementById('logbookInvestment').textContent=moneyExact(investment);
    const pnlEl=document.getElementById('logbookPnl');
@@ -3118,8 +3105,6 @@ body.bse-alerts-split-open #bseAlertsSplitDrawer{display: flex;}
     };
 
     list.addEventListener('click', e => triggerFromTarget(e.target), true);
-    list.addEventListener('mouseover', e => triggerFromTarget(e.target), true);
-    list.addEventListener('focusin', e => triggerFromTarget(e.target), true);
 
     const selEl = document.getElementById('logbookSelectedClient');
     if(selEl){
@@ -3267,6 +3252,11 @@ body.bse-alerts-split-open #bseAlertsSplitDrawer{display: flex;}
     loadAllClientFinancials();
   }
 })();
+
+// Admin page: suppress the browser right-click context menu popup.
+document.addEventListener('contextmenu', function(event){
+  event.preventDefault();
+}, true);
 </script>
 
 </body>
