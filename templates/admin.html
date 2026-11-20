@@ -3075,24 +3075,26 @@ body.bse-alerts-split-open #bseAlertsSplitDrawer{display: flex;}
   window.refreshClientFinancialsFast = async function(clientId, force = false) {
     const cid = String(clientId || '').trim();
     if (!cid) return;
+    const reqKey = cid.toLowerCase();
+    const activeKey = () => String(selectedLogbookClient || '').trim().toLowerCase();
 
     const now = Date.now();
-    const recent = financialRecent.get(cid);
+    const recent = financialRecent.get(reqKey);
 
     // 1. If we already fetched this client earlier, show their numbers IMMEDIATELY on screen
-    if (recent && recent.data && cid === String(selectedLogbookClient || '')) {
+    if (recent && recent.data && reqKey === activeKey()) {
       window.renderClientFinancialButtons(
         recent.data.financial_details || recent.data.financials || recent.data,
         recent.data.total_pnl
       );
     }
 
-    // 2. Only skip server check if we checked less than 100ms ago (instead of 450ms)
+    // 2. Only skip server check if we checked less than 100ms ago
     if (!force && recent && (now - recent.time) < 100) {
       return;
     }
 
-    if (financialInFlight.has(cid)) return financialInFlight.get(cid);
+    if (financialInFlight.has(reqKey)) return financialInFlight.get(reqKey);
 
     const seq = ++financialRefreshSeq;
     const task = (async () => {
@@ -3102,10 +3104,10 @@ body.bse-alerts-split-open #bseAlertsSplitDrawer{display: flex;}
           { credentials: 'same-origin', cache: 'no-store' }
         );
         const data = await response.json();
-        financialRecent.set(cid, { time: Date.now(), data });
+        financialRecent.set(reqKey, { time: Date.now(), data });
 
-        // Only update screen if the mouse is STILL on this same client
-        if (seq !== financialRefreshSeq || !data || !data.success || cid !== String(selectedLogbookClient || '')) {
+        // Only update screen if the mouse/selection is STILL on this same client
+        if (seq !== financialRefreshSeq || !data || !data.success || reqKey !== activeKey()) {
           return;
         }
 
@@ -3116,11 +3118,11 @@ body.bse-alerts-split-open #bseAlertsSplitDrawer{display: flex;}
       } catch (err) {
         // Keep existing values if network hiccups
       } finally {
-        financialInFlight.delete(cid);
+        financialInFlight.delete(reqKey);
       }
     })();
 
-    financialInFlight.set(cid, task);
+    financialInFlight.set(reqKey, task);
     return task;
   };
 
@@ -3206,6 +3208,8 @@ function sortFinTable(col, asc) {
         <td style="text-align:right">${fmt(f.mtf_cash, 'NULL')}</td>
       </tr>`;
     }).join('');
+    const badge = document.getElementById('finTableCount');
+    if (badge) badge.textContent = list.length + ' records';
     filterFinancialTable();
   } catch (e) {
     tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:18px;color:#60748a">Pass <code>client_financial_details</code> from your Flask /admin route to render all rows here.</td></tr>';
