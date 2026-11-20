@@ -862,34 +862,10 @@ body.tradelogs-split-open #tradeLogsSplitDrawer{display:flex;}
       <div class="sub">Ledger snapshot (Client ID, Net Debit, Net Credit, MTF Debit, MTF Cash, Pledge Value, Available Cash, Available Margin)</div>
     </div>
     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-      <div style="position:relative">
-        <button type="button" class="btn light" id="finMarginFilterToggle"
-                style="padding:7px 10px;font-size:11px" onclick="toggleFinMarginFilter(event)">FILTER ▾</button>
-        <div id="finMarginFilterMenu" style="display:none;position:absolute;right:0;top:calc(100% + 6px);z-index:1000;width:260px;max-width:85vw;background:#fff;border:1px solid #cbd9e8;border-radius:10px;padding:12px;box-shadow:0 10px 28px rgba(15,35,60,.18)">
-          <div style="font-size:12px;font-weight:800;margin-bottom:8px">Available Margin Filter</div>
-          <label for="finTableSearch" style="display:block;font-size:11px;font-weight:700;margin:7px 0 4px">Search Client ID</label>
-          <input id="finTableSearch" placeholder="Enter Client ID..." oninput="filterFinancialTable()"
-                 style="box-sizing:border-box;width:100%;padding:8px;border:1px solid #cbd9e8;border-radius:7px;font-size:12px">
-          <label for="finMarginCondition" style="display:block;font-size:11px;font-weight:700;margin:10px 0 4px">Available Margin</label>
-          <select id="finMarginCondition" onchange="updateFinMarginFilterFields();filterFinancialTable()"
-                  style="box-sizing:border-box;width:100%;padding:8px;border:1px solid #cbd9e8;border-radius:7px;font-size:12px">
-            <option value="">All amounts</option>
-            <option value="less">Less than</option>
-            <option value="greater">Greater than</option>
-            <option value="between">Between</option>
-          </select>
-          <input id="finMarginAmount1" type="number" step="any" placeholder="Enter amount"
-                 oninput="filterFinancialTable()" style="display:none;box-sizing:border-box;width:100%;margin-top:7px;padding:8px;border:1px solid #cbd9e8;border-radius:7px;font-size:12px">
-          <input id="finMarginAmount2" type="number" step="any" placeholder="To amount"
-                 oninput="filterFinancialTable()" style="display:none;box-sizing:border-box;width:100%;margin-top:7px;padding:8px;border:1px solid #cbd9e8;border-radius:7px;font-size:12px">
-          <div style="display:flex;gap:6px;margin-top:10px">
-            <button type="button" class="btn light" style="flex:1;padding:7px;font-size:11px" onclick="sortFinTable(7,false)">HIGH → LOW</button>
-            <button type="button" class="btn light" style="flex:1;padding:7px;font-size:11px" onclick="sortFinTable(7,true)">LOW → HIGH</button>
-          </div>
-          <button type="button" class="btn light" style="width:100%;margin-top:7px;padding:7px;font-size:11px"
-                  onclick="clearFinMarginFilter()">CLEAR FILTER</button>
-        </div>
-      </div>
+      <input id="finTableSearch" placeholder="Search Client ID..." oninput="filterFinancialTable()"
+             style="padding:7px 10px;border:1px solid #cbd9e8;border-radius:7px;font-size:12px;width:210px">
+      <button type="button" class="btn light" style="padding:7px 10px;font-size:11px"
+              onclick="document.getElementById('finTableSearch').value='';filterFinancialTable()">CLEAR</button>
       <span class="pill" id="finTableCount">{{ (client_financial_details|length if client_financial_details is defined and client_financial_details else (client_financial_detail|length if client_financial_detail is defined and client_financial_detail else 0)) }} records</span>
     </div>
   </div>
@@ -904,7 +880,7 @@ body.tradelogs-split-open #tradeLogsSplitDrawer{display:flex;}
           <th style="text-align:right">MTF Cash <span class="sortbtn"><button type="button" onclick="sortFinTable(4,true)">▲</button><button type="button" onclick="sortFinTable(4,false)">▼</button></span></th>
           <th style="text-align:right">Pledge Value <span class="sortbtn"><button type="button" onclick="sortFinTable(5,true)">▲</button><button type="button" onclick="sortFinTable(5,false)">▼</button></span></th>
           <th style="text-align:right">Available Cash <span class="sortbtn"><button type="button" onclick="sortFinTable(6,true)">▲</button><button type="button" onclick="sortFinTable(6,false)">▼</button></span></th>
-          <th style="text-align:right">Available Margin</th>
+          <th style="text-align:right">Available Margin <span class="sortbtn"><button type="button" onclick="sortFinTable(7,true)">▲</button><button type="button" onclick="sortFinTable(7,false)">▼</button></span></th>
         </tr>
       </thead>
       <tbody id="clientFinancialTableBody">
@@ -3194,66 +3170,19 @@ body.bse-alerts-split-open #bseAlertsSplitDrawer{display: flex;}
     return (tr.dataset.finClient || tr.cells[0]?.textContent || '').trim();
   }
 
-  window.toggleFinMarginFilter = function(event){
-    if(event) event.stopPropagation();
-    const menu = document.getElementById('finMarginFilterMenu');
-    if(!menu) return;
-    menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
-  };
-
-  window.updateFinMarginFilterFields = function(){
-    const mode = document.getElementById('finMarginCondition')?.value || '';
-    const first = document.getElementById('finMarginAmount1');
-    const second = document.getElementById('finMarginAmount2');
-    if(first) first.style.display = mode ? 'block' : 'none';
-    if(second) second.style.display = mode === 'between' ? 'block' : 'none';
-    if(first) first.placeholder = mode === 'between' ? 'From amount' : 'Enter amount';
-  };
-
-  window.clearFinMarginFilter = function(){
-    ['finTableSearch','finMarginCondition','finMarginAmount1','finMarginAmount2'].forEach(id => {
-      const el = document.getElementById(id);
-      if(el) el.value = '';
-    });
-    updateFinMarginFilterFields();
-    filterFinancialTable();
-  };
-
   window.filterFinancialTable = function(){
     const q = (document.getElementById('finTableSearch')?.value || '').trim().toLowerCase();
-    const mode = document.getElementById('finMarginCondition')?.value || '';
-    const raw1 = document.getElementById('finMarginAmount1')?.value;
-    const raw2 = document.getElementById('finMarginAmount2')?.value;
-    const amount1 = raw1 === '' || raw1 == null ? null : Number(raw1);
-    const amount2 = raw2 === '' || raw2 == null ? null : Number(raw2);
     const rows = [...document.querySelectorAll('#clientFinancialTableBody tr')].filter(r => r.id !== 'finEmptyRow');
     let visible = 0;
     rows.forEach(r => {
       const cid = getRowClientId(r).toLowerCase();
-      const marginText = (r.cells[7]?.textContent || '').trim().replace(/,/g,'').replace(/[₹−]/g, m => m === '−' ? '-' : '');
-      const margin = Number(marginText);
-      let show = !q || cid.includes(q);
-      if(show && mode){
-        if(!Number.isFinite(margin) || amount1 === null || !Number.isFinite(amount1)) show = false;
-        else if(mode === 'less') show = margin < amount1;
-        else if(mode === 'greater') show = margin > amount1;
-        else if(mode === 'between'){
-          show = amount2 !== null && Number.isFinite(amount2) &&
-            margin >= Math.min(amount1, amount2) && margin <= Math.max(amount1, amount2);
-        }
-      }
+      const show = !q || cid.includes(q);
       r.style.display = show ? '' : 'none';
       if(show) visible++;
     });
     const cnt = document.getElementById('finTableCount');
     if(cnt) cnt.textContent = visible + ' records';
   };
-
-  document.addEventListener('click', function(e){
-    const menu = document.getElementById('finMarginFilterMenu');
-    const wrap = document.getElementById('finMarginFilterToggle')?.parentElement;
-    if(menu && wrap && !wrap.contains(e.target)) menu.style.display = 'none';
-  });
 
   window.sortFinTable = function(colIdx, asc){
     const tbody = document.getElementById('clientFinancialTableBody');
