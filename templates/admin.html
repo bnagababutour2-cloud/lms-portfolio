@@ -2133,6 +2133,13 @@ window.setLogbookFilter=async function(filter,button){
 
  function selectLogbookClient(clientId, options={}){
    selectedLogbookClient=clientId;
+   // Keep Client Financial Details aligned with the client selected/hovered in Matching Clients.
+   // This only filters the existing table; it does not change financial calculations or API data.
+   const finSearchInput=document.getElementById('finTableSearch');
+   if(finSearchInput && String(finSearchInput.value||'').trim().toLowerCase()!==String(clientId||'').trim().toLowerCase()){
+     finSearchInput.value=clientId;
+     if(typeof window.filterFinancialTable==='function') window.filterFinancialTable();
+   }
    document.querySelectorAll('[data-logbook-client]').forEach(b=>b.classList.toggle('active',b.dataset.logbookClient===clientId));
    const rows=allPortfolioRows().filter(r=>(r.dataset.client||r.cells[1]?.textContent.trim()).toUpperCase()===clientId.toUpperCase());
    if(!rows.length){clearLogbookCharts();return;}
