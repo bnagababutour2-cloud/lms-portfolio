@@ -1294,8 +1294,6 @@ def _load_all_holdings():
     return rows
 
 
-@app.route("/", methods=["GET", "POST"])
-
 def _load_all_client_financial_details():
     rows_db = []
     page_size = 1000
@@ -1315,6 +1313,8 @@ def _load_all_client_financial_details():
         start += page_size
     return rows_db
 
+
+@app.route("/", methods=["GET", "POST"])
 def login():
     if request.method == "GET":
         return render_template("index.html")
