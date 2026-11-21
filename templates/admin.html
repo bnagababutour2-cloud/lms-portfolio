@@ -1019,7 +1019,6 @@ body.tradelogs-split-open #tradeLogsSplitDrawer{display:flex;}
         <div class="logbook-kpi"><small>CURRENT PROFIT</small><strong id="logbookCurrentProfitValue">₹0.00</strong></div>
         <div class="logbook-kpi"><small>CURRENT LOSS</small><strong id="logbookCurrentLossValue">₹0.00</strong></div>
         <div class="logbook-kpi"><small>PRESENT VALUE</small><strong id="logbookPresentValueValue">₹0.00</strong></div>
-        <div class="logbook-kpi"><small>CURRENT VALUE</small><strong id="logbookCurrentValueValue">₹0.00</strong></div>
         <div class="logbook-kpi"><small>TOTAL INVESTMENT</small><strong id="logbookInvestment">—</strong></div>
         <div class="logbook-kpi"><small>UNREALIZED PROFIT / LOSS</small><strong id="logbookPnl">—</strong></div>
       </div>
@@ -2092,9 +2091,7 @@ window.setLogbookFilter=async function(filter,button){
    const lossValue=document.getElementById('logbookCurrentLossValue');
    if(lossValue){lossValue.textContent='₹0.00';lossValue.style.setProperty('color','#d62828','important');}
    const pvValue=document.getElementById('logbookPresentValueValue');
-   if(pvValue) pvValue.textContent='₹0.00';
-   const currentValue=document.getElementById('logbookCurrentValueValue');
-   if(currentValue) currentValue.textContent='₹0.00';
+   if(pvValue){pvValue.textContent='₹0.00';pvValue.style.setProperty('color','#052d70','important');}
    if(typeof window.renderClientFinancialButtons === 'function'){
      window.renderClientFinancialButtons({}, 0);
    }
@@ -2233,11 +2230,7 @@ window.setLogbookFilter=async function(filter,button){
    if(pvValue){
      const presentValue=investment+pnl;
      pvValue.textContent=(presentValue<0?'−':'')+moneyExact(presentValue);
-   }
-   const currentValue=document.getElementById('logbookCurrentValueValue');
-   if(currentValue){
-     const currentAmount=investment+pnl;
-     currentValue.textContent=(currentAmount<0?'−':'')+moneyExact(currentAmount);
+     pvValue.style.setProperty('color', presentValue>investment?'#128a43':(presentValue<investment?'#d62828':'#052d70'), 'important');
    }
    document.getElementById('logbookCompanyCount').textContent=companies.size;
    // Immediate traded-days fallback calculation from DOM rows so metrics appear instantly on hover/click
