@@ -86,10 +86,10 @@
 }
 
 
-/* Six client financial metrics: one line, uniform Total Investment card styling */
+/* Seven client financial metrics: one line, uniform Total Investment card styling */
 .logbook-client-metrics-row{
   display:grid !important;
-  grid-template-columns:repeat(6,minmax(0,1fr)) !important;
+  grid-template-columns:repeat(7,minmax(0,1fr)) !important;
   gap:6px !important;
   margin:0 0 12px !important;
   align-items:stretch !important;
@@ -1012,6 +1012,7 @@ body.tradelogs-split-open #tradeLogsSplitDrawer{display:flex;}
         <div class="logbook-kpi"><small>CURRENT PROFIT</small><strong id="logbookCurrentProfitValue">₹0.00</strong></div>
         <div class="logbook-kpi"><small>CURRENT LOSS</small><strong id="logbookCurrentLossValue">₹0.00</strong></div>
         <div class="logbook-kpi"><small>PRESENT VALUE</small><strong id="logbookPresentValueValue">₹0.00</strong></div>
+        <div class="logbook-kpi"><small>CURRENT VALUE</small><strong id="logbookCurrentValueValue">₹0.00</strong></div>
         <div class="logbook-kpi"><small>TOTAL INVESTMENT</small><strong id="logbookInvestment">—</strong></div>
         <div class="logbook-kpi"><small>UNREALIZED PROFIT / LOSS</small><strong id="logbookPnl">—</strong></div>
       </div>
@@ -2080,11 +2081,13 @@ window.setLogbookFilter=async function(filter,button){
      if(e) e.innerHTML='<div class="logbook-empty">No chart data</div>';
    });
    const profValue=document.getElementById('logbookCurrentProfitValue');
-   if(profValue) profValue.textContent='₹0.00';
+   if(profValue){profValue.textContent='₹0.00';profValue.style.color='#128a43';}
    const lossValue=document.getElementById('logbookCurrentLossValue');
-   if(lossValue) lossValue.textContent='₹0.00';
+   if(lossValue){lossValue.textContent='₹0.00';lossValue.style.color='#d62828';}
    const pvValue=document.getElementById('logbookPresentValueValue');
    if(pvValue) pvValue.textContent='₹0.00';
+   const currentValue=document.getElementById('logbookCurrentValueValue');
+   if(currentValue) currentValue.textContent='₹0.00';
    if(typeof window.renderClientFinancialButtons === 'function'){
      window.renderClientFinancialButtons({}, 0);
    }
@@ -2218,11 +2221,16 @@ window.setLogbookFilter=async function(filter,button){
    document.getElementById('logbookInvestment').textContent=moneyExact(investment);
    const pnlEl=document.getElementById('logbookPnl');
    pnlEl.textContent=(pnl>=0?'+':'−')+moneyExact(pnl);
-   pnlEl.style.color=pnl>=0?'#128a43':'#d62828';
+   pnlEl.style.color=pnl>1?'#128a43':'#d62828';
    const pvValue=document.getElementById('logbookPresentValueValue');
    if(pvValue){
      const presentValue=investment+pnl;
      pvValue.textContent=(presentValue<0?'−':'')+moneyExact(presentValue);
+   }
+   const currentValue=document.getElementById('logbookCurrentValueValue');
+   if(currentValue){
+     const currentAmount=investment+pnl;
+     currentValue.textContent=(currentAmount<0?'−':'')+moneyExact(currentAmount);
    }
    document.getElementById('logbookCompanyCount').textContent=companies.size;
    // Immediate traded-days fallback calculation from DOM rows so metrics appear instantly on hover/click
@@ -2256,9 +2264,9 @@ window.setLogbookFilter=async function(filter,button){
    const totalProfitAmt = [...companies.values()].filter(x => x.pnl > 0).reduce((s, x) => s + x.pnl, 0);
    const totalLossAmt = [...companies.values()].filter(x => x.pnl < 0).reduce((s, x) => s + Math.abs(x.pnl), 0);
    const profValue = document.getElementById('logbookCurrentProfitValue');
-   if (profValue) profValue.textContent = '+' + moneyExact(totalProfitAmt);
+   if (profValue) { profValue.textContent = '+' + moneyExact(totalProfitAmt); profValue.style.color = '#128a43'; }
    const lossValue = document.getElementById('logbookCurrentLossValue');
-   if (lossValue) lossValue.textContent = '−' + moneyExact(totalLossAmt);
+   if (lossValue) { lossValue.textContent = '−' + moneyExact(totalLossAmt); lossValue.style.color = '#d62828'; }
 
    const byInvestment=[...companies.values()].sort((a,b)=>b.investment-a.investment).map(x=>({name:x.name,value:x.investment}));
    const byProfit=[...companies.values()].filter(x=>x.pnl>0).sort((a,b)=>b.pnl-a.pnl).map(x=>({name:x.name,value:x.pnl}));
@@ -3415,10 +3423,10 @@ function sortFinTable(col, asc) {
 
 
 <style id="force-six-client-metric-boxes-single-line">
-/* Keep all six client metric cards in one horizontal row. */
+/* Keep all seven client metric cards in one horizontal row. */
 #logbookTradingDays.logbook-client-metrics-row{
   display:grid !important;
-  grid-template-columns:repeat(6,minmax(0,1fr)) !important;
+  grid-template-columns:repeat(7,minmax(0,1fr)) !important;
   grid-auto-flow:column !important;
   gap:6px !important;
   width:100% !important;
@@ -3432,7 +3440,7 @@ function sortFinTable(col, asc) {
 }
 @media(max-width:700px){
   #logbookTradingDays.logbook-client-metrics-row{
-    grid-template-columns:repeat(6,minmax(125px,1fr)) !important;
+    grid-template-columns:repeat(7,minmax(125px,1fr)) !important;
   }
 }
 </style>
