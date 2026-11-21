@@ -2136,7 +2136,13 @@ window.setLogbookFilter=async function(filter,button){
    // Keep Client Financial Details aligned with the client selected/hovered in Matching Clients.
    // This only filters the existing table; it does not change financial calculations or API data.
    const finSearchInput=document.getElementById('finTableSearch');
-   if(finSearchInput && String(finSearchInput.value||'').trim().toLowerCase()!==String(clientId||'').trim().toLowerCase()){
+   // Only filter Client Financial Details when this client actually has rows there.
+   // If no matching financial row exists, leave the current table/search untouched;
+   // filtering to zero rows can collapse the table area and cause page scroll-jumping.
+   const finClientId=String(clientId||'').trim().toLowerCase();
+   const hasFinancialRows=finClientId && [...document.querySelectorAll('#clientFinancialTable tbody tr[data-fin-client]')]
+     .some(r=>String(r.dataset.finClient||'').trim().toLowerCase()===finClientId);
+   if(finSearchInput && hasFinancialRows && String(finSearchInput.value||'').trim().toLowerCase()!==finClientId){
      finSearchInput.value=clientId;
      if(typeof window.filterFinancialTable==='function') window.filterFinancialTable();
    }
