@@ -2133,18 +2133,15 @@ window.setLogbookFilter=async function(filter,button){
 
  function selectLogbookClient(clientId, options={}){
    selectedLogbookClient=clientId;
-   // Keep Client Financial Details aligned with the client selected/hovered in Matching Clients.
-   // This only filters the existing table; it does not change financial calculations or API data.
+   // Always sync Client Financial Details to the hovered/selected client.
+   // An exact client-ID match shows that client's rows; no match shows a blank state.
    const finSearchInput=document.getElementById('finTableSearch');
-   // Only filter Client Financial Details when this client actually has rows there.
-   // If no matching financial row exists, leave the current table/search untouched;
-   // filtering to zero rows can collapse the table area and cause page scroll-jumping.
-   const finClientId=String(clientId||'').trim().toLowerCase();
-   const hasFinancialRows=finClientId && [...document.querySelectorAll('#clientFinancialTable tbody tr[data-fin-client]')]
-     .some(r=>String(r.dataset.finClient||'').trim().toLowerCase()===finClientId);
-   if(finSearchInput && hasFinancialRows && String(finSearchInput.value||'').trim().toLowerCase()!==finClientId){
-     finSearchInput.value=clientId;
-     if(typeof window.filterFinancialTable==='function') window.filterFinancialTable();
+   const finClientId=String(clientId||'').trim();
+   if(finSearchInput){
+     finSearchInput.value=finClientId;
+     if(typeof window.filterFinancialTable==='function'){
+       window.filterFinancialTable(finClientId, true);
+     }
    }
    document.querySelectorAll('[data-logbook-client]').forEach(b=>b.classList.toggle('active',b.dataset.logbookClient===clientId));
    const rows=allPortfolioRows().filter(r=>(r.dataset.client||r.cells[1]?.textContent.trim()).toUpperCase()===clientId.toUpperCase());
@@ -3155,17 +3152,38 @@ body.bse-alerts-split-open #bseAlertsSplitDrawer{display: flex;}
 
 </script>
 <script id="client-financial-full-table-script">
-function filterFinancialTable() {
-  const q = (document.getElementById('finTableSearch')?.value || '').trim().toLowerCase();
-  const rows = document.querySelectorAll('#clientFinancialTable tbody tr[data-fin-client]');
+function filterFinancialTable(clientId = null, exactClientMatch = false) {
+  const q = String(clientId !== null ? clientId : (document.getElementById('finTableSearch')?.value || '')).trim().toLowerCase();
+  const tbody = document.getElementById('clientFinancialTableBody');
+  if (!tbody) return;
+
+  const rows = [...tbody.querySelectorAll('tr[data-fin-client]')];
   let visible = 0;
   rows.forEach(r => {
-    const match = !q ||
-      (r.dataset.finClient || '').includes(q) ||
-      (r.dataset.finDate || '').includes(q);
+    const rowClient = String(r.dataset.finClient || '').trim().toLowerCase();
+    const match = exactClientMatch
+      ? (!!q && rowClient === q)
+      : (!q || rowClient.includes(q) || String(r.dataset.finDate || '').toLowerCase().includes(q));
     r.style.display = match ? '' : 'none';
     if (match) visible++;
   });
+
+  // Keep source rows in the DOM so hovering another client can show them again.
+  // This message is only a visual empty state; it is removed as soon as a match exists.
+  let emptyRow = document.getElementById('finNoClientMatchRow');
+  if (exactClientMatch && q && visible === 0) {
+    if (!emptyRow) {
+      emptyRow = document.createElement('tr');
+      emptyRow.id = 'finNoClientMatchRow';
+      emptyRow.innerHTML = '<td colspan="8" style="text-align:center;padding:18px;color:#60748a"></td>';
+      tbody.appendChild(emptyRow);
+    }
+    emptyRow.querySelector('td').textContent = 'No financial details found for Client ID: ' + q.toUpperCase();
+    emptyRow.style.display = '';
+  } else if (emptyRow) {
+    emptyRow.remove();
+  }
+
   const badge = document.getElementById('finTableCount');
   if (badge) badge.textContent = visible + ' records';
 }
