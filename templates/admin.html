@@ -279,6 +279,13 @@
 }
 </style>
 
+<style id="lms-client-metric-value-colors">
+/* Keep the metric AMOUNT text colors visible despite shared KPI styles. */
+#logbookCurrentProfitValue { color: #128a43 !important; }
+#logbookCurrentLossValue { color: #d62828 !important; }
+#logbookPnl { color: #d62828 !important; }
+</style>
+
 <style id="lms-7-improvements-style">
 /* Improvement 3: 7 Metric Boxes in One Single Line & Compact Size */
 .logbook-metrics-7{
@@ -2081,9 +2088,9 @@ window.setLogbookFilter=async function(filter,button){
      if(e) e.innerHTML='<div class="logbook-empty">No chart data</div>';
    });
    const profValue=document.getElementById('logbookCurrentProfitValue');
-   if(profValue){profValue.textContent='₹0.00';profValue.style.color='#128a43';}
+   if(profValue){profValue.textContent='₹0.00';profValue.style.setProperty('color','#128a43','important');}
    const lossValue=document.getElementById('logbookCurrentLossValue');
-   if(lossValue){lossValue.textContent='₹0.00';lossValue.style.color='#d62828';}
+   if(lossValue){lossValue.textContent='₹0.00';lossValue.style.setProperty('color','#d62828','important');}
    const pvValue=document.getElementById('logbookPresentValueValue');
    if(pvValue) pvValue.textContent='₹0.00';
    const currentValue=document.getElementById('logbookCurrentValueValue');
@@ -2221,7 +2228,7 @@ window.setLogbookFilter=async function(filter,button){
    document.getElementById('logbookInvestment').textContent=moneyExact(investment);
    const pnlEl=document.getElementById('logbookPnl');
    pnlEl.textContent=(pnl>=0?'+':'−')+moneyExact(pnl);
-   pnlEl.style.color=pnl>1?'#128a43':'#d62828';
+   pnlEl.style.setProperty('color', pnl>1?'#128a43':'#d62828', 'important');
    const pvValue=document.getElementById('logbookPresentValueValue');
    if(pvValue){
      const presentValue=investment+pnl;
@@ -2264,9 +2271,9 @@ window.setLogbookFilter=async function(filter,button){
    const totalProfitAmt = [...companies.values()].filter(x => x.pnl > 0).reduce((s, x) => s + x.pnl, 0);
    const totalLossAmt = [...companies.values()].filter(x => x.pnl < 0).reduce((s, x) => s + Math.abs(x.pnl), 0);
    const profValue = document.getElementById('logbookCurrentProfitValue');
-   if (profValue) { profValue.textContent = '+' + moneyExact(totalProfitAmt); profValue.style.color = '#128a43'; }
+   if (profValue) { profValue.textContent = '+' + moneyExact(totalProfitAmt); profValue.style.setProperty('color', '#128a43', 'important'); }
    const lossValue = document.getElementById('logbookCurrentLossValue');
-   if (lossValue) { lossValue.textContent = '−' + moneyExact(totalLossAmt); lossValue.style.color = '#d62828'; }
+   if (lossValue) { lossValue.textContent = '−' + moneyExact(totalLossAmt); lossValue.style.setProperty('color', '#d62828', 'important'); }
 
    const byInvestment=[...companies.values()].sort((a,b)=>b.investment-a.investment).map(x=>({name:x.name,value:x.investment}));
    const byProfit=[...companies.values()].filter(x=>x.pnl>0).sort((a,b)=>b.pnl-a.pnl).map(x=>({name:x.name,value:x.pnl}));
