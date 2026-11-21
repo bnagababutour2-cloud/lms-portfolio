@@ -739,38 +739,20 @@ body.tradelogs-split-open #tradeLogsSplitDrawer{display:flex;}
 }
 </style>
 
-<style id="logbook-overview-single-row-compact">
-/* Keep client summary, last-trade badge and all seven KPI tiles in one desktop row. */
-.logbook-overview-inline{
-  display:grid;
-  grid-template-columns:minmax(0,.82fr) minmax(0,1.12fr) minmax(0,1.12fr) minmax(0,1.12fr) minmax(0,.92fr) minmax(0,1.02fr) minmax(0,1.25fr) repeat(3,minmax(0,.78fr)) repeat(2,minmax(0,.82fr));
-  gap:3px;
-  align-items:stretch;
-  width:100%;
-  min-width:0;
-  margin-bottom:8px;
-  white-space:nowrap;
+<style id="logbook-filter-inline-client-stats">
+@media (min-width:701px){
+  #lms-recency-bar{display:flex;flex-wrap:nowrap;align-items:center;gap:5px;min-width:0}
+  #lms-recency-bar>.btn{flex:0 0 auto;padding:6px 8px;font-size:9px;line-height:1.1;border-radius:5px;white-space:nowrap}
+  #lms-recency-bar>span:first-child{flex:0 0 auto;font-size:10px!important}
+  .logbook-inline-stats{display:flex;align-items:center;gap:4px;flex:1 1 auto;min-width:0}
+  .logbook-inline-stat{display:flex;flex-direction:column;justify-content:center;min-width:0;flex:1 1 0;padding:3px 5px;border:1px solid #d8e4f0;border-radius:5px;background:#fff;line-height:1.05}
+  .logbook-inline-stat small{font-size:7.5px;font-weight:900;color:#60748a;white-space:nowrap}
+  .logbook-inline-stat strong{font-size:10px;font-weight:900;color:#052d70;white-space:nowrap;margin-top:2px}
+  .logbook-inline-stat .logbook-days-value:after{content:' days';font-size:7px;font-weight:700;color:#60748a}
+  #logbookTradingDays{grid-template-columns:repeat(2,minmax(0,1fr))!important}
 }
-.logbook-overview-inline>.logbook-summary,
-.logbook-overview-inline>.logbook-summary>div,
-.logbook-overview-inline>#logbookTradingDays{display:contents!important}
-.logbook-overview-inline #logbookSelectedClient,
-.logbook-overview-inline #logbookCurrentProfitBtn,
-.logbook-overview-inline #logbookCurrentLossBtn,
-.logbook-overview-inline #logbookPresentValueBtn,
-.logbook-overview-inline #logbookLastTrade,
-.logbook-overview-inline .logbook-kpi{min-width:0!important;width:100%;max-width:100%;margin:0!important;align-self:stretch;box-sizing:border-box}
-.logbook-overview-inline #logbookSelectedClient{font-size:8px!important;line-height:1.1;overflow:hidden;text-overflow:ellipsis;align-self:center}
-.logbook-overview-inline #logbookCurrentProfitBtn,
-.logbook-overview-inline #logbookCurrentLossBtn,
-.logbook-overview-inline #logbookPresentValueBtn{padding:3px 3px!important;font-size:7px!important;line-height:1.1!important;border-radius:4px!important;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.logbook-overview-inline #logbookLastTrade{padding:4px 3px!important;font-size:7px!important;line-height:1.1!important;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;align-self:center}
-.logbook-overview-inline .logbook-kpi{padding:4px 4px!important;border-radius:5px!important;display:flex;flex-direction:column;justify-content:center;overflow:hidden}
-.logbook-overview-inline .logbook-kpi small{font-size:6.5px!important;line-height:1.1!important;letter-spacing:0!important;white-space:nowrap;overflow:hidden;text-overflow:clip}
-.logbook-overview-inline .logbook-kpi strong{font-size:8px!important;line-height:1.1!important;margin-top:2px!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-@media(max-width:700px){.logbook-overview-inline{display:none!important}}
+@media(max-width:700px){.logbook-inline-stats{display:none}}
 </style>
-
 </head>
 <body>
 <header class="top"><div class="header-overlay"><div class="header-subtitle">ADMIN / SUPERVISOR PORTFOLIO &amp; DAILY CONTROL PANEL</div><div class="header-login">Logged in: {{ supervisor_name }} ({{ supervisor_id }}){% if not can_manage %} · VIEW ONLY{% endif %}</div></div></header>
@@ -947,7 +929,7 @@ body.tradelogs-split-open #tradeLogsSplitDrawer{display:flex;}
 </div>
 
 <div class="card logbook-desktop-card" id="tradeLogbookCard">
-  <div class="logbook-filter-row" id="lms-recency-bar" aria-label="Trade recency logbook filters" style="margin-bottom:12px;padding:9px 12px;background:#f4f8fd;border:1px solid #d8e4f0;border-radius:9px"><span style="font-size:11px;font-weight:900;color:#052d70;margin-right:4px">Logbook:</span><button type="button" class="btn light" data-logbook-filter="all" onclick="setLogbookFilter('all',this)">ALL</button><button type="button" class="btn light" data-logbook-filter="0-9" onclick="setLogbookFilter('0-9',this)">TRADED IN LAST 10 DAYS</button><button type="button" class="btn light" data-logbook-filter="10-29" onclick="setLogbookFilter('10-29',this)">10–30 DAYS</button><button type="button" class="btn light" data-logbook-filter="30-59" onclick="setLogbookFilter('30-59',this)">30–60 DAYS</button><button type="button" class="btn light" data-logbook-filter="60+" onclick="setLogbookFilter('60+',this)">ABOVE 60 DAYS</button><button type="button" class="btn light" onclick="clearLogbookFilterState()">CLEAR</button></div>
+  <div class="logbook-filter-row" id="lms-recency-bar" aria-label="Trade recency logbook filters" style="margin-bottom:12px;padding:7px 9px;background:#f4f8fd;border:1px solid #d8e4f0;border-radius:9px;flex-wrap:nowrap;white-space:nowrap;overflow-x:auto;gap:5px;align-items:center"><span style="font-size:10px;font-weight:900;color:#052d70;margin-right:2px">Logbook:</span><button type="button" class="btn light" data-logbook-filter="all" onclick="setLogbookFilter('all',this)">ALL</button><button type="button" class="btn light" data-logbook-filter="0-9" onclick="setLogbookFilter('0-9',this)">TRADED IN LAST 10 DAYS</button><button type="button" class="btn light" data-logbook-filter="10-29" onclick="setLogbookFilter('10-29',this)">10–30 DAYS</button><button type="button" class="btn light" data-logbook-filter="30-59" onclick="setLogbookFilter('30-59',this)">30–60 DAYS</button><button type="button" class="btn light" data-logbook-filter="60+" onclick="setLogbookFilter('60+',this)">ABOVE 60 DAYS</button><button type="button" class="btn light" onclick="clearLogbookFilterState()">CLEAR</button><div class="logbook-inline-stats" aria-label="Client trading statistics"><div class="logbook-inline-stat"><small>COMPANIES HELD</small><strong id="logbookCompanyCount">—</strong></div><div class="logbook-inline-stat"><small>THIS WEEK</small><strong id="daysWeek" class="logbook-days-value">—</strong></div><div class="logbook-inline-stat"><small>THIS MONTH</small><strong id="daysMonth" class="logbook-days-value">—</strong></div><div class="logbook-inline-stat"><small>THIS QUARTER</small><strong id="daysQuarter" class="logbook-days-value">—</strong></div><div class="logbook-inline-stat"><small>FINANCIAL YEAR</small><strong id="daysFY" class="logbook-days-value">—</strong></div></div><span class="pill" id="logbookLastTrade" style="padding:4px 7px;font-size:9px;line-height:1.1;white-space:nowrap;flex:0 0 auto">Last trade: —</span></div>
   <div class="logbook-summary" style="display:flex;align-items:center;justify-content:flex-start;gap:10px;flex-wrap:nowrap;margin-bottom:10px">
     <div style="flex:0 0 auto">
       <div class="title" style="margin:0 0 2px;font-size:15px">Trade Logbook &amp; Client Analytics</div>
@@ -981,25 +963,17 @@ body.tradelogs-split-open #tradeLogsSplitDrawer{display:flex;}
   <div class="logbook-layout">
     <div class="logbook-client-panel"><b style="color:#052d70;font-size:13px">Matching Clients</b><div class="sub" style="margin-top:4px">Search or select a client code to view portfolio analytics.</div><div class="logbook-client-search-row"><input id="logbookClientSearchInput" type="text" placeholder="Client ID or name..." onkeydown="if(event.key==='Enter'){event.preventDefault();window.searchLogbookClients();}"><button type="button" class="btn" id="logbookClientSearchBtn" onclick="window.searchLogbookClients()">SEARCH</button></div><div class="logbook-client-list" id="logbookClientList"><div class="logbook-empty">Select a trade-recency filter above.</div></div></div>
     <div class="logbook-chart-panel">
-      <div class="logbook-overview-inline">
       <div class="logbook-summary logbook-single-line-header" style="display:flex;align-items:center;justify-content:space-between;gap:4px;flex-wrap:nowrap;overflow-x:hidden;white-space:nowrap;width:100%;box-sizing:border-box">
   <div style="display:flex;align-items:center;gap:4px;flex-wrap:nowrap;min-width:0;flex:1 1 auto">
     <strong id="logbookSelectedClient" style="font-size:11.5px;white-space:nowrap;flex-shrink:0">No client selected</strong>
     <button type="button" class="btn green" id="logbookCurrentProfitBtn" style="padding:3px 6px;font-size:9px;line-height:1.15;border-radius:5px;white-space:nowrap;cursor:default;min-width:0;overflow:hidden;text-overflow:ellipsis">Current Profit: ₹0.00</button>
     <button type="button" class="btn red" id="logbookCurrentLossBtn" style="padding:3px 6px;font-size:9px;line-height:1.15;border-radius:5px;white-space:nowrap;cursor:default;min-width:0;overflow:hidden;text-overflow:ellipsis">Current Loss: ₹0.00</button>
     <button type="button" class="btn" id="logbookPresentValueBtn" style="padding:3px 6px;font-size:9px;line-height:1.15;border-radius:5px;white-space:nowrap;cursor:default;min-width:0;overflow:hidden;text-overflow:ellipsis">Present Value: ₹0.00</button>
-    <span class="pill" id="logbookLastTrade" style="padding:7px 11px;font-size:11px;line-height:1.15;white-space:nowrap;margin-left:auto">Last trade: —</span>
   </div>
 </div>
 <div class="logbook-metrics-7" id="logbookTradingDays">
         <div class="logbook-kpi"><small>TOTAL INVESTMENT</small><strong id="logbookInvestment">—</strong></div>
         <div class="logbook-kpi"><small>UNREALIZED PROFIT / LOSS</small><strong id="logbookPnl">—</strong></div>
-        <div class="logbook-kpi"><small>COMPANIES HELD</small><strong id="logbookCompanyCount">—</strong></div>
-        <div class="logbook-kpi"><small>THIS WEEK</small><strong id="daysWeek">—</strong></div>
-        <div class="logbook-kpi"><small>THIS MONTH</small><strong id="daysMonth">—</strong></div>
-        <div class="logbook-kpi"><small>THIS QUARTER</small><strong id="daysQuarter">—</strong></div>
-        <div class="logbook-kpi"><small>FINANCIAL YEAR</small><strong id="daysFY">—</strong></div>
-      </div>
       </div>
       <div class="logbook-charts" style="grid-template-columns:repeat(3,minmax(0,1fr))">
         <section class="logbook-chart"><h4>1. Investment by Company</h4><div class="logbook-donut-wrap"><div class="logbook-donut" id="logbookInvestmentDonut"><div class="logbook-donut-center"><b>—</b><small>Investment</small></div></div></div><div class="logbook-legend" id="logbookInvestmentLegend"><div class="logbook-empty">Select a client.</div></div></section>
