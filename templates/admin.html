@@ -85,6 +85,50 @@
   line-height: 1.15 !important;
 }
 
+
+/* Six client financial metrics: one line, uniform Total Investment card styling */
+.logbook-client-metrics-row{
+  display:grid !important;
+  grid-template-columns:repeat(6,minmax(0,1fr)) !important;
+  gap:6px !important;
+  margin:0 0 12px !important;
+  align-items:stretch !important;
+}
+.logbook-client-metrics-row .logbook-kpi{
+  min-width:0 !important;
+  padding:6px 7px !important;
+  background:#fff !important;
+  border:1px solid #d8e4f0 !important;
+  border-radius:8px !important;
+  display:flex !important;
+  flex-direction:column !important;
+  justify-content:center !important;
+  overflow:hidden !important;
+}
+.logbook-client-metrics-row .logbook-kpi small{
+  display:block !important;
+  color:#60748a !important;
+  font-size:8px !important;
+  font-weight:900 !important;
+  letter-spacing:0 !important;
+  white-space:nowrap !important;
+  overflow:hidden !important;
+  text-overflow:clip !important;
+}
+.logbook-client-metrics-row .logbook-kpi strong{
+  display:block !important;
+  margin-top:3px !important;
+  color:#052d70 !important;
+  font-size:10px !important;
+  line-height:1.15 !important;
+  white-space:nowrap !important;
+  overflow:hidden !important;
+  text-overflow:clip !important;
+}
+@media(max-width:700px){
+  .logbook-client-metrics-row{grid-template-columns:repeat(2,minmax(0,1fr)) !important;}
+}
+
 </style>
 
 <style id="mobile-only-summary-fit-fix">
@@ -963,15 +1007,11 @@ body.tradelogs-split-open #tradeLogsSplitDrawer{display:flex;}
   <div class="logbook-layout">
     <div class="logbook-client-panel"><b style="color:#052d70;font-size:13px">Matching Clients</b><div class="sub" style="margin-top:4px">Search or select a client code to view portfolio analytics.</div><div class="logbook-client-search-row"><input id="logbookClientSearchInput" type="text" placeholder="Client ID or name..." onkeydown="if(event.key==='Enter'){event.preventDefault();window.searchLogbookClients();}"><button type="button" class="btn" id="logbookClientSearchBtn" onclick="window.searchLogbookClients()">SEARCH</button></div><div class="logbook-client-list" id="logbookClientList"><div class="logbook-empty">Select a trade-recency filter above.</div></div></div>
     <div class="logbook-chart-panel">
-      <div class="logbook-summary logbook-single-line-header" style="display:flex;align-items:center;justify-content:space-between;gap:4px;flex-wrap:nowrap;overflow-x:hidden;white-space:nowrap;width:100%;box-sizing:border-box">
-  <div style="display:flex;align-items:center;gap:4px;flex-wrap:nowrap;min-width:0;flex:1 1 auto">
-    <strong id="logbookSelectedClient" style="font-size:11.5px;white-space:nowrap;flex-shrink:0">No client selected</strong>
-    <button type="button" class="btn green" id="logbookCurrentProfitBtn" style="padding:3px 6px;font-size:9px;line-height:1.15;border-radius:5px;white-space:nowrap;cursor:default;min-width:0;overflow:hidden;text-overflow:ellipsis">Current Profit: ₹0.00</button>
-    <button type="button" class="btn red" id="logbookCurrentLossBtn" style="padding:3px 6px;font-size:9px;line-height:1.15;border-radius:5px;white-space:nowrap;cursor:default;min-width:0;overflow:hidden;text-overflow:ellipsis">Current Loss: ₹0.00</button>
-    <button type="button" class="btn" id="logbookPresentValueBtn" style="padding:3px 6px;font-size:9px;line-height:1.15;border-radius:5px;white-space:nowrap;cursor:default;min-width:0;overflow:hidden;text-overflow:ellipsis">Present Value: ₹0.00</button>
-  </div>
-</div>
-<div class="logbook-metrics-7" id="logbookTradingDays">
+      <div class="logbook-metrics-7 logbook-client-metrics-row" id="logbookTradingDays">
+        <div class="logbook-kpi logbook-client-kpi"><small>CLIENT</small><strong id="logbookSelectedClient">No client selected</strong></div>
+        <div class="logbook-kpi"><small>CURRENT PROFIT</small><strong id="logbookCurrentProfitValue">₹0.00</strong></div>
+        <div class="logbook-kpi"><small>CURRENT LOSS</small><strong id="logbookCurrentLossValue">₹0.00</strong></div>
+        <div class="logbook-kpi"><small>PRESENT VALUE</small><strong id="logbookPresentValueValue">₹0.00</strong></div>
         <div class="logbook-kpi"><small>TOTAL INVESTMENT</small><strong id="logbookInvestment">—</strong></div>
         <div class="logbook-kpi"><small>UNREALIZED PROFIT / LOSS</small><strong id="logbookPnl">—</strong></div>
       </div>
@@ -2039,12 +2079,12 @@ window.setLogbookFilter=async function(filter,button){
      const e=document.getElementById(id);
      if(e) e.innerHTML='<div class="logbook-empty">No chart data</div>';
    });
-   const profBtn=document.getElementById('logbookCurrentProfitBtn');
-   if(profBtn) profBtn.textContent='Current Profit: ₹0.00';
-   const lossBtn=document.getElementById('logbookCurrentLossBtn');
-   if(lossBtn) lossBtn.textContent='Current Loss: ₹0.00';
-   const pvBtn=document.getElementById('logbookPresentValueBtn');
-   if(pvBtn) pvBtn.textContent='Present Value: ₹0.00';
+   const profValue=document.getElementById('logbookCurrentProfitValue');
+   if(profValue) profValue.textContent='₹0.00';
+   const lossValue=document.getElementById('logbookCurrentLossValue');
+   if(lossValue) lossValue.textContent='₹0.00';
+   const pvValue=document.getElementById('logbookPresentValueValue');
+   if(pvValue) pvValue.textContent='₹0.00';
    if(typeof window.renderClientFinancialButtons === 'function'){
      window.renderClientFinancialButtons({}, 0);
    }
@@ -2179,10 +2219,10 @@ window.setLogbookFilter=async function(filter,button){
    const pnlEl=document.getElementById('logbookPnl');
    pnlEl.textContent=(pnl>=0?'+':'−')+moneyExact(pnl);
    pnlEl.style.color=pnl>=0?'#128a43':'#d62828';
-   const pvBtn=document.getElementById('logbookPresentValueBtn');
-   if(pvBtn){
+   const pvValue=document.getElementById('logbookPresentValueValue');
+   if(pvValue){
      const presentValue=investment+pnl;
-     pvBtn.textContent='Present Value: '+(presentValue<0?'−':'')+moneyExact(presentValue);
+     pvValue.textContent=(presentValue<0?'−':'')+moneyExact(presentValue);
    }
    document.getElementById('logbookCompanyCount').textContent=companies.size;
    // Immediate traded-days fallback calculation from DOM rows so metrics appear instantly on hover/click
@@ -2215,10 +2255,10 @@ window.setLogbookFilter=async function(filter,button){
    });
    const totalProfitAmt = [...companies.values()].filter(x => x.pnl > 0).reduce((s, x) => s + x.pnl, 0);
    const totalLossAmt = [...companies.values()].filter(x => x.pnl < 0).reduce((s, x) => s + Math.abs(x.pnl), 0);
-   const profBtn = document.getElementById('logbookCurrentProfitBtn');
-   if (profBtn) profBtn.textContent = 'Current Profit: +' + moneyExact(totalProfitAmt);
-   const lossBtn = document.getElementById('logbookCurrentLossBtn');
-   if (lossBtn) lossBtn.textContent = 'Current Loss: −' + moneyExact(totalLossAmt);
+   const profValue = document.getElementById('logbookCurrentProfitValue');
+   if (profValue) profValue.textContent = '+' + moneyExact(totalProfitAmt);
+   const lossValue = document.getElementById('logbookCurrentLossValue');
+   if (lossValue) lossValue.textContent = '−' + moneyExact(totalLossAmt);
 
    const byInvestment=[...companies.values()].sort((a,b)=>b.investment-a.investment).map(x=>({name:x.name,value:x.investment}));
    const byProfit=[...companies.values()].filter(x=>x.pnl>0).sort((a,b)=>b.pnl-a.pnl).map(x=>({name:x.name,value:x.pnl}));
