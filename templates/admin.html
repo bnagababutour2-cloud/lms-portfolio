@@ -815,31 +815,6 @@ body.tradelogs-split-open #tradeLogsSplitDrawer{display:flex;}
 }
 </style>
 
-
-<style id="portfolio-product-exchange-after-buy-layout-only">
-/* Visual column order only. DOM cell order stays unchanged for all existing JS logic. */
-#portfolioTable{width:max-content!important;min-width:1159px!important;border-collapse:separate!important;border-spacing:0!important}
-#portfolioTable thead,#portfolioTable tbody{display:block!important}
-#portfolioTable tr{display:flex!important;width:max-content;min-width:100%;}
-#portfolioTable th,#portfolioTable td{display:block!important;box-sizing:border-box!important;flex:0 0 auto!important;min-width:0!important}
-#portfolioTable th:nth-child(1),#portfolioTable td:nth-child(1){order:1;width:38px!important}
-#portfolioTable th:nth-child(2),#portfolioTable td:nth-child(2){order:2;width:105px!important}
-#portfolioTable th:nth-child(3),#portfolioTable td:nth-child(3){order:3;width:115px!important}
-#portfolioTable th:nth-child(4),#portfolioTable td:nth-child(4){order:8;width:78px!important}
-#portfolioTable th:nth-child(5),#portfolioTable td:nth-child(5){order:9;width:78px!important}
-#portfolioTable th:nth-child(6),#portfolioTable td:nth-child(6){order:4;width:95px!important}
-#portfolioTable th:nth-child(7),#portfolioTable td:nth-child(7){order:5;width:75px!important}
-#portfolioTable th:nth-child(8),#portfolioTable td:nth-child(8){order:6;width:75px!important}
-#portfolioTable th:nth-child(9),#portfolioTable td:nth-child(9){order:7;width:90px!important}
-#portfolioTable th:nth-child(10),#portfolioTable td:nth-child(10){order:10;width:85px!important}
-#portfolioTable th:nth-child(11),#portfolioTable td:nth-child(11){order:11;width:100px!important}
-#portfolioTable th:nth-child(12),#portfolioTable td:nth-child(12){order:12;width:95px!important}
-#portfolioTable th:nth-child(13),#portfolioTable td:nth-child(13){order:13;width:130px!important}
-#portfolioTable th{white-space:nowrap!important}
-#portfolioTable td{white-space:nowrap!important;overflow:hidden;text-overflow:ellipsis}
-#portfolioTable .action{white-space:nowrap}
-</style>
-
 </head>
 <body>
 <header class="top"><div class="header-overlay"><div class="header-subtitle">ADMIN / SUPERVISOR PORTFOLIO &amp; DAILY CONTROL PANEL</div><div class="header-login">Logged in: {{ supervisor_name }} ({{ supervisor_id }}){% if not can_manage %} · VIEW ONLY{% endif %}</div></div></header>
@@ -3598,8 +3573,7 @@ function sortFinTable(col, asc) {
 
 
 <style id="admin-full-view-layout-only">
-/* FULL VIEW: one shared dashboard box; left portfolio follows the natural
-   height of the complete right-hand financial + logbook column. */
+/* FULL VIEW: common controls above two side-by-side portfolio panels. */
 .admin-full-view-common,.admin-full-view-panels{display:none}
 body.admin-full-view .market-sidebar{display:none!important}
 body.admin-full-view .master-dashboard-grid{display:block!important}
@@ -3614,52 +3588,23 @@ body.admin-full-view .admin-full-view-common>.title{margin:0 0 6px!important}
 body.admin-full-view .admin-full-view-common .filters{margin-bottom:8px}
 body.admin-full-view .admin-full-view-common .portfolio-heading-row{margin:4px 0 8px!important}
 body.admin-full-view .admin-full-view-common .portfolio-bar{flex-wrap:wrap!important;white-space:normal!important;overflow:visible!important;margin:0!important}
-
-/* Shared outer box containing all three panels. */
 body.admin-full-view .admin-full-view-panels{
  display:grid!important;grid-template-columns:minmax(0,30fr) minmax(0,70fr)!important;
- gap:12px!important;align-items:stretch!important;width:100%;min-width:0;
- background:#fff;border:1px solid #d8e4f0;border-radius:12px;padding:10px;
- box-shadow:0 5px 18px rgba(21,59,102,.10);
+ gap:12px!important;align-items:start!important;width:100%
 }
 body.admin-full-view .admin-full-view-left,
-body.admin-full-view .admin-full-view-right{min-width:0;min-height:0}
-body.admin-full-view .admin-full-view-left{
- padding:0!important;margin:0!important;display:flex!important;flex-direction:column!important;
- align-self:stretch!important;min-height:0!important;border:0!important;box-shadow:none!important;
- background:transparent!important;
-}
-body.admin-full-view .admin-full-view-left>.table-wrap{
- flex:1 1 auto!important;min-height:0!important;max-height:none!important;
- height:auto!important;overflow:auto!important;overscroll-behavior:contain;
-}
+body.admin-full-view .admin-full-view-right{min-width:0!important}
+body.admin-full-view .admin-full-view-left{padding:10px!important;margin:0!important}
+body.admin-full-view .admin-full-view-right>.card{margin:0 0 10px!important;min-width:0!important}
+body.admin-full-view .admin-full-view-panels .table-wrap{max-height:calc(100vh - 330px);min-height:150px}
 body.admin-full-view .admin-full-view-left #portfolioTable{min-width:1120px}
-body.admin-full-view .admin-full-view-right{
- display:flex!important;flex-direction:column!important;gap:10px!important;
- min-width:0!important;min-height:0!important;align-self:stretch!important;
-}
-body.admin-full-view .admin-full-view-right>.card{
- margin:0!important;min-width:0!important;max-width:100%;
-}
-body.admin-full-view .admin-full-view-right #clientFinancialDetailsCard .table-wrap{
- max-height:460px;min-height:0;overflow:auto;
-}
-body.admin-full-view #clientFinancialDetailsCard.fin-client-selected .table-wrap{
- max-height:78px!important;min-height:0!important;overflow:auto!important
-}
+body.admin-full-view .admin-full-view-right #clientFinancialDetailsCard .table-wrap{max-height:calc(100vh - 300px);min-height:120px}
+body.admin-full-view #clientFinancialDetailsCard.fin-client-selected .table-wrap{max-height:78px!important;min-height:0!important;overflow:auto!important}
 body.admin-full-view #clientFinancialDetailsCard.fin-client-selected table{min-width:1120px}
 body.admin-full-view #clientFinancialDetailsCard.fin-client-selected th,
-body.admin-full-view #clientFinancialDetailsCard.fin-client-selected td{
- white-space:nowrap!important;padding-top:6px!important;padding-bottom:6px!important
-}
-@media(max-width:1100px){
- body.admin-full-view .admin-full-view-panels{grid-template-columns:minmax(0,1fr)!important}
- body.admin-full-view .admin-full-view-left>.table-wrap{flex:0 1 auto!important;max-height:460px!important;min-height:150px!important}
-}
-@media(max-width:700px){
- body.admin-full-view .admin-full-view-panels{display:block!important}
- body.admin-full-view .admin-full-view-left{margin-bottom:10px!important}
-}
+body.admin-full-view #clientFinancialDetailsCard.fin-client-selected td{white-space:nowrap!important;padding-top:6px!important;padding-bottom:6px!important}
+@media(max-width:1100px){body.admin-full-view .admin-full-view-panels{grid-template-columns:minmax(0,1fr)!important}}
+@media(max-width:700px){body.admin-full-view .admin-full-view-panels{display:block!important}}
 </style>
 <script id="admin-full-normal-view-toggle">
 (function(){
