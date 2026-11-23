@@ -4121,4 +4121,40 @@ body.admin-full-view #clientFinancialDetailsCard.fin-client-selected td{
 }
 </style>
 
+
+
+<style id="all-five-donuts-heading-gap-80-v4">
+/* Apply the same compact heading-to-donut spacing to all five desktop charts.
+   SVG dimensions, chart data, legends, and all JavaScript remain unchanged. */
+@media (min-width: 901px) {
+  #clientFinancialDetailsCard .logbook-chart {
+    padding-top: 8px !important;
+    padding-bottom: 7px !important;
+    gap: 0 !important;
+  }
+  #clientFinancialDetailsCard .logbook-chart > h4 {
+    margin: 0 !important;
+    padding: 0 !important;
+    min-height: 0 !important;
+    line-height: 1.15 !important;
+  }
+  #clientFinancialDetailsCard .logbook-chart .logbook-svg-wrap {
+    min-height: 220px !important;
+    height: 220px !important;
+    padding: 0 !important;
+    margin-top: -42px !important;
+    margin-bottom: -20px !important;
+    overflow: visible !important;
+  }
+  #clientFinancialDetailsCard .logbook-chart .logbook-svg-wrap svg {
+    height: 260px !important;
+    position: relative !important;
+    top: -10px !important;
+  }
+  #clientFinancialDetailsCard .logbook-chart .logbook-legend {
+    margin-top: 0 !important;
+  }
+}
+</style>
+
 </body></html>
