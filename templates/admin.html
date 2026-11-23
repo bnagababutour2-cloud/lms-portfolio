@@ -4370,4 +4370,276 @@ body.admin-full-view #clientFinancialDetailsCard.fin-client-selected td{
 }
 </style>
 
+
+
+<style id="admin-full-view-refinements-v9">
+@media (min-width: 1101px) {
+  /* Give the portfolio table enough room for Buy Price while retaining a
+     useful analytics area. This affects Full View only. */
+  body.admin-full-view .admin-full-view-panels {
+    grid-template-columns: minmax(0, 42fr) minmax(0, 58fr) !important;
+    gap: 9px !important;
+  }
+
+  /* Portfolio: compact row height, checkboxes and columns. The visual order
+     and underlying DOM cell order are untouched. */
+  body.admin-full-view .admin-full-view-left > .table-wrap {
+    overflow-x: auto !important;
+    overflow-y: auto !important;
+    scrollbar-width: thin;
+  }
+  body.admin-full-view .admin-full-view-left #portfolioTable {
+    width: max-content !important;
+    min-width: 0 !important;
+    table-layout: fixed !important;
+  }
+  body.admin-full-view .admin-full-view-left #portfolioTable tr {
+    min-height: 0 !important;
+    height: 20px !important;
+  }
+  body.admin-full-view .admin-full-view-left #portfolioTable th,
+  body.admin-full-view .admin-full-view-left #portfolioTable td {
+    box-sizing: border-box !important;
+    height: 20px !important;
+    min-height: 20px !important;
+    max-height: 20px !important;
+    padding: 1px 3px !important;
+    font-family: Arial, "Segoe UI", sans-serif !important;
+    font-size: 9px !important;
+    line-height: 1.05 !important;
+    vertical-align: middle !important;
+  }
+  body.admin-full-view .admin-full-view-left #portfolioTable th {
+    height: 23px !important;
+    min-height: 23px !important;
+    max-height: 23px !important;
+    font-size: 9px !important;
+    font-weight: 800 !important;
+    padding: 2px 3px !important;
+  }
+  /* DOM indices map to the existing visual column order through CSS order. */
+  body.admin-full-view .admin-full-view-left #portfolioTable th:nth-child(1),
+  body.admin-full-view .admin-full-view-left #portfolioTable td:nth-child(1) { width: 24px !important; flex-basis: 24px !important; }
+  body.admin-full-view .admin-full-view-left #portfolioTable th:nth-child(2),
+  body.admin-full-view .admin-full-view-left #portfolioTable td:nth-child(2) { width: 60px !important; flex-basis: 60px !important; }
+  body.admin-full-view .admin-full-view-left #portfolioTable th:nth-child(3),
+  body.admin-full-view .admin-full-view-left #portfolioTable td:nth-child(3) { width: 72px !important; flex-basis: 72px !important; }
+  body.admin-full-view .admin-full-view-left #portfolioTable th:nth-child(4),
+  body.admin-full-view .admin-full-view-left #portfolioTable td:nth-child(4) { width: 52px !important; flex-basis: 52px !important; }
+  body.admin-full-view .admin-full-view-left #portfolioTable th:nth-child(5),
+  body.admin-full-view .admin-full-view-left #portfolioTable td:nth-child(5) { width: 48px !important; flex-basis: 48px !important; }
+  body.admin-full-view .admin-full-view-left #portfolioTable th:nth-child(6),
+  body.admin-full-view .admin-full-view-left #portfolioTable td:nth-child(6) { width: 58px !important; flex-basis: 58px !important; }
+  body.admin-full-view .admin-full-view-left #portfolioTable th:nth-child(7),
+  body.admin-full-view .admin-full-view-left #portfolioTable td:nth-child(7) { width: 48px !important; flex-basis: 48px !important; }
+  body.admin-full-view .admin-full-view-left #portfolioTable th:nth-child(8),
+  body.admin-full-view .admin-full-view-left #portfolioTable td:nth-child(8) { width: 44px !important; flex-basis: 44px !important; }
+  body.admin-full-view .admin-full-view-left #portfolioTable th:nth-child(9),
+  body.admin-full-view .admin-full-view-left #portfolioTable td:nth-child(9) { width: 56px !important; flex-basis: 56px !important; }
+  body.admin-full-view .admin-full-view-left #portfolioTable th:nth-child(10),
+  body.admin-full-view .admin-full-view-left #portfolioTable td:nth-child(10) { width: 50px !important; flex-basis: 50px !important; }
+  body.admin-full-view .admin-full-view-left #portfolioTable th:nth-child(11),
+  body.admin-full-view .admin-full-view-left #portfolioTable td:nth-child(11) { width: 65px !important; flex-basis: 65px !important; }
+  body.admin-full-view .admin-full-view-left #portfolioTable th:nth-child(12),
+  body.admin-full-view .admin-full-view-left #portfolioTable td:nth-child(12) { width: 68px !important; flex-basis: 68px !important; }
+  body.admin-full-view .admin-full-view-left #portfolioTable th:nth-child(13),
+  body.admin-full-view .admin-full-view-left #portfolioTable td:nth-child(13) { width: 56px !important; flex-basis: 56px !important; }
+
+  body.admin-full-view .admin-full-view-left #portfolioTable input.check,
+  body.admin-full-view .admin-full-view-left #portfolioTable input[type="checkbox"] {
+    width: 11px !important;
+    height: 11px !important;
+    min-width: 11px !important;
+    min-height: 11px !important;
+    margin: 0 auto !important;
+    padding: 0 !important;
+    display: block !important;
+  }
+
+  /* Recency filters share the stats line: no horizontal scrollbar.
+     Stats first, filters immediately before Last trade. */
+  body.admin-full-view #lms-recency-bar {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    align-items: center !important;
+    gap: 4px !important;
+    overflow: hidden !important;
+    white-space: nowrap !important;
+    scrollbar-width: none !important;
+    min-width: 0 !important;
+  }
+  body.admin-full-view #lms-recency-bar::-webkit-scrollbar { display: none !important; }
+  body.admin-full-view #lms-recency-bar > span:first-child { order: 1 !important; }
+  body.admin-full-view #lms-recency-bar .logbook-inline-stats {
+    order: 2 !important;
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
+    gap: 3px !important;
+  }
+  body.admin-full-view #lms-recency-bar .logbook-inline-stat {
+    min-width: 0 !important;
+    flex: 1 1 0 !important;
+    padding: 2px 4px !important;
+    min-height: 22px !important;
+  }
+  body.admin-full-view #lms-recency-bar .logbook-inline-stat small {
+    font-size: 7px !important;
+    line-height: 1 !important;
+    letter-spacing: -.1px !important;
+  }
+  body.admin-full-view #lms-recency-bar .logbook-inline-stat strong {
+    font-size: 8px !important;
+    line-height: 1.05 !important;
+    margin-top: 1px !important;
+  }
+  body.admin-full-view #lms-recency-bar > .btn {
+    order: 3 !important;
+    flex: 0 0 auto !important;
+    min-height: 21px !important;
+    padding: 3px 5px !important;
+    font-size: 7.5px !important;
+    line-height: 1 !important;
+    border-radius: 4px !important;
+  }
+  body.admin-full-view #lms-recency-bar #logbookLastTrade {
+    order: 4 !important;
+    flex: 0 0 auto !important;
+    padding: 3px 5px !important;
+    font-size: 8px !important;
+    line-height: 1 !important;
+  }
+
+  /* No horizontal scrollbar in the analytics filter/category strip. */
+  body.admin-full-view #tradeLogbookCard .logbook-summary {
+    align-items: flex-start !important;
+    flex-wrap: wrap !important;
+    gap: 5px !important;
+  }
+  body.admin-full-view #tradeLogbookCard .logbook-category-buttons {
+    flex: 1 1 100% !important;
+    flex-wrap: wrap !important;
+    overflow: visible !important;
+    white-space: normal !important;
+    scrollbar-width: none !important;
+    gap: 3px !important;
+  }
+  body.admin-full-view #tradeLogbookCard .logbook-category-buttons::-webkit-scrollbar {
+    display: none !important;
+  }
+
+  /* Financial table: fit all eight columns in the panel, hide scrollbars. */
+  body.admin-full-view .admin-full-view-right #clientFinancialDetailsCard .table-wrap {
+    max-height: none !important;
+    min-height: 0 !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    scrollbar-width: none !important;
+  }
+  body.admin-full-view .admin-full-view-right #clientFinancialDetailsCard .table-wrap::-webkit-scrollbar {
+    display: none !important;
+  }
+  body.admin-full-view #clientFinancialDetailsCard #clientFinancialTable {
+    width: 100% !important;
+    min-width: 0 !important;
+    table-layout: fixed !important;
+  }
+  body.admin-full-view #clientFinancialDetailsCard #clientFinancialTable th,
+  body.admin-full-view #clientFinancialDetailsCard #clientFinancialTable td {
+    box-sizing: border-box !important;
+    width: 12.5% !important;
+    min-width: 0 !important;
+    padding: 4px 3px !important;
+    font-size: 8px !important;
+    line-height: 1.1 !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere !important;
+  }
+  body.admin-full-view #clientFinancialDetailsCard .logbook-title-row {
+    gap: 5px !important;
+    margin-bottom: 5px !important;
+    flex-wrap: nowrap !important;
+  }
+  body.admin-full-view #clientFinancialDetailsCard .logbook-title-row .title {
+    font-size: 13px !important;
+    line-height: 1.1 !important;
+  }
+  body.admin-full-view #clientFinancialDetailsCard .logbook-title-row .sub {
+    font-size: 9px !important;
+    line-height: 1.1 !important;
+  }
+
+  /* NIFTY 50 and SENSEX beside Logout, in one compact non-scrolling row. */
+  body.admin-full-view .container > .toolbar .full-view-market-indices {
+    display: flex !important;
+    flex: 0 1 auto !important;
+    align-items: center !important;
+    gap: 4px !important;
+    margin-left: auto !important;
+    min-width: 0 !important;
+    overflow: visible !important;
+  }
+  body.admin-full-view .full-view-market-indices .market-index-box {
+    min-width: 105px !important;
+    padding: 4px 7px !important;
+    margin: 0 !important;
+    border: 1px solid #cbd9e8 !important;
+    border-radius: 6px !important;
+    background: #f3f8ff !important;
+  }
+  body.admin-full-view .full-view-market-indices .market-index-name {
+    font-size: 8px !important;
+    font-weight: 800 !important;
+  }
+  body.admin-full-view .full-view-market-indices .market-index-val {
+    font-size: 10px !important;
+    font-weight: 900 !important;
+    white-space: nowrap !important;
+  }
+  body.admin-full-view .full-view-market-indices .market-index-change {
+    font-size: 8px !important;
+    line-height: 1.1 !important;
+    white-space: nowrap !important;
+  }
+}
+</style>
+
+<script id="admin-full-view-market-indices-move-v9">
+(function () {
+  const original = window.setAdminViewMode;
+  if (typeof original !== 'function' || original.__marketIndicesV9) return;
+
+  let indexGrid = null;
+  let restoreMarker = null;
+
+  function placeIndices(mode) {
+    if (!indexGrid) {
+      indexGrid = document.querySelector('#marketSidebar .market-index-grid');
+      if (!indexGrid) return;
+      restoreMarker = document.createComment('market-index-grid-original-position');
+      indexGrid.parentNode.insertBefore(restoreMarker, indexGrid);
+    }
+
+    if (mode === 'full') {
+      const toolbar = document.querySelector('.container > .toolbar');
+      const logout = toolbar && toolbar.querySelector('a[href="/logout"]');
+      if (toolbar && logout) {
+        indexGrid.classList.add('full-view-market-indices');
+        toolbar.insertBefore(indexGrid, logout);
+      }
+    } else if (restoreMarker && restoreMarker.parentNode) {
+      restoreMarker.parentNode.insertBefore(indexGrid, restoreMarker.nextSibling);
+      indexGrid.classList.remove('full-view-market-indices');
+    }
+  }
+
+  const wrapped = function (mode) {
+    const result = original.apply(this, arguments);
+    placeIndices(mode);
+    return result;
+  };
+  wrapped.__marketIndicesV9 = true;
+  window.setAdminViewMode = wrapped;
+})();
+</script>
+
 </body></html>
