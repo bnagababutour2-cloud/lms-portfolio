@@ -840,6 +840,40 @@ body.tradelogs-split-open #tradeLogsSplitDrawer{display:flex;}
 #portfolioTable .action{white-space:nowrap}
 </style>
 
+
+<style id="admin-uniform-typography-polish">
+/* Typography-only polish: consistent font family, scale and weight. */
+:root{
+  --admin-font:"Inter","Segoe UI",Arial,Helvetica,sans-serif;
+  --admin-ink:#14263d;
+  --admin-muted:#60748a;
+}
+html,body,button,input,select,textarea,table{
+  font-family:var(--admin-font)!important;
+  font-kerning:normal;
+  text-rendering:optimizeLegibility;
+}
+body{font-size:13px;line-height:1.4;letter-spacing:0;color:var(--admin-ink)}
+/* Desktop dashboard hierarchy */
+@media(min-width:701px){
+  .title{font-size:15px!important;line-height:1.25!important;font-weight:750!important;letter-spacing:-.15px}
+  .portfolio-heading-row .title{font-size:14px!important}
+  .logbook-title-row .title,.logbook-summary strong{font-size:15px!important}
+  th,.tlog-table th{font-size:12px!important;font-weight:700!important;letter-spacing:.05px}
+  td,.tlog-table td{font-size:12px!important;font-weight:500}
+  .btn,.action button,.logbook-filter-row .btn{font-size:11px!important;font-weight:700!important;letter-spacing:.08px}
+  input,select{font-size:12px!important;font-weight:500}
+  .sub,.logbook-note{font-size:11px!important;line-height:1.4}
+  .pill,.metric{font-size:11px!important;font-weight:650}
+  .logbook-kpi small,.logbook-trading-days small{font-size:10px!important;font-weight:650}
+  .logbook-kpi strong,.logbook-trading-days b{font-weight:700!important}
+}
+/* Keep mobile layout dimensions intact; unify only the typeface and rendering. */
+@media(max-width:700px){
+  body,.mobile-admin,.m-detail,.m-password,.m-multiclients{font-family:var(--admin-font)!important}
+}
+</style>
+
 </head>
 <body>
 <header class="top"><div class="header-overlay"><div class="header-subtitle">ADMIN / SUPERVISOR PORTFOLIO &amp; DAILY CONTROL PANEL</div><div class="header-login">Logged in: {{ supervisor_name }} ({{ supervisor_id }}){% if not can_manage %} · VIEW ONLY{% endif %}</div></div></header>
