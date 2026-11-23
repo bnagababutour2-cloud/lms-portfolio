@@ -1270,7 +1270,6 @@ function filterPortfolio(){
  });
  updateTotal();
  if(typeof window.refreshTradeLogbook==='function') window.refreshTradeLogbook();
- if(typeof window.syncLogbookToMainClientSearch==='function') window.syncLogbookToMainClientSearch($('clientSearch').value);
 }
 function clearSearch(){['clientSearch','symbolSearch','productSearch'].forEach(id=>$(id).value='');$('exchangeSearch').value='';filterPortfolio()}
 ['clientSearch','symbolSearch','productSearch'].forEach(id=>$(id).addEventListener('input',filterPortfolio));$('exchangeSearch').addEventListener('change',filterPortfolio);
@@ -2311,39 +2310,6 @@ window.setLogbookFilter=async function(filter,button){
  }
 
  window.refreshTradeLogbook=renderLogbookClients;
-
- // Keep Trade Logbook, Client Analytics and Client Financial Details
- // aligned with the Client ID entered in the main portfolio search.
- window.syncLogbookToMainClientSearch=function(value){
-   const cid=String(value||'').trim();
-   const logSearch=document.getElementById('logbookClientSearchInput');
-   if(logSearch) logSearch.value=cid;
-   const finSearch=document.getElementById('finTableSearch');
-   if(finSearch) finSearch.value=cid;
-
-   const exactClient=cid ? clientMap().get(cid.toUpperCase()) : null;
-   if(exactClient){
-     currentLogbookFilter='all';
-     currentLogbookCatFilter=null;
-     document.querySelectorAll('[data-logbook-filter]').forEach(b=>{
-       b.classList.toggle('active',b.dataset.logbookFilter==='all');
-     });
-     document.querySelectorAll('[data-logcat]').forEach(b=>{
-       b.classList.remove('active');
-       b.style.background='#eaf2fc';
-       b.style.color='var(--navy)';
-       b.style.borderColor='#cbdced';
-     });
-   }
-
-   renderLogbookClients();
-   if(exactClient){
-     selectLogbookClient(exactClient.id);
-   }else if(!cid && typeof window.filterFinancialTable==='function'){
-     window.filterFinancialTable('', false);
-   }
- };
-
  ensureServerRecency().then(()=>renderLogbookClients());
 })();
 
@@ -3478,4 +3444,57 @@ function sortFinTable(col, asc) {
   }
 }
 </style>
+
+
+<style id="multi-clients-150-percent-single-line">
+/* Requested layout-only adjustment: enlarge MULTI CLIENTS to 150% share
+   while keeping every search control and button on the same desktop row. */
+.card:has(> .title + .filters) > .filters {
+  display: flex !important;
+  flex-flow: row nowrap !important;
+  align-items: center !important;
+  gap: 6px !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  overflow-x: hidden !important;
+}
+.card:has(> .title + .filters) > .filters > #clientSearch,
+.card:has(> .title + .filters) > .filters > #symbolSearch,
+.card:has(> .title + .filters) > .filters > #productSearch,
+.card:has(> .title + .filters) > .filters > #exchangeSearch {
+  flex: 1 1 0 !important;
+  width: 0 !important;
+  min-width: 0 !important;
+}
+.card:has(> .title + .filters) > .filters > #productSearch {
+  min-width: 105px !important;
+}
+.card:has(> .title + .filters) > .filters > #exchangeSearch {
+  min-width: 92px !important;
+}
+.card:has(> .title + .filters) > .filters .multi-client-wrap {
+  flex: 1.5 1 0 !important;
+  width: 0 !important;
+  min-width: 0 !important;
+}
+.card:has(> .title + .filters) > .filters .multi-client-btn {
+  width: 100% !important;
+  min-width: 0 !important;
+  height: 32px !important;
+  padding: 5px 9px !important;
+  font-size: 10px !important;
+  line-height: 1 !important;
+  white-space: nowrap !important;
+}
+.card:has(> .title + .filters) > .filters > .btn {
+  flex: 0 0 auto !important;
+  white-space: nowrap !important;
+}
+@media (max-width: 760px) {
+  .card:has(> .title + .filters) > .filters {
+    overflow-x: auto !important;
+  }
+}
+</style>
+
 </body></html>
