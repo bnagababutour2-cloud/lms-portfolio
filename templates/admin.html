@@ -923,6 +923,125 @@ body.admin-full-view .admin-full-view-common > .title {
 }
 </style>
 
+
+<style id="admin-full-view-corrections-v10">
+@media (min-width: 1101px) {
+  /* Requested Full View proportions. */
+  body.admin-full-view .admin-full-view-panels {
+    grid-template-columns: minmax(0, 30fr) minmax(0, 70fr) !important;
+  }
+
+  /* Slightly taller, easier-to-read portfolio rows. */
+  body.admin-full-view .admin-full-view-left #portfolioTable tr {
+    height: 25px !important;
+    min-height: 25px !important;
+  }
+  body.admin-full-view .admin-full-view-left #portfolioTable td {
+    height: 25px !important;
+    min-height: 25px !important;
+    max-height: 25px !important;
+    padding: 2px 4px !important;
+    font-size: 10px !important;
+    line-height: 1.15 !important;
+  }
+  body.admin-full-view .admin-full-view-left #portfolioTable th {
+    height: 26px !important;
+    min-height: 26px !important;
+    max-height: 26px !important;
+    padding: 3px 4px !important;
+    font-size: 10px !important;
+  }
+
+  /* NIFTY 50 and SENSEX: show side-by-side immediately before LOGOUT. */
+  body.admin-full-view .container .toolbar .full-view-market-indices {
+    display: flex !important;
+    flex: 0 0 auto !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 5px !important;
+    margin: 0 4px 0 auto !important;
+    padding: 0 !important;
+    min-width: 0 !important;
+    width: auto !important;
+    overflow: visible !important;
+  }
+  body.admin-full-view .full-view-market-indices .market-index-box {
+    flex: 0 0 auto !important;
+    min-width: 112px !important;
+    margin: 0 !important;
+    padding: 4px 7px !important;
+    border: 1px solid #cbd9e8 !important;
+    border-radius: 6px !important;
+    background: linear-gradient(135deg,#f7faff,#edf5ff) !important;
+  }
+  body.admin-full-view .full-view-market-indices .market-index-name {
+    font-size: 9px !important;
+    font-weight: 900 !important;
+  }
+  body.admin-full-view .full-view-market-indices .market-index-val {
+    font-size: 11px !important;
+    font-weight: 900 !important;
+    white-space: nowrap !important;
+  }
+  body.admin-full-view .full-view-market-indices .market-index-change {
+    font-size: 8.5px !important;
+    line-height: 1.1 !important;
+    white-space: nowrap !important;
+  }
+
+  /* Keep the complete Logbook row together and put VIEW CLIENT LOGS there. */
+  body.admin-full-view #lms-recency-bar {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    align-items: center !important;
+    gap: 4px !important;
+    overflow: visible !important;
+    white-space: nowrap !important;
+    padding: 5px 7px !important;
+    margin-bottom: 9px !important;
+  }
+  body.admin-full-view #lms-recency-bar > .btn {
+    flex: 0 0 auto !important;
+    padding: 4px 6px !important;
+    font-size: 8.5px !important;
+    line-height: 1.1 !important;
+  }
+  body.admin-full-view #lms-recency-bar .logbook-inline-stats {
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
+    gap: 3px !important;
+  }
+  body.admin-full-view #lms-recency-bar .logbook-inline-stat {
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
+    padding: 3px 4px !important;
+  }
+  body.admin-full-view #lms-recency-bar .logbook-inline-stat small {
+    font-size: 7px !important;
+  }
+  body.admin-full-view #lms-recency-bar .logbook-inline-stat strong {
+    font-size: 9px !important;
+  }
+  body.admin-full-view #lms-recency-bar #logbookLastTrade {
+    flex: 0 0 auto !important;
+    font-size: 8px !important;
+    padding: 4px 5px !important;
+  }
+  body.admin-full-view #lms-recency-bar .full-view-view-logs {
+    flex: 0 0 auto !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    padding: 4px 7px !important;
+    margin-left: 2px !important;
+    font-size: 8.5px !important;
+    line-height: 1.1 !important;
+    white-space: nowrap !important;
+    background: #052d70 !important;
+    color: #fff !important;
+  }
+}
+</style>
+
 </head>
 <body>
 <header class="top"><div class="header-overlay"><div class="header-subtitle">ADMIN / SUPERVISOR PORTFOLIO &amp; DAILY CONTROL PANEL</div><div class="header-login">Logged in: {{ supervisor_name }} ({{ supervisor_id }}){% if not can_manage %} · VIEW ONLY{% endif %}</div></div></header>
@@ -4374,10 +4493,9 @@ body.admin-full-view #clientFinancialDetailsCard.fin-client-selected td{
 
 <style id="admin-full-view-refinements-v9">
 @media (min-width: 1101px) {
-  /* Give the portfolio table enough room for Buy Price while retaining a
-     useful analytics area. This affects Full View only. */
+  /* Preserve the requested Full View split: 30% portfolio / 70% analytics. */
   body.admin-full-view .admin-full-view-panels {
-    grid-template-columns: minmax(0, 42fr) minmax(0, 58fr) !important;
+    grid-template-columns: minmax(0, 30fr) minmax(0, 70fr) !important;
     gap: 9px !important;
   }
 
@@ -4603,41 +4721,79 @@ body.admin-full-view #clientFinancialDetailsCard.fin-client-selected td{
 }
 </style>
 
-<script id="admin-full-view-market-indices-move-v9">
+<script id="admin-full-view-toolbar-and-logbook-placement-v10">
 (function () {
   const original = window.setAdminViewMode;
-  if (typeof original !== 'function' || original.__marketIndicesV9) return;
+  if (typeof original !== 'function' || original.__fullViewPlacementV10) return;
 
   let indexGrid = null;
-  let restoreMarker = null;
+  let indexRestoreMarker = null;
+  let viewLogsButton = null;
+  let logsRestoreMarker = null;
 
-  function placeIndices(mode) {
+  function captureElements() {
     if (!indexGrid) {
       indexGrid = document.querySelector('#marketSidebar .market-index-grid');
-      if (!indexGrid) return;
-      restoreMarker = document.createComment('market-index-grid-original-position');
-      indexGrid.parentNode.insertBefore(restoreMarker, indexGrid);
+      if (indexGrid && indexGrid.parentNode) {
+        indexRestoreMarker = document.createComment('market-index-grid-original-position');
+        indexGrid.parentNode.insertBefore(indexRestoreMarker, indexGrid);
+      }
+    }
+    if (!viewLogsButton) {
+      const candidates = document.querySelectorAll('#tradeLogbookCard button');
+      viewLogsButton = Array.from(candidates).find(button =>
+        /VIEW CLIENT LOGS/i.test(button.textContent || '') &&
+        /openTradeLogsSplit/.test(button.getAttribute('onclick') || '')
+      ) || null;
+      if (viewLogsButton && viewLogsButton.parentNode) {
+        logsRestoreMarker = document.createComment('view-client-logs-original-position');
+        viewLogsButton.parentNode.insertBefore(logsRestoreMarker, viewLogsButton);
+      }
+    }
+  }
+
+  function placeForFullView() {
+    captureElements();
+
+    /* The toolbar is a descendant of .container, not its direct child. */
+    const toolbar = document.querySelector('.container .toolbar');
+    const logout = toolbar && toolbar.querySelector('a[href="/logout"]');
+
+    if (indexGrid && toolbar && logout) {
+      indexGrid.classList.add('full-view-market-indices');
+      toolbar.insertBefore(indexGrid, logout);
     }
 
-    if (mode === 'full') {
-      const toolbar = document.querySelector('.container > .toolbar');
-      const logout = toolbar && toolbar.querySelector('a[href="/logout"]');
-      if (toolbar && logout) {
-        indexGrid.classList.add('full-view-market-indices');
-        toolbar.insertBefore(indexGrid, logout);
+    const recencyRow = document.getElementById('lms-recency-bar');
+    const lastTrade = document.getElementById('logbookLastTrade');
+    if (viewLogsButton && recencyRow) {
+      viewLogsButton.classList.add('full-view-view-logs');
+      if (lastTrade && lastTrade.parentNode === recencyRow) {
+        recencyRow.insertBefore(viewLogsButton, lastTrade.nextSibling);
+      } else {
+        recencyRow.appendChild(viewLogsButton);
       }
-    } else if (restoreMarker && restoreMarker.parentNode) {
-      restoreMarker.parentNode.insertBefore(indexGrid, restoreMarker.nextSibling);
+    }
+  }
+
+  function restoreNormalView() {
+    if (indexGrid && indexRestoreMarker && indexRestoreMarker.parentNode) {
+      indexRestoreMarker.parentNode.insertBefore(indexGrid, indexRestoreMarker.nextSibling);
       indexGrid.classList.remove('full-view-market-indices');
+    }
+    if (viewLogsButton && logsRestoreMarker && logsRestoreMarker.parentNode) {
+      logsRestoreMarker.parentNode.insertBefore(viewLogsButton, logsRestoreMarker.nextSibling);
+      viewLogsButton.classList.remove('full-view-view-logs');
     }
   }
 
   const wrapped = function (mode) {
     const result = original.apply(this, arguments);
-    placeIndices(mode);
+    if (mode === 'full') placeForFullView();
+    else restoreNormalView();
     return result;
   };
-  wrapped.__marketIndicesV9 = true;
+  wrapped.__fullViewPlacementV10 = true;
   window.setAdminViewMode = wrapped;
 })();
 </script>
