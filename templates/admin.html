@@ -1247,6 +1247,102 @@ body.admin-full-view .admin-full-view-common > .title {
 }
 </style>
 
+
+<style id="full-view-unlock-all-panels-natural-page-scroll-v15">
+/* Full View v15:
+   - Portfolio and Client Financial Details are no longer locked.
+   - Scrolling over Trade Logbook now scrolls the whole page naturally,
+     moving both columns together instead of using an inner logbook scroller.
+   - Give the portfolio column enough width to show through Product. */
+@media (min-width: 1101px) {
+  html:has(body.admin-full-view),
+  body.admin-full-view {
+    height: auto !important;
+    min-height: 100% !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+  }
+
+  body.admin-full-view .container,
+  body.admin-full-view .master-dashboard-grid,
+  body.admin-full-view .master-main-content {
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  body.admin-full-view .admin-full-view-panels {
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
+    grid-template-columns: minmax(0, 34fr) minmax(0, 66fr) !important;
+    grid-template-rows: auto !important;
+    align-items: start !important;
+  }
+
+  /* Portfolio: remove the fixed-height/locked viewport. */
+  body.admin-full-view .admin-full-view-left {
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
+    align-self: start !important;
+  }
+  body.admin-full-view .admin-full-view-left > .table-wrap {
+    flex: 0 0 auto !important;
+    flex-basis: auto !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
+    overscroll-behavior: auto !important;
+  }
+  body.admin-full-view .admin-full-view-left #portfolioTable {
+    min-width: 0 !important;
+    width: 100% !important;
+    table-layout: fixed !important;
+  }
+
+  /* Financial snapshot and analytics move together with normal page scroll. */
+  body.admin-full-view .admin-full-view-right {
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
+    align-self: start !important;
+  }
+  body.admin-full-view .admin-full-view-right > #clientFinancialDetailsCard {
+    position: static !important;
+    flex: 0 0 auto !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+  body.admin-full-view #clientFinancialDetailsCard .table-wrap,
+  body.admin-full-view #clientFinancialDetailsCard.fin-client-selected .table-wrap {
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  /* Remove the independent Trade Logbook scrollbar. Wheel/trackpad scrolling
+     over this card bubbles to the document, moving both panels together. */
+  body.admin-full-view .admin-full-view-right > #tradeLogbookCard {
+    position: static !important;
+    flex: 0 0 auto !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
+    overscroll-behavior: auto !important;
+    padding-bottom: 18px !important;
+  }
+}
+</style>
+
 </head>
 <body>
 <header class="top"><div class="header-overlay"><div class="header-subtitle">ADMIN / SUPERVISOR PORTFOLIO &amp; DAILY CONTROL PANEL</div><div class="header-login">Logged in: {{ supervisor_name }} ({{ supervisor_id }}){% if not can_manage %} · VIEW ONLY{% endif %}</div></div></header>
