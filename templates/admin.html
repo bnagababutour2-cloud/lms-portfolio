@@ -131,6 +131,36 @@
 
 </style>
 
+<style id="desktop-uniform-portfolio-logbook-fonts">
+/* Desktop only: align portfolio and Trade Logbook data typography with the main table header. */
+@media (min-width: 701px) {
+  #portfolioTable th,
+  #tradeLogbookCard .logbook-client-btn,
+  #tradeLogbookCard .logbook-legend-row,
+  #tradeLogbookCard .logbook-legend-name,
+  #tradeLogbookCard .logbook-legend-value,
+  #tradeLogbookCard .logbook-empty {
+    font-family: Arial, Helvetica, sans-serif !important;
+    font-size: 12px !important;
+  }
+  #portfolioTable td {
+    font-family: Arial, Helvetica, sans-serif !important;
+    font-size: 12px !important;
+    line-height: 1.35 !important;
+  }
+  #tradeLogbookCard .logbook-client-btn {
+    font-weight: 700 !important;
+  }
+  #tradeLogbookCard .logbook-client-btn small {
+    font-family: Arial, Helvetica, sans-serif !important;
+    font-size: 11px !important;
+  }
+  #tradeLogbookCard .logbook-legend-row {
+    line-height: 1.35 !important;
+  }
+}
+</style>
+
 <style id="mobile-only-summary-fit-fix">
 @media (max-width:700px){
   /* Mobile only: fit Total MTM, Investment and Change in the summary row. */
