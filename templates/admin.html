@@ -1205,6 +1205,48 @@ body.admin-full-view .admin-full-view-common > .title {
 }
 </style>
 
+
+<style id="full-view-logbook-bottom-scroll-fix-v14">
+/* Fit the two-panel workspace into the visible area below the search/control
+   sections. This lets the Logbook panel reach its true bottom when scrolled. */
+@media (min-width: 1101px) {
+  body.admin-full-view .admin-full-view-panels {
+    height: calc(100vh - 390px) !important;
+    min-height: 220px !important;
+    max-height: calc(100vh - 390px) !important;
+    overflow: hidden !important;
+    grid-template-rows: minmax(0, 1fr) !important;
+    align-items: stretch !important;
+  }
+
+  body.admin-full-view .admin-full-view-right {
+    height: 100% !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+  }
+
+  body.admin-full-view .admin-full-view-right > #tradeLogbookCard {
+    min-height: 0 !important;
+    height: 0 !important;
+    flex: 1 1 0 !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    padding-bottom: 18px !important;
+    scroll-padding-bottom: 18px;
+    overscroll-behavior-y: contain !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Prevent chart rows and legends from being clipped by a fixed child height. */
+  body.admin-full-view #tradeLogbookCard .logbook-charts,
+  body.admin-full-view #tradeLogbookCard .logbook-charts-bottom,
+  body.admin-full-view #tradeLogbookCard .logbook-chart {
+    min-height: max-content !important;
+    overflow: visible !important;
+  }
+}
+</style>
+
 </head>
 <body>
 <header class="top"><div class="header-overlay"><div class="header-subtitle">ADMIN / SUPERVISOR PORTFOLIO &amp; DAILY CONTROL PANEL</div><div class="header-login">Logged in: {{ supervisor_name }} ({{ supervisor_id }}){% if not can_manage %} · VIEW ONLY{% endif %}</div></div></header>
