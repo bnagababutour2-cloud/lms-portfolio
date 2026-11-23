@@ -3598,8 +3598,8 @@ function sortFinTable(col, asc) {
 
 
 <style id="admin-full-view-layout-only">
-/* FULL VIEW: the right column owns the row height; the portfolio table
-   is a zero-basis flex scroller and cannot increase the shared box height. */
+/* FULL VIEW: one shared dashboard box; left portfolio follows the natural
+   height of the complete right-hand financial + logbook column. */
 .admin-full-view-common,.admin-full-view-panels{display:none}
 body.admin-full-view .market-sidebar{display:none!important}
 body.admin-full-view .master-dashboard-grid{display:block!important}
@@ -3615,43 +3615,28 @@ body.admin-full-view .admin-full-view-common .filters{margin-bottom:8px}
 body.admin-full-view .admin-full-view-common .portfolio-heading-row{margin:4px 0 8px!important}
 body.admin-full-view .admin-full-view-common .portfolio-bar{flex-wrap:wrap!important;white-space:normal!important;overflow:visible!important;margin:0!important}
 
-/* One shared 30:70 panel box. The grid row is allowed to shrink to the
-   right column's natural height because the left side has no content minimum. */
+/* Shared outer box containing all three panels. */
 body.admin-full-view .admin-full-view-panels{
- display:grid!important;
- grid-template-columns:minmax(0,30fr) minmax(0,70fr)!important;
- grid-template-rows:minmax(0,auto)!important;
- gap:12px!important;align-items:stretch!important;
- width:100%;min-width:0;min-height:0;
+ display:grid!important;grid-template-columns:minmax(0,30fr) minmax(0,70fr)!important;
+ gap:12px!important;align-items:stretch!important;width:100%;min-width:0;
  background:#fff;border:1px solid #d8e4f0;border-radius:12px;padding:10px;
  box-shadow:0 5px 18px rgba(21,59,102,.10);
 }
 body.admin-full-view .admin-full-view-left,
-body.admin-full-view .admin-full-view-right{
- min-width:0!important;min-height:0!important;
-}
+body.admin-full-view .admin-full-view-right{min-width:0;min-height:0}
 body.admin-full-view .admin-full-view-left{
- padding:0!important;margin:0!important;
- display:flex!important;flex-direction:column!important;
- align-self:stretch!important;height:100%!important;
- min-height:0!important;overflow:hidden!important;
- border:0!important;box-shadow:none!important;background:transparent!important;
+ padding:0!important;margin:0!important;display:flex!important;flex-direction:column!important;
+ align-self:stretch!important;min-height:0!important;border:0!important;box-shadow:none!important;
+ background:transparent!important;
 }
 body.admin-full-view .admin-full-view-left>.table-wrap{
- flex:1 1 0px!important;
- flex-basis:0!important;
- height:0!important;
- min-height:0!important;
- max-height:none!important;
- width:100%!important;
- overflow:auto!important;
- overscroll-behavior:contain;
+ flex:1 1 auto!important;min-height:0!important;max-height:none!important;
+ height:auto!important;overflow:auto!important;overscroll-behavior:contain;
 }
 body.admin-full-view .admin-full-view-left #portfolioTable{min-width:1120px}
 body.admin-full-view .admin-full-view-right{
  display:flex!important;flex-direction:column!important;gap:10px!important;
- min-width:0!important;min-height:0!important;
- align-self:stretch!important;height:auto!important;
+ min-width:0!important;min-height:0!important;align-self:stretch!important;
 }
 body.admin-full-view .admin-full-view-right>.card{
  margin:0!important;min-width:0!important;max-width:100%;
@@ -3668,15 +3653,8 @@ body.admin-full-view #clientFinancialDetailsCard.fin-client-selected td{
  white-space:nowrap!important;padding-top:6px!important;padding-bottom:6px!important
 }
 @media(max-width:1100px){
- body.admin-full-view .admin-full-view-panels{
-  grid-template-columns:minmax(0,1fr)!important;
-  grid-template-rows:auto!important;
- }
- body.admin-full-view .admin-full-view-left{height:auto!important;overflow:visible!important}
- body.admin-full-view .admin-full-view-left>.table-wrap{
-  flex:0 1 auto!important;height:auto!important;
-  max-height:460px!important;min-height:150px!important;
- }
+ body.admin-full-view .admin-full-view-panels{grid-template-columns:minmax(0,1fr)!important}
+ body.admin-full-view .admin-full-view-left>.table-wrap{flex:0 1 auto!important;max-height:460px!important;min-height:150px!important}
 }
 @media(max-width:700px){
  body.admin-full-view .admin-full-view-panels{display:block!important}
