@@ -3573,117 +3573,112 @@ function sortFinTable(col, asc) {
 
 
 <style id="admin-full-view-layout-only">
-/* FULL VIEW presentation only: shared controls above both panels; 30/70 split. */
+/* FULL VIEW: common controls above two side-by-side portfolio panels. */
+.admin-full-view-common,.admin-full-view-panels{display:none}
 body.admin-full-view .market-sidebar{display:none!important}
 body.admin-full-view .master-dashboard-grid{display:block!important}
 body.admin-full-view .master-main-content{width:100%!important;min-width:0!important}
-.admin-full-view-common{display:none}
-.admin-full-view-panels{display:none}
+body.admin-full-view .admin-full-view-source-shell{display:none!important}
 body.admin-full-view .admin-full-view-common{
-  display:block!important;width:100%;min-width:0;margin:0 0 10px 0;
+ display:block!important;width:100%;min-width:0;margin:0 0 10px!important;
+ background:#fff;border:1px solid #d8e4f0;border-radius:12px;padding:12px;
+ box-shadow:0 5px 18px rgba(21,59,102,.10)
 }
-body.admin-full-view .admin-full-view-common .search-panel,
-body.admin-full-view .admin-full-view-common .portfolio-heading-row,
-body.admin-full-view .admin-full-view-common .portfolio-bar{margin-bottom:8px!important}
-body.admin-full-view .admin-full-view-common .portfolio-bar{flex-wrap:wrap!important;white-space:normal!important;overflow:visible!important}
+body.admin-full-view .admin-full-view-common>.title{margin:0 0 6px!important}
+body.admin-full-view .admin-full-view-common .filters{margin-bottom:8px}
+body.admin-full-view .admin-full-view-common .portfolio-heading-row{margin:4px 0 8px!important}
+body.admin-full-view .admin-full-view-common .portfolio-bar{flex-wrap:wrap!important;white-space:normal!important;overflow:visible!important;margin:0!important}
 body.admin-full-view .admin-full-view-panels{
-  display:grid!important;
-  grid-template-columns:minmax(0,30fr) minmax(0,70fr)!important;
-  gap:12px!important;align-items:start!important;width:100%;
+ display:grid!important;grid-template-columns:minmax(0,30fr) minmax(0,70fr)!important;
+ gap:12px!important;align-items:start!important;width:100%
 }
-body.admin-full-view .admin-full-view-panels>.card,
-body.admin-full-view .admin-full-view-panels .admin-full-view-right{min-width:0!important}
-body.admin-full-view .admin-full-view-panels>.card{margin-bottom:0!important}
-body.admin-full-view .admin-full-view-panels #tradeLogbookCard,
-body.admin-full-view .admin-full-view-panels #clientFinancialDetailsCard{margin-bottom:10px!important}
-body.admin-full-view .admin-full-view-panels .table-wrap{max-height:calc(100vh - 390px);min-height:150px}
-body.admin-full-view .admin-full-view-panels #portfolioTable{min-width:1120px}
-body.admin-full-view .admin-full-view-panels #clientFinancialDetailsCard .table-wrap{max-height:calc(100vh - 300px);min-height:120px}
-body.admin-full-view #clientFinancialDetailsCard.fin-client-selected .table-wrap{
-  max-height:78px!important;min-height:0!important;overflow:auto!important;
-}
+body.admin-full-view .admin-full-view-left,
+body.admin-full-view .admin-full-view-right{min-width:0!important}
+body.admin-full-view .admin-full-view-left{padding:10px!important;margin:0!important}
+body.admin-full-view .admin-full-view-right>.card{margin:0 0 10px!important;min-width:0!important}
+body.admin-full-view .admin-full-view-panels .table-wrap{max-height:calc(100vh - 330px);min-height:150px}
+body.admin-full-view .admin-full-view-left #portfolioTable{min-width:1120px}
+body.admin-full-view .admin-full-view-right #clientFinancialDetailsCard .table-wrap{max-height:calc(100vh - 300px);min-height:120px}
+body.admin-full-view #clientFinancialDetailsCard.fin-client-selected .table-wrap{max-height:78px!important;min-height:0!important;overflow:auto!important}
 body.admin-full-view #clientFinancialDetailsCard.fin-client-selected table{min-width:1120px}
 body.admin-full-view #clientFinancialDetailsCard.fin-client-selected th,
 body.admin-full-view #clientFinancialDetailsCard.fin-client-selected td{white-space:nowrap!important;padding-top:6px!important;padding-bottom:6px!important}
-@media(max-width:1100px){
-  body.admin-full-view .admin-full-view-panels{grid-template-columns:minmax(0,1fr)!important}
-  body.admin-full-view .admin-full-view-panels .table-wrap{max-height:55vh}
-}
-@media(max-width:700px){
-  body.admin-full-view .admin-full-view-panels{display:block!important}
-}
+@media(max-width:1100px){body.admin-full-view .admin-full-view-panels{grid-template-columns:minmax(0,1fr)!important}}
+@media(max-width:700px){body.admin-full-view .admin-full-view-panels{display:block!important}}
 </style>
 <script id="admin-full-normal-view-toggle">
 (function(){
-  let layoutReady=false;
-  let panelWrap=null, commonTop=null;
-  let portfolioCard=null, financialCard=null, logbookCard=null;
-  let placeholders=[];
-  let topItems=[];
+  let ready=false, shell=null, commonTop=null, panelWrap=null, leftCard=null, rightWrap=null;
+  let moved=[];
+  const byId=id=>document.getElementById(id);
+  function moveWithMarker(el,dest){
+    if(!el||!el.parentNode)return;
+    const marker=document.createComment('admin-full-view-position');
+    el.parentNode.insertBefore(marker,el);
+    moved.push({el,marker});
+    dest.appendChild(el);
+  }
   function prepare(){
-    if(layoutReady) return true;
-    const table=document.getElementById('portfolioTable');
-    portfolioCard=table?.closest('.card');
-    financialCard=document.getElementById('clientFinancialDetailsCard');
-    logbookCard=document.getElementById('tradeLogbookCard');
-    if(!portfolioCard||!financialCard||!logbookCard) return false;
+    if(ready)return true;
+    const searchPanel=document.querySelector('.search-panel');
+    const tableWrap=byId('portfolioTable')?.closest('.table-wrap');
+    const financial=byId('clientFinancialDetailsCard');
+    const logbook=byId('tradeLogbookCard');
+    if(!searchPanel||!tableWrap||!financial||!logbook)return false;
+    shell=searchPanel.closest('.card');
+    if(!shell)return false;
 
-    const searchPanel=portfolioCard.querySelector('.search-panel');
-    const heading=portfolioCard.querySelector('.portfolio-heading-row');
-    const portfolioBar=portfolioCard.querySelector('.portfolio-bar');
-    if(!searchPanel||!heading||!portfolioBar) return false;
-
-    panelWrap=document.createElement('div');
-    panelWrap.className='admin-full-view-panels';
-    commonTop=document.createElement('div');
+    commonTop=document.createElement('section');
     commonTop.className='admin-full-view-common';
-    const right=document.createElement('div');
-    right.className='admin-full-view-right';
+    panelWrap=document.createElement('section');
+    panelWrap.className='admin-full-view-panels';
+    leftCard=document.createElement('div');
+    leftCard.className='card admin-full-view-left';
+    rightWrap=document.createElement('div');
+    rightWrap.className='admin-full-view-right';
 
-    [portfolioCard,financialCard,logbookCard].forEach(el=>{
-      const marker=document.createComment('admin-full-view-position');
-      el.parentNode.insertBefore(marker,el);
-      placeholders.push({marker,el});
-    });
+    const searchTitle=searchPanel.querySelector(':scope > .title');
+    const filters=searchPanel.querySelector(':scope > .filters');
+    const heading=searchPanel.querySelector(':scope > .portfolio-heading-row');
+    const portfolioBar=searchPanel.querySelector(':scope > .portfolio-bar');
+    const recencyBar=byId('lms-recency-bar');
 
-    topItems=[searchPanel,heading,portfolioBar];
-    topItems.forEach(el=>commonTop.appendChild(el));
-    panelWrap.appendChild(portfolioCard);
-    right.appendChild(financialCard);
-    right.appendChild(logbookCard);
-    panelWrap.appendChild(right);
+    moveWithMarker(searchTitle,commonTop);
+    moveWithMarker(filters,commonTop);
+    moveWithMarker(heading,commonTop);
+    moveWithMarker(portfolioBar,commonTop);
+    moveWithMarker(recencyBar,commonTop);
+    moveWithMarker(tableWrap,leftCard);
+    moveWithMarker(financial,rightWrap);
+    moveWithMarker(logbook,rightWrap);
 
-    const anchor=placeholders[0].marker;
-    anchor.parentNode.insertBefore(commonTop,anchor.nextSibling);
+    panelWrap.append(leftCard,rightWrap);
+    shell.classList.add('admin-full-view-source-shell');
+    shell.parentNode.insertBefore(commonTop,shell.nextSibling);
     commonTop.parentNode.insertBefore(panelWrap,commonTop.nextSibling);
-    layoutReady=true;
+    ready=true;
     return true;
   }
-
   window.setAdminViewMode=function(mode){
     if(mode==='full'){
-      if(!prepare()) return;
+      if(!prepare())return;
       document.body.classList.add('admin-full-view');
-      document.getElementById('fullViewModeBtn')?.style.setProperty('display','none');
-      document.getElementById('normalViewModeBtn')?.style.setProperty('display','inline-block');
+      byId('fullViewModeBtn')?.style.setProperty('display','none');
+      byId('normalViewModeBtn')?.style.setProperty('display','inline-block');
       window.scrollTo({top:0,behavior:'smooth'});
     }else{
       document.body.classList.remove('admin-full-view');
-      if(layoutReady){
-        panelWrap.remove();
-        placeholders.forEach(({marker,el})=>{
-          marker.parentNode?.insertBefore(el,marker);
+      if(ready){
+        moved.forEach(({el,marker})=>{
+          if(marker.parentNode)marker.parentNode.insertBefore(el,marker);
           marker.remove();
         });
-        const firstTableWrap=portfolioCard.querySelector('.table-wrap');
-        topItems.forEach(el=>portfolioCard.insertBefore(el,firstTableWrap));
-        commonTop.remove();
-        placeholders=[];
-        topItems=[];
-        layoutReady=false;
+        shell.classList.remove('admin-full-view-source-shell');
+        commonTop.remove();panelWrap.remove();
+        moved=[];ready=false;
       }
-      document.getElementById('fullViewModeBtn')?.style.setProperty('display','inline-block');
-      document.getElementById('normalViewModeBtn')?.style.setProperty('display','none');
+      byId('fullViewModeBtn')?.style.setProperty('display','inline-block');
+      byId('normalViewModeBtn')?.style.setProperty('display','none');
       window.scrollTo({top:0,behavior:'smooth'});
     }
   };
