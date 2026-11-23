@@ -1042,6 +1042,85 @@ body.admin-full-view .admin-full-view-common > .title {
 }
 </style>
 
+
+<style id="admin-full-view-portfolio-readable-v11">
+/* Full View desktop: larger, vertically centered portfolio rows.
+   Keep the first seven visual columns visible through Buy Price. */
+@media (min-width: 1101px) {
+  body.admin-full-view .admin-full-view-panels {
+    grid-template-columns: minmax(668px, 48fr) minmax(0, 52fr) !important;
+    column-gap: 12px !important;
+  }
+
+  body.admin-full-view .admin-full-view-left,
+  body.admin-full-view .admin-full-view-left .table-wrap {
+    min-width: 0 !important;
+  }
+
+  body.admin-full-view .admin-full-view-left .table-wrap {
+    overflow-x: auto !important;
+  }
+
+  body.admin-full-view .admin-full-view-left #portfolioTable {
+    min-width: 668px !important;
+  }
+
+  body.admin-full-view .admin-full-view-left #portfolioTable tr {
+    height: 44px !important;
+    min-height: 44px !important;
+    align-items: stretch !important;
+  }
+
+  body.admin-full-view .admin-full-view-left #portfolioTable td {
+    height: 44px !important;
+    min-height: 44px !important;
+    max-height: 44px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    padding: 5px 6px !important;
+    font-size: 20px !important;
+    line-height: 1.2 !important;
+    font-weight: 600 !important;
+    vertical-align: middle !important;
+  }
+
+  body.admin-full-view .admin-full-view-left #portfolioTable th {
+    height: 44px !important;
+    min-height: 44px !important;
+    max-height: 44px !important;
+    display: flex !important;
+    align-items: center !important;
+    padding: 5px 6px !important;
+    font-size: 18px !important;
+    line-height: 1.15 !important;
+    white-space: nowrap !important;
+  }
+
+  /* Column order is inherited from the existing visual-order CSS:
+     checkbox, Client, Symbol, MTM, LTP, Qty, Buy Price, then remaining fields. */
+  body.admin-full-view .admin-full-view-left #portfolioTable th:nth-child(1),
+  body.admin-full-view .admin-full-view-left #portfolioTable td:nth-child(1) { width: 38px !important; }
+  body.admin-full-view .admin-full-view-left #portfolioTable th:nth-child(2),
+  body.admin-full-view .admin-full-view-left #portfolioTable td:nth-child(2) { width: 112px !important; }
+  body.admin-full-view .admin-full-view-left #portfolioTable th:nth-child(3),
+  body.admin-full-view .admin-full-view-left #portfolioTable td:nth-child(3) { width: 125px !important; }
+  body.admin-full-view .admin-full-view-left #portfolioTable th:nth-child(6),
+  body.admin-full-view .admin-full-view-left #portfolioTable td:nth-child(6) { width: 112px !important; }
+  body.admin-full-view .admin-full-view-left #portfolioTable th:nth-child(7),
+  body.admin-full-view .admin-full-view-left #portfolioTable td:nth-child(7) { width: 88px !important; }
+  body.admin-full-view .admin-full-view-left #portfolioTable th:nth-child(8),
+  body.admin-full-view .admin-full-view-left #portfolioTable td:nth-child(8) { width: 88px !important; }
+  body.admin-full-view .admin-full-view-left #portfolioTable th:nth-child(9),
+  body.admin-full-view .admin-full-view-left #portfolioTable td:nth-child(9) { width: 105px !important; }
+
+  body.admin-full-view .admin-full-view-left #portfolioTable td .check {
+    width: 20px !important;
+    height: 20px !important;
+  }
+}
+</style>
+
 </head>
 <body>
 <header class="top"><div class="header-overlay"><div class="header-subtitle">ADMIN / SUPERVISOR PORTFOLIO &amp; DAILY CONTROL PANEL</div><div class="header-login">Logged in: {{ supervisor_name }} ({{ supervisor_id }}){% if not can_manage %} · VIEW ONLY{% endif %}</div></div></header>
