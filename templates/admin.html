@@ -804,6 +804,17 @@ body.tradelogs-split-open #tradeLogsSplitDrawer{display:flex;}
 }
 @media(max-width:700px){.logbook-inline-stats{display:none}}
 </style>
+
+<style id="multi-client-dropdown-overflow-fix">
+/* Let the client dropdown extend below the search row instead of being clipped. */
+.card:has(> .title + .filters) > .filters {
+  overflow: visible !important;
+}
+.multi-client-menu {
+  z-index: 9999 !important;
+}
+</style>
+
 </head>
 <body>
 <header class="top"><div class="header-overlay"><div class="header-subtitle">ADMIN / SUPERVISOR PORTFOLIO &amp; DAILY CONTROL PANEL</div><div class="header-login">Logged in: {{ supervisor_name }} ({{ supervisor_id }}){% if not can_manage %} · VIEW ONLY{% endif %}</div></div></header>
