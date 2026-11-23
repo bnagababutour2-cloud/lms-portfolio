@@ -1679,6 +1679,11 @@ filterPortfolio=function(){
   updateTotal();
   updateLiveViewStatus();
   updateAdminQuickFilterButtons();
+  if(typeof window.syncLogbookClientFromMainSearch==='function' &&
+     (c || window.__lastMainClientSearch)){
+    window.__lastMainClientSearch=c;
+    window.syncLogbookClientFromMainSearch(c);
+  }
 };
 const _clearSearch=clearSearch;
 clearSearch=function(){
@@ -1802,6 +1807,7 @@ async function setSelectedPasswords(){
  let currentLogbookFilter='all';
  let currentLogbookCatFilter=null;
  let selectedLogbookClient=null;
+ let mainSearchExactClient=null;
 
  window.setLogbookCatFilter=function(cat,button){
    if(cat==='all'){
@@ -2007,6 +2013,7 @@ window.setLogbookFilter=async function(filter,button){
    const query=(document.getElementById('logbookClientSearchInput')?.value||'').trim().toLowerCase();
    const all=clientMap();
    const matches=[...all.values()].filter(c=>{
+     if(mainSearchExactClient) return c.id.toUpperCase()===mainSearchExactClient;
      if(!matchesRecencyBucket(c.lastDays,currentLogbookFilter)) return false;
      if(!matchesCategoryFilter(c)) return false;
      if(query){
@@ -2317,6 +2324,59 @@ window.setLogbookFilter=async function(filter,button){
        renderDonut('logbookIndustryDonut','logbookIndustryLegend',industriesFromServer,industriesFromServer.reduce((a,x)=>a+Math.abs(x.value),0),'industry');
      }).catch(()=>{});
  }
+
+ window.syncLogbookClientFromMainSearch=function(rawClientId){
+   const clientId=String(rawClientId||'').trim();
+   const finSearchInput=document.getElementById('finTableSearch');
+   const logbookSearchInput=document.getElementById('logbookClientSearchInput');
+
+   if(finSearchInput){
+     finSearchInput.value=clientId;
+     if(typeof window.filterFinancialTable==='function'){
+       window.filterFinancialTable(clientId,!!clientId);
+     }
+   }
+
+   if(!clientId){
+     mainSearchExactClient=null;
+     if(logbookSearchInput) logbookSearchInput.value='';
+     selectedLogbookClient=null;
+     clearLogbookCharts();
+     return;
+   }
+
+   const match=clientMap().get(clientId.toUpperCase());
+   currentLogbookFilter='all';
+   currentLogbookCatFilter=null;
+   mainSearchExactClient=match ? match.id.toUpperCase() : null;
+
+   document.querySelectorAll('[data-logbook-filter]').forEach(b=>{
+     b.classList.toggle('active',b.dataset.logbookFilter==='all');
+   });
+   const recBar=document.getElementById('lms-recency-bar');
+   if(recBar){
+     recBar.querySelectorAll('button[data-bucket]').forEach(b=>{
+       b.classList.toggle('active',b.dataset.bucket==='all');
+     });
+   }
+   const desc=document.getElementById('logbookFilterDescription');
+   if(desc) desc.textContent=match
+     ? 'Showing the exact Client ID selected in the main search.'
+     : 'No exact portfolio client match yet; showing matching client search results.';
+
+   if(logbookSearchInput) logbookSearchInput.value=match ? match.id : clientId;
+   if(match){
+     renderLogbookClients();
+     if(typeof window.refreshClientFinancialsFast==='function'){
+       window.refreshClientFinancialsFast(match.id);
+     }
+   }else{
+     const list=document.getElementById('logbookClientList');
+     if(list) list.innerHTML='<div class="logbook-empty">Enter a complete Client ID to show its Trade Logbook and Analytics.</div>';
+     selectedLogbookClient=null;
+     clearLogbookCharts();
+   }
+ };
 
  window.refreshTradeLogbook=renderLogbookClients;
  ensureServerRecency().then(()=>renderLogbookClients());
