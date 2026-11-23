@@ -1137,6 +1137,74 @@ body.admin-full-view .admin-full-view-common > .title {
 }
 </style>
 
+
+<style id="full-view-lock-top-panels-scroll-logbook-v13">
+/* Desktop Full View: keep the portfolio and financial snapshot stationary.
+   Only the Trade Logbook & Client Analytics panel gets the vertical scroll. */
+@media (min-width: 1101px) {
+  body.admin-full-view {
+    overflow: hidden !important;
+  }
+
+  body.admin-full-view .admin-full-view-panels {
+    height: calc(100vh - 230px) !important;
+    min-height: 280px !important;
+    max-height: calc(100vh - 230px) !important;
+    overflow: hidden !important;
+    align-items: stretch !important;
+  }
+
+  /* Keep the portfolio panel in place; do not let its content move with
+     the logbook scroll. Its own horizontal overflow remains available. */
+  body.admin-full-view .admin-full-view-left {
+    height: 100% !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+  }
+  body.admin-full-view .admin-full-view-left > .table-wrap {
+    flex: 1 1 0 !important;
+    height: 0 !important;
+    min-height: 0 !important;
+    max-height: 100% !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    overscroll-behavior: contain !important;
+  }
+
+  /* Financial details remain visible above the independently scrolling
+     analytics area. Keep its card at its natural compact height. */
+  body.admin-full-view .admin-full-view-right {
+    height: 100% !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 3px !important;
+  }
+  body.admin-full-view .admin-full-view-right > #clientFinancialDetailsCard {
+    flex: 0 0 auto !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+  }
+  body.admin-full-view #clientFinancialDetailsCard .table-wrap {
+    max-height: 78px !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+  }
+
+  /* The only vertical scroll region in this Full View layout. */
+  body.admin-full-view .admin-full-view-right > #tradeLogbookCard {
+    flex: 1 1 0 !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    overscroll-behavior: contain !important;
+    scrollbar-gutter: stable;
+  }
+}
+</style>
+
 </head>
 <body>
 <header class="top"><div class="header-overlay"><div class="header-subtitle">ADMIN / SUPERVISOR PORTFOLIO &amp; DAILY CONTROL PANEL</div><div class="header-login">Logged in: {{ supervisor_name }} ({{ supervisor_id }}){% if not can_manage %} · VIEW ONLY{% endif %}</div></div></header>
