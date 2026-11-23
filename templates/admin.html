@@ -5497,4 +5497,148 @@ body.admin-full-view #clientFinancialDetailsCard.fin-client-selected td{
 })();
 </script>
 
+
+<script id="lms-two-way-filter-sync-v25">
+/*
+ * One shared category contract for Portfolio and Trade Logbook / Client Analytics.
+ * Additive patch: leaves search, live-view, row-selection and toolbar actions intact.
+ */
+(function () {
+  if (window.__lmsTwoWayFilterSyncV25) return;
+  window.__lmsTwoWayFilterSyncV25 = true;
+
+  const VALID = new Set(['all','prime','active','inactive','dormat','10','12','13','01','03','04','23']);
+  const normalizeStatus = value => {
+    const s = String(value || '').trim().toLowerCase();
+    return s === 'dormant' ? 'dormat' : s;
+  };
+  const clientId = row => String(row?.dataset?.client || row?.cells?.[1]?.textContent || '').trim();
+  const starts = (id, prefix) => id.toLowerCase().startsWith(prefix);
+  const groupMatch = (id, cat) => {
+    const v = id.toLowerCase();
+    if (cat === 'prime') return starts(v,'10') || starts(v,'12');
+    if (cat === '10' || cat === '12' || cat === '13') return starts(v,cat);
+    if (cat === '01') return starts(v,'1301');
+    if (cat === '03') return starts(v,'1303');
+    if (cat === '04') return starts(v,'1304');
+    if (cat === '23') return starts(v,'1312') || starts(v,'1313') || starts(v,'1314');
+    return true;
+  };
+
+  // The current setter owns the analytics list, recency state and chart rendering.
+  const analyticsSetter = window.setLogbookCatFilter;
+  let syncing = false;
+
+  function setPortfolioCategory(cat) {
+    if (typeof primeFilterActive !== 'undefined') primeFilterActive = cat === 'prime';
+    if (typeof adminStatusFilter !== 'undefined')
+      adminStatusFilter = ['active','inactive','dormat'].includes(cat) ? cat : null;
+    if (typeof adminStarFilter !== 'undefined')
+      adminStarFilter = ['10','12','13','01','03','04','23'].includes(cat) ? cat : null;
+
+    const primeBtn = document.getElementById('primeClientsBtn');
+    if (primeBtn) primeBtn.style.boxShadow = cat === 'prime' ? '0 0 0 3px rgba(5,45,112,.35)' : '';
+    if (typeof updateAdminQuickFilterButtons === 'function') updateAdminQuickFilterButtons();
+    if (typeof window.filterPortfolio === 'function') window.filterPortfolio();
+  }
+
+  function setAnalyticsCategory(cat, button) {
+    if (typeof analyticsSetter !== 'function') return;
+    // Reset first so choosing the same category never toggles it off accidentally.
+    analyticsSetter('all', null);
+    if (cat !== 'all') analyticsSetter(cat, button || null);
+  }
+
+  // Analytics -> Portfolio. Preserve the analytics setter's own rendering behaviour.
+  window.setLogbookCatFilter = function (cat, button) {
+    cat = String(cat || 'all').toLowerCase();
+    if (!VALID.has(cat)) return analyticsSetter?.(cat, button);
+    if (syncing) return analyticsSetter?.(cat, button);
+    syncing = true;
+    try {
+      setPortfolioCategory(cat);
+      return setAnalyticsCategory(cat, button);
+    } finally {
+      syncing = false;
+    }
+  };
+
+  // Portfolio -> Analytics. Wrap only the quick-filter controls; do not touch
+  // multi-client, text search, symbol/product/exchange search or live-view actions.
+  const wrap = (name, getCategory) => {
+    const original = window[name];
+    if (typeof original !== 'function' || original.__v25Wrapped) return;
+    const wrapped = function () {
+      const result = original.apply(this, arguments);
+      if (!syncing) {
+        const cat = getCategory();
+        if (VALID.has(cat)) {
+          syncing = true;
+          try { setAnalyticsCategory(cat); } finally { syncing = false; }
+        }
+      }
+      return result;
+    };
+    wrapped.__v25Wrapped = true;
+    window[name] = wrapped;
+  };
+
+  wrap('togglePrimeClients', () => primeFilterActive ? 'prime' : 'all');
+  wrap('toggleAdminStarFilter', () => adminStarFilter || 'all');
+  wrap('handleAdminStatusAction', () => adminStatusFilter || 'all');
+
+  // Use the exact same status/prefix definitions when filtering portfolio rows.
+  const previousFilter = window.filterPortfolio;
+  window.filterPortfolio = function () {
+    const selected = [...document.querySelectorAll('.multi-client-check:checked')]
+      .map(x => String(x.value || '').trim().toLowerCase()).filter(Boolean);
+    const val = id => String(document.getElementById(id)?.value || '').trim().toLowerCase();
+    const cq=val('clientSearch'), sq=val('symbolSearch'), pq=val('productSearch'), eq=val('exchangeSearch');
+
+    document.querySelectorAll('#portfolioTable tbody tr').forEach(row => {
+      const id = clientId(row), key=id.toLowerCase();
+      const status = normalizeStatus(typeof getEffectiveClientStatus === 'function' ? getEffectiveClientStatus(id) : '');
+      const categoryOk =
+        (!primeFilterActive || groupMatch(id,'prime')) &&
+        (!adminStatusFilter || status === normalizeStatus(adminStatusFilter)) &&
+        (!adminStarFilter || groupMatch(id,adminStarFilter));
+      const selectedOk = !selected.length || selected.includes(key);
+      const searchOk = (!cq || key.includes(cq)) &&
+        (!sq || String(row.dataset.symbol || row.cells[2]?.textContent || '').toLowerCase().includes(sq)) &&
+        (!pq || String(row.dataset.product || row.cells[3]?.textContent || '').toLowerCase().includes(pq)) &&
+        (!eq || String(row.dataset.exchange || row.cells[4]?.textContent || '').toLowerCase() === eq);
+      const liveOk = typeof liveViewAllows !== 'function' || liveViewAllows(row);
+      row.style.display = categoryOk && selectedOk && searchOk && liveOk ? '' : 'none';
+    });
+
+    if (typeof updateTotal === 'function') updateTotal();
+    if (typeof updateLiveViewStatus === 'function') updateLiveViewStatus();
+    if (typeof updateAdminQuickFilterButtons === 'function') updateAdminQuickFilterButtons();
+    if (typeof window.syncLogbookClientFromMainSearch === 'function' &&
+        (cq || window.__lastMainClientSearch)) {
+      window.__lastMainClientSearch = cq;
+      window.syncLogbookClientFromMainSearch(cq);
+    }
+  };
+
+  // Matching Clients remains alphabetical; re-render its existing sorted list
+  // after category changes. Existing renderLogbookClients sorts by client ID.
+  // Set the portfolio's initial/default order to MTM descending once.
+  function initialize() {
+    if (!window.__lmsInitialMtmDescending) {
+      window.__lmsInitialMtmDescending = true;
+      const table = document.getElementById('portfolioTable');
+      if (table && typeof window.sortTable === 'function') window.sortTable(5, false);
+    }
+    setPortfolioCategory('all');
+    setAnalyticsCategory('all');
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initialize, {once:true});
+  } else {
+    initialize();
+  }
+})();
+</script>
+
 </body></html>
