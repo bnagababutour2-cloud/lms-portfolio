@@ -3983,4 +3983,57 @@ body.admin-full-view #clientFinancialDetailsCard.fin-client-selected td{
 }
 </style>
 
+
+<style id="compact-client-financial-panel-height">
+/* Desktop: reduce Client Financial Details panel height while preserving its data and controls. */
+@media (min-width: 701px) {
+  #clientFinancialDetailsCard {
+    padding: 8px 10px !important;
+    margin-bottom: 9px !important;
+  }
+  #clientFinancialDetailsCard .logbook-title-row {
+    margin-bottom: 5px !important;
+    gap: 6px !important;
+  }
+  #clientFinancialDetailsCard .title {
+    font-size: 15px !important;
+    line-height: 1.15 !important;
+  }
+  #clientFinancialDetailsCard .sub {
+    font-size: 10px !important;
+    line-height: 1.15 !important;
+    margin-top: 2px !important;
+  }
+  #clientFinancialDetailsCard #finTableSearch {
+    height: 28px !important;
+    padding: 4px 8px !important;
+    font-size: 11px !important;
+  }
+  #clientFinancialDetailsCard .logbook-title-row .btn {
+    min-height: 26px !important;
+    padding: 4px 8px !important;
+    font-size: 10px !important;
+  }
+  #clientFinancialDetailsCard .logbook-title-row .pill {
+    padding: 4px 8px !important;
+    font-size: 10px !important;
+  }
+  #clientFinancialDetailsCard .table-wrap {
+    max-height: 440px !important;
+  }
+  #clientFinancialDetailsCard table th {
+    padding-top: 6px !important;
+    padding-bottom: 6px !important;
+    font-size: 11px !important;
+    line-height: 1.15 !important;
+  }
+  #clientFinancialDetailsCard table td {
+    padding-top: 5px !important;
+    padding-bottom: 5px !important;
+    font-size: 11px !important;
+    line-height: 1.15 !important;
+  }
+}
+</style>
+
 </body></html>
