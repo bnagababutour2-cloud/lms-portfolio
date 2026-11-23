@@ -1436,6 +1436,28 @@ body.admin-full-view .admin-full-view-common > .title {
 }
 </style>
 
+
+<style id="full-view-portfolio-18-analytics-82-v18">
+/* Apply the requested Full View split: 18% Portfolio / 82% Analytics.
+   Keep the readable 10px portfolio text and 22px rows from v17. */
+@media (min-width: 1101px) {
+  body.admin-full-view .admin-full-view-panels {
+    grid-template-columns: minmax(0, 18fr) minmax(0, 82fr) !important;
+    column-gap: 9px !important;
+  }
+
+  body.admin-full-view .admin-full-view-left {
+    min-width: 0 !important;
+    width: 100% !important;
+  }
+
+  body.admin-full-view .admin-full-view-right {
+    min-width: 0 !important;
+    width: 100% !important;
+  }
+}
+</style>
+
 </head>
 <body>
 <header class="top"><div class="header-overlay"><div class="header-subtitle">ADMIN / SUPERVISOR PORTFOLIO &amp; DAILY CONTROL PANEL</div><div class="header-login">Logged in: {{ supervisor_name }} ({{ supervisor_id }}){% if not can_manage %} · VIEW ONLY{% endif %}</div></div></header>
