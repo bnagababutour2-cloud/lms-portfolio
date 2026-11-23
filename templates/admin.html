@@ -870,6 +870,8 @@ body.tradelogs-split-open #tradeLogsSplitDrawer{display:flex;}
 <a href="/download/holdings.csv"><button class="btn green">DOWNLOAD PORTFOLIO</button></a>
 <a href="/download/clients.csv"><button class="btn light">DOWNLOAD CLIENTS</button></a>
 <button type="button" class="btn" style="background:#b45309" onclick="window.openBseAlertsSplit()">🚨 ALERT</button>
+<button type="button" class="btn green" id="fullViewModeBtn" onclick="setAdminViewMode('full')">FULL VIEW</button>
+<button type="button" class="btn light" id="normalViewModeBtn" onclick="setAdminViewMode('normal')" style="display:none">NORMAL VIEW</button>
 <a href="/logout"><button class="btn gray">LOGOUT</button></a>
 </div>
 
@@ -3565,5 +3567,90 @@ function sortFinTable(col, asc) {
   }
 }
 </style>
+
+
+<style id="admin-full-view-layout-only">
+/* Additive view-only layout. Existing data, API calls and action handlers are untouched. */
+body.admin-full-view .market-sidebar{display:none!important}
+body.admin-full-view .master-dashboard-grid{display:block!important}
+body.admin-full-view .master-main-content{width:100%!important;min-width:0!important}
+.admin-full-view-panels{display:none}
+body.admin-full-view .admin-full-view-panels{
+  display:grid;
+  grid-template-columns:minmax(0,1.12fr) minmax(0,.88fr);
+  gap:12px;
+  align-items:stretch;
+  width:100%;
+}
+body.admin-full-view .admin-full-view-panels > .card{min-width:0;margin-bottom:0}
+body.admin-full-view .admin-full-view-panels #tradeLogbookCard,
+body.admin-full-view .admin-full-view-panels #clientFinancialDetailsCard{margin-bottom:12px}
+body.admin-full-view .admin-full-view-panels .admin-full-view-right{min-width:0}
+body.admin-full-view .admin-full-view-panels #portfolioTable{min-width:1120px}
+body.admin-full-view .admin-full-view-panels .table-wrap{max-height:calc(100vh - 310px);min-height:300px}
+@media(max-width:1100px){
+  body.admin-full-view .admin-full-view-panels{grid-template-columns:minmax(0,1fr)}
+  body.admin-full-view .admin-full-view-panels .table-wrap{max-height:55vh}
+}
+@media(max-width:700px){
+  body.admin-full-view .admin-full-view-panels{display:block}
+}
+</style>
+<script id="admin-full-normal-view-toggle">
+(function(){
+  let layoutReady=false;
+  let panelWrap=null;
+  let portfolioCard=null, financialCard=null, logbookCard=null;
+  let placeholders=[];
+  function prepare(){
+    if(layoutReady) return true;
+    const table=document.getElementById('portfolioTable');
+    portfolioCard=table?.closest('.card');
+    financialCard=document.getElementById('clientFinancialDetailsCard');
+    logbookCard=document.getElementById('tradeLogbookCard');
+    if(!portfolioCard||!financialCard||!logbookCard) return false;
+    panelWrap=document.createElement('div');
+    panelWrap.className='admin-full-view-panels';
+    const right=document.createElement('div');
+    right.className='admin-full-view-right';
+    [portfolioCard,financialCard,logbookCard].forEach(el=>{
+      const marker=document.createComment('admin-full-view-position');
+      el.parentNode.insertBefore(marker,el);
+      placeholders.push({marker,el});
+    });
+    panelWrap.appendChild(portfolioCard);
+    right.appendChild(financialCard);
+    right.appendChild(logbookCard);
+    panelWrap.appendChild(right);
+    // Insert at the original portfolio position; all existing upper content stays in place.
+    placeholders[0].marker.parentNode.insertBefore(panelWrap,placeholders[0].marker.nextSibling);
+    layoutReady=true;
+    return true;
+  }
+  window.setAdminViewMode=function(mode){
+    if(mode==='full'){
+      if(!prepare()) return;
+      document.body.classList.add('admin-full-view');
+      document.getElementById('fullViewModeBtn')?.style.setProperty('display','none');
+      document.getElementById('normalViewModeBtn')?.style.setProperty('display','inline-block');
+      window.scrollTo({top:0,behavior:'smooth'});
+    }else{
+      document.body.classList.remove('admin-full-view');
+      if(layoutReady){
+        panelWrap.remove();
+        placeholders.forEach(({marker,el})=>{
+          marker.parentNode?.insertBefore(el,marker);
+          marker.remove();
+        });
+        placeholders=[];
+        layoutReady=false;
+      }
+      document.getElementById('fullViewModeBtn')?.style.setProperty('display','inline-block');
+      document.getElementById('normalViewModeBtn')?.style.setProperty('display','none');
+      window.scrollTo({top:0,behavior:'smooth'});
+    }
+  };
+})();
+</script>
 
 </body></html>
