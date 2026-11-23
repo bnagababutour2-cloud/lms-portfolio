@@ -1343,6 +1343,66 @@ body.admin-full-view .admin-full-view-common > .title {
 }
 </style>
 
+
+<style id="portfolio-panel-compact-width-v16">
+/* Full View: slightly narrower portfolio, more room for analytics.
+   Keep the visible columns through Product while making rows more compact. */
+@media (min-width: 1101px) {
+  body.admin-full-view .admin-full-view-panels {
+    grid-template-columns: minmax(0, 28fr) minmax(0, 72fr) !important;
+    column-gap: 9px !important;
+  }
+
+  body.admin-full-view .admin-full-view-left {
+    min-width: 0 !important;
+  }
+
+  body.admin-full-view .admin-full-view-left #portfolioTable tr {
+    height: 19px !important;
+    min-height: 19px !important;
+  }
+
+  body.admin-full-view .admin-full-view-left #portfolioTable th,
+  body.admin-full-view .admin-full-view-left #portfolioTable td {
+    height: 19px !important;
+    min-height: 19px !important;
+    max-height: 19px !important;
+    padding: 1px 2px !important;
+    font-size: 8.5px !important;
+    line-height: 1.05 !important;
+  }
+
+  body.admin-full-view .admin-full-view-left #portfolioTable th {
+    height: 21px !important;
+    min-height: 21px !important;
+    max-height: 21px !important;
+    padding: 2px !important;
+    font-size: 8.5px !important;
+  }
+
+  /* Slightly tighten the narrow text/numeric columns to preserve Product
+     in the reduced left panel. */
+  body.admin-full-view .admin-full-view-left #portfolioTable th:nth-child(1),
+  body.admin-full-view .admin-full-view-left #portfolioTable td:nth-child(1) { width: 22px !important; flex-basis: 22px !important; }
+  body.admin-full-view .admin-full-view-left #portfolioTable th:nth-child(2),
+  body.admin-full-view .admin-full-view-left #portfolioTable td:nth-child(2) { width: 56px !important; flex-basis: 56px !important; }
+  body.admin-full-view .admin-full-view-left #portfolioTable th:nth-child(3),
+  body.admin-full-view .admin-full-view-left #portfolioTable td:nth-child(3) { width: 66px !important; flex-basis: 66px !important; }
+  body.admin-full-view .admin-full-view-left #portfolioTable th:nth-child(4),
+  body.admin-full-view .admin-full-view-left #portfolioTable td:nth-child(4) { width: 48px !important; flex-basis: 48px !important; }
+  body.admin-full-view .admin-full-view-left #portfolioTable th:nth-child(5),
+  body.admin-full-view .admin-full-view-left #portfolioTable td:nth-child(5) { width: 44px !important; flex-basis: 44px !important; }
+  body.admin-full-view .admin-full-view-left #portfolioTable th:nth-child(6),
+  body.admin-full-view .admin-full-view-left #portfolioTable td:nth-child(6) { width: 54px !important; flex-basis: 54px !important; }
+  body.admin-full-view .admin-full-view-left #portfolioTable th:nth-child(7),
+  body.admin-full-view .admin-full-view-left #portfolioTable td:nth-child(7) { width: 44px !important; flex-basis: 44px !important; }
+  body.admin-full-view .admin-full-view-left #portfolioTable th:nth-child(8),
+  body.admin-full-view .admin-full-view-left #portfolioTable td:nth-child(8) { width: 42px !important; flex-basis: 42px !important; }
+  body.admin-full-view .admin-full-view-left #portfolioTable th:nth-child(9),
+  body.admin-full-view .admin-full-view-left #portfolioTable td:nth-child(9) { width: 52px !important; flex-basis: 52px !important; }
+}
+</style>
+
 </head>
 <body>
 <header class="top"><div class="header-overlay"><div class="header-subtitle">ADMIN / SUPERVISOR PORTFOLIO &amp; DAILY CONTROL PANEL</div><div class="header-login">Logged in: {{ supervisor_name }} ({{ supervisor_id }}){% if not can_manage %} · VIEW ONLY{% endif %}</div></div></header>
