@@ -3625,9 +3625,13 @@ body.admin-full-view .admin-full-view-panels #clientFinancialDetailsCard.fin-cli
     portfolioCard=table?.closest('.card');
     financialCard=document.getElementById('clientFinancialDetailsCard');
     logbookCard=document.getElementById('tradeLogbookCard');
-    const filters=document.querySelector('.card > .filters');
-    searchCard=filters?.closest('.card');
-    if(!portfolioCard||!financialCard||!logbookCard||!searchCard)return false;
+    const searchPanel=document.querySelector('.search-panel');
+    searchCard=searchPanel?.closest('.card');
+    if(!portfolioCard||!financialCard||!logbookCard||!searchCard){
+      console.error('FULL VIEW could not start: required layout element missing', {portfolioCard, financialCard, logbookCard, searchCard});
+      alert('FULL VIEW could not start because a required page section was not found. Please contact support with the updated file.');
+      return false;
+    }
 
     commonTop=document.createElement('div');
     commonTop.className='admin-full-view-common';
