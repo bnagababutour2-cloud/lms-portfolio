@@ -1121,6 +1121,22 @@ body.admin-full-view .admin-full-view-common > .title {
 }
 </style>
 
+
+<style id="reduce-financial-logbook-card-gap-v12">
+/* Full View desktop: bring Client Financial Details and Trade Logbook cards closer. */
+@media (min-width: 701px) {
+  body.admin-full-view .admin-full-view-right {
+    gap: 3px !important;
+    row-gap: 3px !important;
+  }
+  body.admin-full-view .admin-full-view-right > #clientFinancialDetailsCard,
+  body.admin-full-view .admin-full-view-right > #tradeLogbookCard {
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+  }
+}
+</style>
+
 </head>
 <body>
 <header class="top"><div class="header-overlay"><div class="header-subtitle">ADMIN / SUPERVISOR PORTFOLIO &amp; DAILY CONTROL PANEL</div><div class="header-login">Logged in: {{ supervisor_name }} ({{ supervisor_id }}){% if not can_manage %} · VIEW ONLY{% endif %}</div></div></header>
