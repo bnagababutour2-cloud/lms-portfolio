@@ -1479,6 +1479,21 @@ body.admin-full-view .admin-full-view-common > .title {
 }
 </style>
 
+
+<style id="full-view-bold-portfolio-data-v20">
+/* Full View only: increase the weight of portfolio values for clearer reading.
+   Normal View typography and all table behavior remain unchanged. */
+@media (min-width: 1101px) {
+  body.admin-full-view .admin-full-view-left #portfolioTable tbody td {
+    font-weight: 800 !important;
+    -webkit-font-smoothing: antialiased;
+  }
+  body.admin-full-view .admin-full-view-left #portfolioTable thead th {
+    font-weight: 900 !important;
+  }
+}
+</style>
+
 </head>
 <body>
 <header class="top"><div class="header-overlay"><div class="header-subtitle">ADMIN / SUPERVISOR PORTFOLIO &amp; DAILY CONTROL PANEL</div><div class="header-login">Logged in: {{ supervisor_name }} ({{ supervisor_id }}){% if not can_manage %} · VIEW ONLY{% endif %}</div></div></header>
