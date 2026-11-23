@@ -1270,6 +1270,7 @@ function filterPortfolio(){
  });
  updateTotal();
  if(typeof window.refreshTradeLogbook==='function') window.refreshTradeLogbook();
+ if(typeof window.syncLogbookToMainClientSearch==='function') window.syncLogbookToMainClientSearch($('clientSearch').value);
 }
 function clearSearch(){['clientSearch','symbolSearch','productSearch'].forEach(id=>$(id).value='');$('exchangeSearch').value='';filterPortfolio()}
 ['clientSearch','symbolSearch','productSearch'].forEach(id=>$(id).addEventListener('input',filterPortfolio));$('exchangeSearch').addEventListener('change',filterPortfolio);
@@ -2310,6 +2311,39 @@ window.setLogbookFilter=async function(filter,button){
  }
 
  window.refreshTradeLogbook=renderLogbookClients;
+
+ // Keep Trade Logbook, Client Analytics and Client Financial Details
+ // aligned with the Client ID entered in the main portfolio search.
+ window.syncLogbookToMainClientSearch=function(value){
+   const cid=String(value||'').trim();
+   const logSearch=document.getElementById('logbookClientSearchInput');
+   if(logSearch) logSearch.value=cid;
+   const finSearch=document.getElementById('finTableSearch');
+   if(finSearch) finSearch.value=cid;
+
+   const exactClient=cid ? clientMap().get(cid.toUpperCase()) : null;
+   if(exactClient){
+     currentLogbookFilter='all';
+     currentLogbookCatFilter=null;
+     document.querySelectorAll('[data-logbook-filter]').forEach(b=>{
+       b.classList.toggle('active',b.dataset.logbookFilter==='all');
+     });
+     document.querySelectorAll('[data-logcat]').forEach(b=>{
+       b.classList.remove('active');
+       b.style.background='#eaf2fc';
+       b.style.color='var(--navy)';
+       b.style.borderColor='#cbdced';
+     });
+   }
+
+   renderLogbookClients();
+   if(exactClient){
+     selectLogbookClient(exactClient.id);
+   }else if(!cid && typeof window.filterFinancialTable==='function'){
+     window.filterFinancialTable('', false);
+   }
+ };
+
  ensureServerRecency().then(()=>renderLogbookClients());
 })();
 
