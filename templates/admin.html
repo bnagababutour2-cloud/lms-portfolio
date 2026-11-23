@@ -1403,6 +1403,39 @@ body.admin-full-view .admin-full-view-common > .title {
 }
 </style>
 
+
+<style id="portfolio-readable-compact-balance-v17">
+/* Keep the compact 28/72 panel split, but make portfolio rows easier to read. */
+@media (min-width: 1101px) {
+  body.admin-full-view .admin-full-view-panels {
+    grid-template-columns: minmax(0, 28fr) minmax(0, 72fr) !important;
+  }
+
+  body.admin-full-view .admin-full-view-left #portfolioTable tr {
+    height: 22px !important;
+    min-height: 22px !important;
+  }
+
+  body.admin-full-view .admin-full-view-left #portfolioTable th,
+  body.admin-full-view .admin-full-view-left #portfolioTable td {
+    height: 22px !important;
+    min-height: 22px !important;
+    max-height: 22px !important;
+    padding: 2px 3px !important;
+    font-size: 10px !important;
+    line-height: 1.1 !important;
+  }
+
+  body.admin-full-view .admin-full-view-left #portfolioTable th {
+    height: 24px !important;
+    min-height: 24px !important;
+    max-height: 24px !important;
+    padding: 2px 3px !important;
+    font-size: 10px !important;
+  }
+}
+</style>
+
 </head>
 <body>
 <header class="top"><div class="header-overlay"><div class="header-subtitle">ADMIN / SUPERVISOR PORTFOLIO &amp; DAILY CONTROL PANEL</div><div class="header-login">Logged in: {{ supervisor_name }} ({{ supervisor_id }}){% if not can_manage %} · VIEW ONLY{% endif %}</div></div></header>
