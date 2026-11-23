@@ -3286,6 +3286,8 @@ function filterFinancialTable(clientId = null, exactClientMatch = false) {
   if (!tbody) return;
 
   const rows = [...tbody.querySelectorAll('tr[data-fin-client]')];
+  const financialCard=document.getElementById('clientFinancialDetailsCard');
+  if(financialCard) financialCard.classList.toggle('fin-client-selected',!!q && !!exactClientMatch);
   let visible = 0;
   rows.forEach(r => {
     const rowClient = String(r.dataset.finClient || '').trim().toLowerCase();
@@ -3570,24 +3572,32 @@ function sortFinTable(col, asc) {
 
 
 <style id="admin-full-view-layout-only">
-/* Additive view-only layout. Existing data, API calls and action handlers are untouched. */
-body.admin-full-view .market-sidebar{display:none!important}
-body.admin-full-view .master-dashboard-grid{display:block!important}
-body.admin-full-view .master-main-content{width:100%!important;min-width:0!important}
-.admin-full-view-panels{display:none}
+/* Full view: shared controls stay above both data panels; presentation only. */
+.admin-full-view-common{display:none}
+body.admin-full-view .admin-full-view-common{
+  display:block;width:100%;margin:0 0 10px;
+}
+body.admin-full-view .admin-full-view-common > .card{margin-bottom:8px}
 body.admin-full-view .admin-full-view-panels{
   display:grid;
-  grid-template-columns:minmax(0,1.12fr) minmax(0,.88fr);
-  gap:12px;
-  align-items:stretch;
-  width:100%;
+  grid-template-columns:minmax(0,30fr) minmax(0,70fr);
+  gap:12px;align-items:start;width:100%;
 }
 body.admin-full-view .admin-full-view-panels > .card{min-width:0;margin-bottom:0}
-body.admin-full-view .admin-full-view-panels #tradeLogbookCard,
-body.admin-full-view .admin-full-view-panels #clientFinancialDetailsCard{margin-bottom:12px}
 body.admin-full-view .admin-full-view-panels .admin-full-view-right{min-width:0}
 body.admin-full-view .admin-full-view-panels #portfolioTable{min-width:1120px}
-body.admin-full-view .admin-full-view-panels .table-wrap{max-height:calc(100vh - 310px);min-height:300px}
+body.admin-full-view .admin-full-view-panels #clientFinancialDetailsCard{align-self:start}
+body.admin-full-view .admin-full-view-panels #clientFinancialDetailsCard .table-wrap{max-height:460px;min-height:0}
+body.admin-full-view .admin-full-view-panels .table-wrap{max-height:calc(100vh - 390px);min-height:220px}
+body.admin-full-view .admin-full-view-panels #clientFinancialDetailsCard.fin-client-selected .table-wrap{
+  max-height:88px!important;min-height:0!important;overflow:auto!important;
+}
+body.admin-full-view .admin-full-view-panels #clientFinancialDetailsCard.fin-client-selected{
+  height:auto!important;align-self:start!important;
+}
+body.admin-full-view .admin-full-view-panels #clientFinancialDetailsCard.fin-client-selected .logbook-title-row{
+  margin-bottom:5px!important;
+}
 @media(max-width:1100px){
   body.admin-full-view .admin-full-view-panels{grid-template-columns:minmax(0,1fr)}
   body.admin-full-view .admin-full-view-panels .table-wrap{max-height:55vh}
@@ -3599,52 +3609,85 @@ body.admin-full-view .admin-full-view-panels .table-wrap{max-height:calc(100vh -
 <script id="admin-full-normal-view-toggle">
 (function(){
   let layoutReady=false;
-  let panelWrap=null;
-  let portfolioCard=null, financialCard=null, logbookCard=null;
-  let placeholders=[];
+  let panelWrap=null, commonTop=null;
+  let portfolioCard=null, financialCard=null, logbookCard=null, searchCard=null;
+  let moved=[];
+  function moveInto(el,parent){
+    if(!el||!el.parentNode)return;
+    const marker=document.createComment('admin-full-view-position');
+    el.parentNode.insertBefore(marker,el);
+    moved.push({marker,el});
+    parent.appendChild(el);
+  }
   function prepare(){
-    if(layoutReady) return true;
+    if(layoutReady)return true;
     const table=document.getElementById('portfolioTable');
     portfolioCard=table?.closest('.card');
     financialCard=document.getElementById('clientFinancialDetailsCard');
     logbookCard=document.getElementById('tradeLogbookCard');
-    if(!portfolioCard||!financialCard||!logbookCard) return false;
+    const filters=document.querySelector('.card > .filters');
+    searchCard=filters?.closest('.card');
+    if(!portfolioCard||!financialCard||!logbookCard||!searchCard)return false;
+
+    commonTop=document.createElement('div');
+    commonTop.className='admin-full-view-common';
     panelWrap=document.createElement('div');
     panelWrap.className='admin-full-view-panels';
     const right=document.createElement('div');
     right.className='admin-full-view-right';
-    [portfolioCard,financialCard,logbookCard].forEach(el=>{
-      const marker=document.createComment('admin-full-view-position');
-      el.parentNode.insertBefore(marker,el);
-      placeholders.push({marker,el});
-    });
+
+    // Move all portfolio controls into one shared full-width toolbar above both tables.
+    const heading=portfolioCard.querySelector('.portfolio-heading-row');
+    const portfolioBar=portfolioCard.querySelector('.portfolio-bar');
+    const commonMarker=document.createComment('admin-full-view-common-position');
+    searchCard.parentNode.insertBefore(commonMarker,searchCard);
+    moved.push({marker:commonMarker,el:searchCard});
+    commonTop.appendChild(searchCard);
+    moveInto(heading,commonTop);
+    moveInto(portfolioBar,commonTop);
+
+    const portfolioMarker=document.createComment('admin-full-view-portfolio-position');
+    portfolioCard.parentNode.insertBefore(portfolioMarker,portfolioCard);
+    moved.push({marker:portfolioMarker,el:portfolioCard});
+    const financialMarker=document.createComment('admin-full-view-financial-position');
+    financialCard.parentNode.insertBefore(financialMarker,financialCard);
+    moved.push({marker:financialMarker,el:financialCard});
+    const logbookMarker=document.createComment('admin-full-view-logbook-position');
+    logbookCard.parentNode.insertBefore(logbookMarker,logbookCard);
+    moved.push({marker:logbookMarker,el:logbookCard});
+
     panelWrap.appendChild(portfolioCard);
     right.appendChild(financialCard);
     right.appendChild(logbookCard);
     panelWrap.appendChild(right);
-    // Insert at the original portfolio position; all existing upper content stays in place.
-    placeholders[0].marker.parentNode.insertBefore(panelWrap,placeholders[0].marker.nextSibling);
+    portfolioMarker.parentNode.insertBefore(commonTop,portfolioMarker.nextSibling);
+    commonTop.parentNode.insertBefore(panelWrap,commonTop.nextSibling);
     layoutReady=true;
     return true;
   }
+  function restore(){
+    if(!layoutReady)return;
+    panelWrap?.remove();
+    commonTop?.remove();
+    // Restore in reverse order so every marker remains at its original location.
+    moved.slice().reverse().forEach(({marker,el})=>{
+      marker.parentNode?.insertBefore(el,marker);
+      marker.remove();
+    });
+    moved=[];
+    layoutReady=false;
+    document.getElementById('clientFinancialDetailsCard')?.classList.remove('fin-client-selected');
+  }
   window.setAdminViewMode=function(mode){
     if(mode==='full'){
-      if(!prepare()) return;
+      if(!prepare())return;
       document.body.classList.add('admin-full-view');
       document.getElementById('fullViewModeBtn')?.style.setProperty('display','none');
       document.getElementById('normalViewModeBtn')?.style.setProperty('display','inline-block');
       window.scrollTo({top:0,behavior:'smooth'});
     }else{
       document.body.classList.remove('admin-full-view');
-      if(layoutReady){
-        panelWrap.remove();
-        placeholders.forEach(({marker,el})=>{
-          marker.parentNode?.insertBefore(el,marker);
-          marker.remove();
-        });
-        placeholders=[];
-        layoutReady=false;
-      }
+      restore();
       document.getElementById('fullViewModeBtn')?.style.setProperty('display','inline-block');
       document.getElementById('normalViewModeBtn')?.style.setProperty('display','none');
       window.scrollTo({top:0,behavior:'smooth'});
