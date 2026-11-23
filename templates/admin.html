@@ -5250,4 +5250,159 @@ body.admin-full-view #clientFinancialDetailsCard.fin-client-selected td{
 })();
 </script>
 
+
+<style id="full-view-portfolio-width-17-83-v22">
+/* Full View panel split requested: Portfolio 17%, Analytics 83%. */
+@media (min-width: 1101px) {
+  body.admin-full-view .admin-full-view-panels {
+    grid-template-columns: minmax(0, 17fr) minmax(0, 83fr) !important;
+    column-gap: 9px !important;
+  }
+  body.admin-full-view .admin-full-view-left,
+  body.admin-full-view .admin-full-view-right {
+    min-width: 0 !important;
+    width: 100% !important;
+  }
+}
+</style>
+
+
+<style id="full-view-portfolio-show-through-ltp-v23">
+@media (min-width: 1101px) {
+  /* In Full View, show only checkbox, Client, Symbol, MTM and LTP.
+     Hide Qty and every column after it so LTP remains fully visible
+     within the 17% Portfolio panel. Normal View is not affected. */
+  body.admin-full-view .admin-full-view-left #portfolioTable th:nth-child(n+6),
+  body.admin-full-view .admin-full-view-left #portfolioTable td:nth-child(n+6) {
+    display: none !important;
+  }
+
+  body.admin-full-view .admin-full-view-left #portfolioTable th:nth-child(1),
+  body.admin-full-view .admin-full-view-left #portfolioTable td:nth-child(1) {
+    width: 20px !important;
+    min-width: 20px !important;
+    max-width: 20px !important;
+    flex: 0 0 20px !important;
+  }
+  body.admin-full-view .admin-full-view-left #portfolioTable th:nth-child(2),
+  body.admin-full-view .admin-full-view-left #portfolioTable td:nth-child(2) {
+    width: 52px !important;
+    min-width: 52px !important;
+    max-width: 52px !important;
+    flex: 0 0 52px !important;
+  }
+  body.admin-full-view .admin-full-view-left #portfolioTable th:nth-child(3),
+  body.admin-full-view .admin-full-view-left #portfolioTable td:nth-child(3) {
+    width: 58px !important;
+    min-width: 58px !important;
+    max-width: 58px !important;
+    flex: 0 0 58px !important;
+  }
+  body.admin-full-view .admin-full-view-left #portfolioTable th:nth-child(4),
+  body.admin-full-view .admin-full-view-left #portfolioTable td:nth-child(4) {
+    width: 48px !important;
+    min-width: 48px !important;
+    max-width: 48px !important;
+    flex: 0 0 48px !important;
+  }
+  body.admin-full-view .admin-full-view-left #portfolioTable th:nth-child(5),
+  body.admin-full-view .admin-full-view-left #portfolioTable td:nth-child(5) {
+    width: 42px !important;
+    min-width: 42px !important;
+    max-width: 42px !important;
+    flex: 0 0 42px !important;
+  }
+  body.admin-full-view .admin-full-view-left > .table-wrap {
+    overflow-x: hidden !important;
+  }
+}
+</style>
+
+
+<script id="portfolio-filter-reliability-v24">
+/*
+ * Keep the existing portfolio filters and toolbar actions working in both
+ * Normal View and Full View. Read the client code from both the row's data
+ * attribute and visible Client cell, and normalize it case-insensitively.
+ */
+(function () {
+  if (window.__portfolioFilterReliabilityV24) return;
+  window.__portfolioFilterReliabilityV24 = true;
+
+  window.filterPortfolio = function () {
+    const el = id => document.getElementById(id);
+    const value = id => String(el(id)?.value || '').trim().toLowerCase();
+
+    const selectedClients = [...document.querySelectorAll('.multi-client-check:checked')]
+      .map(x => String(x.value || '').trim().toLowerCase())
+      .filter(Boolean);
+
+    const clientQuery = value('clientSearch');
+    const symbolQuery = value('symbolSearch');
+    const productQuery = value('productSearch');
+    const exchangeQuery = value('exchangeSearch');
+
+    document.querySelectorAll('#portfolioTable tbody tr').forEach(row => {
+      const client = String(row.dataset.client || row.cells[1]?.textContent || '')
+        .trim().toLowerCase();
+      const symbol = String(row.dataset.symbol || row.cells[2]?.textContent || '')
+        .trim().toLowerCase();
+      const product = String(row.dataset.product || row.cells[3]?.textContent || '')
+        .trim().toLowerCase();
+      const exchange = String(row.dataset.exchange || row.cells[4]?.textContent || '')
+        .trim().toLowerCase();
+
+      const selectedOk = !selectedClients.length || selectedClients.includes(client);
+      const clientOk = !clientQuery || client.includes(clientQuery);
+      const primeOk = !primeFilterActive || client.startsWith('12') || client.startsWith('10');
+      const statusOk = !adminStatusFilter ||
+        String(getEffectiveClientStatus(client) || '').trim().toLowerCase() === adminStatusFilter;
+      const starOk = !adminStarFilter ||
+        (adminStarFilter === '01' ? client.startsWith('1301') :
+         adminStarFilter === '03' ? client.startsWith('1303') :
+         adminStarFilter === '04' ? client.startsWith('1304') :
+         adminStarFilter === '23' ? (client.startsWith('1312') || client.startsWith('1313')) :
+         client.startsWith(adminStarFilter));
+
+      const liveOk = typeof liveViewAllows !== 'function' || liveViewAllows(row);
+      const symbolOk = !symbolQuery || symbol.includes(symbolQuery);
+      const productOk = !productQuery || product.includes(productQuery);
+      const exchangeOk = !exchangeQuery || exchange === exchangeQuery;
+
+      row.style.display = (
+        selectedOk && clientOk && primeOk && statusOk && starOk &&
+        liveOk && symbolOk && productOk && exchangeOk
+      ) ? '' : 'none';
+    });
+
+    if (typeof updateTotal === 'function') updateTotal();
+    if (typeof updateLiveViewStatus === 'function') updateLiveViewStatus();
+    if (typeof updateAdminQuickFilterButtons === 'function') updateAdminQuickFilterButtons();
+
+    if (typeof window.syncLogbookClientFromMainSearch === 'function' &&
+        (clientQuery || window.__lastMainClientSearch)) {
+      window.__lastMainClientSearch = clientQuery;
+      window.syncLogbookClientFromMainSearch(clientQuery);
+    }
+  };
+
+  // Rebind the main filters to the reliable shared filter function.
+  ['clientSearch', 'symbolSearch', 'productSearch'].forEach(id => {
+    const node = document.getElementById(id);
+    if (node && !node.dataset.filterV24Bound) {
+      node.addEventListener('input', window.filterPortfolio);
+      node.dataset.filterV24Bound = '1';
+    }
+  });
+  const exchange = document.getElementById('exchangeSearch');
+  if (exchange && !exchange.dataset.filterV24Bound) {
+    exchange.addEventListener('change', window.filterPortfolio);
+    exchange.dataset.filterV24Bound = '1';
+  }
+
+  // Re-apply once after all view-mode scripts have initialized.
+  window.filterPortfolio();
+})();
+</script>
+
 </body></html>
