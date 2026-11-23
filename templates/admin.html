@@ -4176,4 +4176,35 @@ body.admin-full-view #clientFinancialDetailsCard.fin-client-selected td{
 }
 </style>
 
+
+
+<style id="normal-and-full-view-five-donuts-one-line-v6">
+/* Same one-line heading-to-donut gap in Normal View and Full View.
+   Targets the real .logbook-donut-wrap elements; chart size/data/logic stay intact. */
+@media (min-width: 901px) {
+  #clientFinancialDetailsCard .logbook-chart {
+    padding-top: 8px !important;
+  }
+  #clientFinancialDetailsCard .logbook-chart > h4 {
+    min-height: 0 !important;
+    height: auto !important;
+    margin: 0 0 4px !important;
+    padding: 0 !important;
+    line-height: 1.2 !important;
+  }
+  #clientFinancialDetailsCard .logbook-chart .logbook-donut-wrap {
+    padding: 0 0 10px !important;
+    margin: 0 !important;
+  }
+
+  body.admin-full-view #clientFinancialDetailsCard .logbook-chart > h4 {
+    min-height: 0 !important;
+    margin-bottom: 4px !important;
+  }
+  body.admin-full-view #clientFinancialDetailsCard .logbook-chart .logbook-donut-wrap {
+    padding-top: 0 !important;
+  }
+}
+</style>
+
 </body></html>
