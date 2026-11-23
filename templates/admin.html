@@ -3796,4 +3796,142 @@ body.admin-full-view #clientFinancialDetailsCard.fin-client-selected td{
 })();
 </script>
 
+
+
+<style id="desktop-compact-top-more-portfolio-rows">
+/* Desktop-only: reclaim vertical space above the portfolio table.
+   Keep all controls, values, actions, and mobile styling intact. */
+@media (min-width: 1150px) {
+  /* Slightly shorter news strip; ticker remains visible. */
+  .live-news-ticker-bar {
+    min-height: 42px !important;
+    padding: 4px 8px !important;
+    margin-bottom: 9px !important;
+    gap: 8px !important;
+  }
+  .live-news-line { height: 14px !important; line-height: 14px !important; }
+  .live-news-item { font-size: 9.5px !important; }
+
+  /* Refresh through Logout: one compact toolbar. */
+  .container > .toolbar {
+    padding: 7px 9px !important;
+    gap: 5px !important;
+    margin-bottom: 10px !important;
+    align-items: center !important;
+  }
+  .container > .toolbar .btn {
+    min-height: 28px !important;
+    padding: 6px 9px !important;
+    font-size: 9.5px !important;
+    line-height: 1.1 !important;
+    border-radius: 6px !important;
+  }
+
+  /* Search / filters card: tighter card padding and row spacing. */
+  .container .search-panel {
+    padding: 0 0 8px !important;
+    margin-bottom: 8px !important;
+  }
+  .container .search-panel > .title {
+    font-size: 13px !important;
+    line-height: 1.15 !important;
+    margin: 0 0 5px !important;
+  }
+  .container .search-panel > .filters {
+    gap: 6px !important;
+    margin-bottom: 7px !important;
+  }
+  .container .search-panel > .filters input,
+  .container .search-panel > .filters select {
+    height: 31px !important;
+    padding: 5px 8px !important;
+    font-size: 11px !important;
+  }
+
+  /* Portfolio heading and its filter buttons. */
+  .container .portfolio-heading-row {
+    margin: 3px 0 5px !important;
+    gap: 5px !important;
+  }
+  .container .portfolio-heading-row .btn {
+    min-height: 25px !important;
+    padding: 4px 7px !important;
+    font-size: 9px !important;
+    line-height: 1.05 !important;
+    border-radius: 5px !important;
+  }
+  .container .portfolio-heading-row .title {
+    font-size: 13px !important;
+    margin: 0 !important;
+  }
+
+  /* Portfolio metrics, live controls and action buttons. */
+  .container .portfolio-bar {
+    gap: 5px !important;
+    margin: 0 !important;
+    row-gap: 5px !important;
+  }
+  .container .portfolio-bar .metric {
+    padding: 5px 8px !important;
+    font-size: 10px !important;
+    line-height: 1.1 !important;
+    border-radius: 6px !important;
+  }
+  .container .portfolio-bar .metric strong {
+    font-size: 11px !important;
+  }
+  .container .portfolio-bar .btn {
+    min-height: 26px !important;
+    padding: 5px 8px !important;
+    font-size: 9px !important;
+    line-height: 1.05 !important;
+    border-radius: 5px !important;
+  }
+  .container .portfolio-bar .pill {
+    padding: 4px 7px !important;
+    font-size: 9px !important;
+    line-height: 1.05 !important;
+  }
+  .container .portfolio-bar .live-control {
+    gap: 4px !important;
+    padding: 3px 5px !important;
+  }
+  .container .portfolio-bar .live-label {
+    font-size: 9px !important;
+  }
+
+  /* Compact the separate Last Trade / trading-period summary row. */
+  #lms-recency-bar {
+    min-height: 30px !important;
+    padding: 4px 6px !important;
+    margin: 5px 0 0 !important;
+    gap: 4px !important;
+  }
+  #lms-recency-bar > .btn {
+    min-height: 23px !important;
+    padding: 4px 6px !important;
+    font-size: 8.5px !important;
+    line-height: 1.05 !important;
+  }
+  #lms-recency-bar .logbook-inline-stat {
+    padding: 2px 5px !important;
+    min-height: 23px !important;
+  }
+  #lms-recency-bar .logbook-inline-stat small {
+    font-size: 7.5px !important;
+    line-height: 1.05 !important;
+  }
+  #lms-recency-bar .logbook-inline-stat strong {
+    font-size: 9px !important;
+    line-height: 1.05 !important;
+  }
+
+  /* Reduce outer card spacing without changing the portfolio table rows. */
+  .container > .search-panel,
+  .container > .card:has(.search-panel) {
+    margin-bottom: 9px !important;
+  }
+}
+</style>
+
 </body></html>
