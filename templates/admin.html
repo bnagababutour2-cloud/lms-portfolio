@@ -4036,4 +4036,29 @@ body.admin-full-view #clientFinancialDetailsCard.fin-client-selected td{
 }
 </style>
 
+
+
+<style id="desktop-three-donut-spacing-only">
+/* Visual-only adjustment: bring the three top-row donut charts closer to their headings.
+   No HTML chart structure, data, event handlers, or JavaScript logic is changed. */
+@media (min-width: 901px) {
+  #clientFinancialDetailsCard .logbook-charts:not(.logbook-charts-bottom) .logbook-chart {
+    padding: 8px !important;
+  }
+  #clientFinancialDetailsCard .logbook-charts:not(.logbook-charts-bottom) .logbook-chart h4 {
+    min-height: 0 !important;
+    margin: 0 0 2px !important;
+    line-height: 1.2 !important;
+  }
+  #clientFinancialDetailsCard .logbook-charts:not(.logbook-charts-bottom) .logbook-svg-wrap {
+    min-height: 215px !important;
+    margin-top: -3px !important;
+    padding: 0 !important;
+  }
+  #clientFinancialDetailsCard .logbook-charts:not(.logbook-charts-bottom) .logbook-svg-wrap svg {
+    height: 215px !important;
+  }
+}
+</style>
+
 </body></html>
