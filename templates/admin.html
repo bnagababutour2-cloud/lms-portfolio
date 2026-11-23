@@ -815,6 +815,31 @@ body.tradelogs-split-open #tradeLogsSplitDrawer{display:flex;}
 }
 </style>
 
+
+<style id="portfolio-product-exchange-after-buy-layout-only">
+/* Visual column order only. DOM cell order stays unchanged for all existing JS logic. */
+#portfolioTable{width:max-content!important;min-width:1159px!important;border-collapse:separate!important;border-spacing:0!important}
+#portfolioTable thead,#portfolioTable tbody{display:block!important}
+#portfolioTable tr{display:flex!important;width:max-content;min-width:100%;}
+#portfolioTable th,#portfolioTable td{display:block!important;box-sizing:border-box!important;flex:0 0 auto!important;min-width:0!important}
+#portfolioTable th:nth-child(1),#portfolioTable td:nth-child(1){order:1;width:38px!important}
+#portfolioTable th:nth-child(2),#portfolioTable td:nth-child(2){order:2;width:105px!important}
+#portfolioTable th:nth-child(3),#portfolioTable td:nth-child(3){order:3;width:115px!important}
+#portfolioTable th:nth-child(4),#portfolioTable td:nth-child(4){order:8;width:78px!important}
+#portfolioTable th:nth-child(5),#portfolioTable td:nth-child(5){order:9;width:78px!important}
+#portfolioTable th:nth-child(6),#portfolioTable td:nth-child(6){order:4;width:95px!important}
+#portfolioTable th:nth-child(7),#portfolioTable td:nth-child(7){order:5;width:75px!important}
+#portfolioTable th:nth-child(8),#portfolioTable td:nth-child(8){order:6;width:75px!important}
+#portfolioTable th:nth-child(9),#portfolioTable td:nth-child(9){order:7;width:90px!important}
+#portfolioTable th:nth-child(10),#portfolioTable td:nth-child(10){order:10;width:85px!important}
+#portfolioTable th:nth-child(11),#portfolioTable td:nth-child(11){order:11;width:100px!important}
+#portfolioTable th:nth-child(12),#portfolioTable td:nth-child(12){order:12;width:95px!important}
+#portfolioTable th:nth-child(13),#portfolioTable td:nth-child(13){order:13;width:130px!important}
+#portfolioTable th{white-space:nowrap!important}
+#portfolioTable td{white-space:nowrap!important;overflow:hidden;text-overflow:ellipsis}
+#portfolioTable .action{white-space:nowrap}
+</style>
+
 </head>
 <body>
 <header class="top"><div class="header-overlay"><div class="header-subtitle">ADMIN / SUPERVISOR PORTFOLIO &amp; DAILY CONTROL PANEL</div><div class="header-login">Logged in: {{ supervisor_name }} ({{ supervisor_id }}){% if not can_manage %} · VIEW ONLY{% endif %}</div></div></header>
