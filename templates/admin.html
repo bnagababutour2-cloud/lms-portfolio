@@ -4207,4 +4207,167 @@ body.admin-full-view #clientFinancialDetailsCard.fin-client-selected td{
 }
 </style>
 
+
+
+<style id="full-view-portfolio-table-compact-v7">
+/* Full View only: compact portfolio rows and columns to expose more fields.
+   DOM order, sorting, click targets, values and all application logic remain unchanged. */
+@media (min-width: 1101px) {
+  body.admin-full-view .admin-full-view-left #portfolioTable {
+    width: max-content !important;
+    min-width: 926px !important;
+  }
+
+  /* Keep the existing visual column order; reduce each width by about 20%. */
+  body.admin-full-view .admin-full-view-left #portfolioTable th:nth-child(1),
+  body.admin-full-view .admin-full-view-left #portfolioTable td:nth-child(1) { width: 30px !important; flex-basis: 30px !important; }
+  body.admin-full-view .admin-full-view-left #portfolioTable th:nth-child(2),
+  body.admin-full-view .admin-full-view-left #portfolioTable td:nth-child(2) { width: 84px !important; flex-basis: 84px !important; }
+  body.admin-full-view .admin-full-view-left #portfolioTable th:nth-child(3),
+  body.admin-full-view .admin-full-view-left #portfolioTable td:nth-child(3) { width: 92px !important; flex-basis: 92px !important; }
+  body.admin-full-view .admin-full-view-left #portfolioTable th:nth-child(4),
+  body.admin-full-view .admin-full-view-left #portfolioTable td:nth-child(4) { width: 62px !important; flex-basis: 62px !important; }
+  body.admin-full-view .admin-full-view-left #portfolioTable th:nth-child(5),
+  body.admin-full-view .admin-full-view-left #portfolioTable td:nth-child(5) { width: 62px !important; flex-basis: 62px !important; }
+  body.admin-full-view .admin-full-view-left #portfolioTable th:nth-child(6),
+  body.admin-full-view .admin-full-view-left #portfolioTable td:nth-child(6) { width: 76px !important; flex-basis: 76px !important; }
+  body.admin-full-view .admin-full-view-left #portfolioTable th:nth-child(7),
+  body.admin-full-view .admin-full-view-left #portfolioTable td:nth-child(7) { width: 60px !important; flex-basis: 60px !important; }
+  body.admin-full-view .admin-full-view-left #portfolioTable th:nth-child(8),
+  body.admin-full-view .admin-full-view-left #portfolioTable td:nth-child(8) { width: 60px !important; flex-basis: 60px !important; }
+  body.admin-full-view .admin-full-view-left #portfolioTable th:nth-child(9),
+  body.admin-full-view .admin-full-view-left #portfolioTable td:nth-child(9) { width: 72px !important; flex-basis: 72px !important; }
+  body.admin-full-view .admin-full-view-left #portfolioTable th:nth-child(10),
+  body.admin-full-view .admin-full-view-left #portfolioTable td:nth-child(10) { width: 68px !important; flex-basis: 68px !important; }
+  body.admin-full-view .admin-full-view-left #portfolioTable th:nth-child(11),
+  body.admin-full-view .admin-full-view-left #portfolioTable td:nth-child(11) { width: 80px !important; flex-basis: 80px !important; }
+  body.admin-full-view .admin-full-view-left #portfolioTable th:nth-child(12),
+  body.admin-full-view .admin-full-view-left #portfolioTable td:nth-child(12) { width: 76px !important; flex-basis: 76px !important; }
+  body.admin-full-view .admin-full-view-left #portfolioTable th:nth-child(13),
+  body.admin-full-view .admin-full-view-left #portfolioTable td:nth-child(13) { width: 104px !important; flex-basis: 104px !important; }
+
+  /* Roughly half-height data rows and a compact but readable header. */
+  body.admin-full-view .admin-full-view-left #portfolioTable th {
+    padding: 5px 4px !important;
+    font-family: "Inter", "Segoe UI", Arial, sans-serif !important;
+    font-size: 10px !important;
+    line-height: 1.05 !important;
+    font-weight: 700 !important;
+  }
+  body.admin-full-view .admin-full-view-left #portfolioTable td {
+    padding: 3px 4px !important;
+    height: auto !important;
+    font-family: "Inter", "Segoe UI", Arial, sans-serif !important;
+    font-size: 10px !important;
+    line-height: 1.05 !important;
+    font-weight: 500 !important;
+  }
+
+  /* Match the logbook's compact data typography to the portfolio table. */
+  body.admin-full-view #tradeLogbookCard .logbook-client-btn,
+  body.admin-full-view #tradeLogbookCard .logbook-legend-row,
+  body.admin-full-view #tradeLogbookCard .logbook-legend-name,
+  body.admin-full-view #tradeLogbookCard .logbook-legend-value {
+    font-family: "Inter", "Segoe UI", Arial, sans-serif !important;
+    font-size: 10px !important;
+    line-height: 1.2 !important;
+  }
+  body.admin-full-view #tradeLogbookCard .logbook-client-btn {
+    padding: 6px 7px !important;
+    font-weight: 650 !important;
+  }
+  body.admin-full-view #tradeLogbookCard .logbook-client-btn small {
+    font-size: 9px !important;
+  }
+}
+</style>
+
+
+
+<style id="client-financial-metrics-bold-color-v8">
+/* Six client summary cards: bold typography and coordinated, readable colors.
+   Applies in both Normal View and Full View; no data or application logic changes. */
+#logbookTradingDays > .logbook-kpi {
+  border-width: 1px !important;
+  border-style: solid !important;
+  border-radius: 9px !important;
+  padding: 7px 8px !important;
+  box-shadow: 0 1px 3px rgba(16, 40, 75, .07) !important;
+}
+#logbookTradingDays > .logbook-kpi small {
+  font-weight: 850 !important;
+  letter-spacing: .12px !important;
+  line-height: 1.2 !important;
+}
+#logbookTradingDays > .logbook-kpi strong {
+  font-weight: 900 !important;
+  line-height: 1.25 !important;
+  margin-top: 4px !important;
+  font-variant-numeric: tabular-nums !important;
+}
+
+/* CLIENT — calm navy / blue */
+#logbookTradingDays > .logbook-kpi:nth-child(1) {
+  background: linear-gradient(135deg, #edf4ff, #e2edff) !important;
+  border-color: #a9c5f3 !important;
+}
+#logbookTradingDays > .logbook-kpi:nth-child(1) small,
+#logbookTradingDays > .logbook-kpi:nth-child(1) strong {
+  color: #174a91 !important;
+}
+
+/* CURRENT PROFIT — complete card in green */
+#logbookTradingDays > .logbook-kpi:nth-child(2) {
+  background: linear-gradient(135deg, #e8f8ee, #d8f3e2) !important;
+  border-color: #78c995 !important;
+}
+#logbookTradingDays > .logbook-kpi:nth-child(2) small,
+#logbookTradingDays > .logbook-kpi:nth-child(2) strong,
+#logbookTradingDays > .logbook-kpi:nth-child(2) strong * {
+  color: #126b36 !important;
+}
+
+/* CURRENT LOSS — complete card in red */
+#logbookTradingDays > .logbook-kpi:nth-child(3) {
+  background: linear-gradient(135deg, #fff0f0, #ffe2e2) !important;
+  border-color: #ed9999 !important;
+}
+#logbookTradingDays > .logbook-kpi:nth-child(3) small,
+#logbookTradingDays > .logbook-kpi:nth-child(3) strong,
+#logbookTradingDays > .logbook-kpi:nth-child(3) strong * {
+  color: #b4232c !important;
+}
+
+/* PRESENT VALUE — teal / cyan */
+#logbookTradingDays > .logbook-kpi:nth-child(4) {
+  background: linear-gradient(135deg, #e9f9fb, #d9f2f5) !important;
+  border-color: #8bcfd7 !important;
+}
+#logbookTradingDays > .logbook-kpi:nth-child(4) small,
+#logbookTradingDays > .logbook-kpi:nth-child(4) strong {
+  color: #087783 !important;
+}
+
+/* TOTAL INVESTMENT — soft violet */
+#logbookTradingDays > .logbook-kpi:nth-child(5) {
+  background: linear-gradient(135deg, #f3efff, #e9e2ff) !important;
+  border-color: #b9a8ed !important;
+}
+#logbookTradingDays > .logbook-kpi:nth-child(5) small,
+#logbookTradingDays > .logbook-kpi:nth-child(5) strong {
+  color: #5b3ba5 !important;
+}
+
+/* UNREALIZED PROFIT / LOSS — deep teal */
+#logbookTradingDays > .logbook-kpi:nth-child(6) {
+  background: linear-gradient(135deg, #e8f6f3, #d8eee9) !important;
+  border-color: #83c8b8 !important;
+}
+#logbookTradingDays > .logbook-kpi:nth-child(6) small,
+#logbookTradingDays > .logbook-kpi:nth-child(6) strong,
+#logbookTradingDays > .logbook-kpi:nth-child(6) strong * {
+  color: #126b5b !important;
+}
+</style>
+
 </body></html>
