@@ -1018,8 +1018,6 @@ body.tradelogs-split-open #tradeLogsSplitDrawer{display:flex;}
       {% if can_manage %}<button type="button" class="btn" style="padding:3px 7px;font-size:9.5px;border-radius:5px;line-height:1.15;background:#052d70;color:#fff;white-space:nowrap" onclick="window.openTradeLogsSplit(document.getElementById('logbookSelectedClient').textContent.replace('Client: ','').trim())">VIEW CLIENT LOGS ▸</button>{% endif %}
       <span class="pill" id="logbookClientCount" style="padding:3px 8px;font-size:10px;line-height:1.15;white-space:nowrap">0 clients</span>
       <button type="button" class="btn" style="padding:3px 8px;font-size:9.5px;border-radius:5px;line-height:1.15;background:#0b55b5;color:#fff;white-space:nowrap" onclick="window.scrollTo({top:0,behavior:'smooth'})">MAIN</button>
-      <button type="button" class="btn light" id="logbookClearClientBtn" style="padding:3px 8px;font-size:9.5px;border-radius:5px;line-height:1.15;white-space:nowrap" onclick="window.showAllLogbookClients()">CLEAR</button>
-      
     </div>
   </div>
   <div class="logbook-layout">
@@ -2326,48 +2324,6 @@ window.setLogbookFilter=async function(filter,button){
        renderDonut('logbookIndustryDonut','logbookIndustryLegend',industriesFromServer,industriesFromServer.reduce((a,x)=>a+Math.abs(x.value),0),'industry');
      }).catch(()=>{});
  }
-
- window.clearLogbookClientView=function(){
-   const mainInput=document.getElementById('clientSearch');
-   const finInput=document.getElementById('finTableSearch');
-   const logInput=document.getElementById('logbookClientSearchInput');
-   if(mainInput) mainInput.value='';
-   if(finInput) finInput.value='';
-   if(logInput) logInput.value='';
-   mainSearchExactClient=null;
-   selectedLogbookClient=null;
-   clearLogbookCharts();
-   if(typeof window.filterFinancialTable==='function') window.filterFinancialTable('',false);
-   renderLogbookClients();
-   selectedLogbookClient=null;
-   clearLogbookCharts();
- };
-
- window.showAllLogbookClients=function(){
-   const mainInput=document.getElementById('clientSearch');
-   const finInput=document.getElementById('finTableSearch');
-   const logInput=document.getElementById('logbookClientSearchInput');
-   if(mainInput) mainInput.value='';
-   if(finInput) finInput.value='';
-   if(logInput) logInput.value='';
-   mainSearchExactClient=null;
-   currentLogbookFilter='all';
-   currentLogbookCatFilter=null;
-   document.querySelectorAll('[data-logbook-filter]').forEach(b=>{
-     b.classList.toggle('active',b.dataset.logbookFilter==='all');
-   });
-   document.querySelectorAll('[data-logcat]').forEach(b=>{
-     b.classList.remove('active');
-     b.style.background='#eaf2fc';
-     b.style.color='var(--navy)';
-     b.style.borderColor='#cbdced';
-   });
-   const desc=document.getElementById('logbookFilterDescription');
-   if(desc) desc.textContent='Showing all clients. Select any client to view its portfolio analytics.';
-   if(typeof window.filterFinancialTable==='function') window.filterFinancialTable('',false);
-   selectedLogbookClient=null;
-   renderLogbookClients();
- };
 
  window.syncLogbookClientFromMainSearch=function(rawClientId){
    const clientId=String(rawClientId||'').trim();
