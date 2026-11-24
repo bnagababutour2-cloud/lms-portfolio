@@ -815,6 +815,51 @@ body.tradelogs-split-open #tradeLogsSplitDrawer{display:flex;}
 }
 </style>
 
+<style id="full-view-portfolio-normal-font">
+/* FULL VIEW ONLY: keep the portfolio table data/font exactly readable like Normal View.
+   No HTML structure, handlers, filtering, sorting, live updates, or data logic is changed. */
+@media (min-width: 1101px) {
+  body.admin-full-view .admin-full-view-left #portfolioTable {
+    width: 100% !important;
+    min-width: 1120px !important;
+    table-layout: auto !important;
+  }
+  body.admin-full-view .admin-full-view-left #portfolioTable tr {
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+  }
+  body.admin-full-view .admin-full-view-left #portfolioTable th,
+  body.admin-full-view .admin-full-view-left #portfolioTable td {
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    padding: 9px 8px !important;
+    font-family: Arial, Helvetica, sans-serif !important;
+    font-size: 12px !important;
+    line-height: normal !important;
+    vertical-align: middle !important;
+  }
+  body.admin-full-view .admin-full-view-left #portfolioTable th {
+    font-size: 12px !important;
+    font-weight: 900 !important;
+    padding: 10px 8px !important;
+  }
+  body.admin-full-view .admin-full-view-left #portfolioTable th:nth-child(n),
+  body.admin-full-view .admin-full-view-left #portfolioTable td:nth-child(n) {
+    width: auto !important;
+    flex-basis: auto !important;
+  }
+  body.admin-full-view .admin-full-view-left #portfolioTable input.check,
+  body.admin-full-view .admin-full-view-left #portfolioTable input[type="checkbox"] {
+    width: 18px !important;
+    height: 18px !important;
+    min-width: 18px !important;
+    min-height: 18px !important;
+    margin: 0 auto !important;
+  }
+}
+</style>
 </head>
 <body>
 <header class="top"><div class="header-overlay"><div class="header-subtitle">ADMIN / SUPERVISOR PORTFOLIO &amp; DAILY CONTROL PANEL</div><div class="header-login">Logged in: {{ supervisor_name }} ({{ supervisor_id }}){% if not can_manage %} · VIEW ONLY{% endif %}</div></div></header>
