@@ -4024,6 +4024,70 @@ body.admin-full-view .admin-full-view-left #portfolioTable{
   }
 }
 </style>
+<style id="admin-full-view-toolbar-single-line-v11">
+/* Full View toolbar: compact presentation only; retain every original control
+   and its existing onclick/href behavior. Normal View is intentionally untouched. */
+@media (min-width: 701px) {
+  body.admin-full-view .container .toolbar {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 5px !important;
+    padding: 8px !important;
+    overflow: visible !important;
+    white-space: nowrap !important;
+  }
+  body.admin-full-view .container .toolbar > a,
+  body.admin-full-view .container .toolbar > button,
+  body.admin-full-view .container .toolbar > .full-view-market-indices {
+    flex: 0 1 auto !important;
+    min-width: 0 !important;
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+  }
+  body.admin-full-view .container .toolbar > a {
+    display: inline-flex !important;
+    align-items: center !important;
+  }
+  body.admin-full-view .container .toolbar .btn {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    min-height: 36px !important;
+    height: 36px !important;
+    padding: 6px 7px !important;
+    font-size: 10px !important;
+    line-height: 1.05 !important;
+    white-space: nowrap !important;
+    letter-spacing: 0 !important;
+    border-radius: 7px !important;
+  }
+  body.admin-full-view .container .toolbar .full-view-market-indices {
+    flex: 0 1 174px !important;
+    width: 174px !important;
+    min-width: 150px !important;
+    margin-left: auto !important;
+    gap: 3px !important;
+  }
+  body.admin-full-view .container .toolbar .full-view-market-indices .market-index-box {
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
+    padding: 3px 4px !important;
+  }
+  body.admin-full-view .container .toolbar .full-view-market-indices .market-index-val {
+    font-size: 9px !important;
+  }
+  body.admin-full-view .container .toolbar .full-view-market-indices .market-index-change {
+    font-size: 7px !important;
+  }
+}
+@media (max-width: 1100px) and (min-width: 701px) {
+  body.admin-full-view .container .toolbar { gap: 3px !important; padding: 6px !important; }
+  body.admin-full-view .container .toolbar .btn { padding: 5px 4px !important; font-size: 9px !important; }
+  body.admin-full-view .container .toolbar .full-view-market-indices { flex-basis: 142px !important; width: 142px !important; min-width: 132px !important; }
+}
+</style>
 <script id="admin-full-view-toolbar-and-logbook-placement-v10">
 (function () {
   const original = window.setAdminViewMode;
