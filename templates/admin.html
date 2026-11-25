@@ -4281,114 +4281,209 @@ body.admin-full-view .admin-full-view-left #portfolioTable{
 }
 @media(max-width:700px){.full-view-table-lock-controls{display:none!important}}
 </style>
-<script id="admin-full-view-table-lock-controls-v3">
-(function(){
-  if(window.__fullViewTableLockV3Installed)return;
-  window.__fullViewTableLockV3Installed=true;
 
-  function isFullView(){
-    return document.body.classList.contains('admin-full-view') && window.matchMedia('(min-width:701px)').matches;
+
+
+<style id="admin-full-view-lock-scroll-v4">
+@media (min-width:701px){
+  body.admin-full-view.admin-full-view-tables-locked .admin-full-view-left > .table-wrap,
+  body.admin-full-view.admin-full-view-tables-locked #clientFinancialDetailsCard .table-wrap{
+    overflow-y:hidden!important;
+    overscroll-behavior-y:none!important;
   }
-  function getTableScrollAreas(){
+  body.admin-full-view .full-view-portfolio-top-scroll{
+    display:block!important;
+    width:100%;
+    height:17px;
+    overflow-x:auto!important;
+    overflow-y:hidden!important;
+    margin:0 0 3px 0;
+    border:1px solid #c8d9ec;
+    border-radius:5px;
+    background:#f3f7fc;
+    scrollbar-width:auto;
+    cursor:ew-resize;
+  }
+  body.admin-full-view .full-view-portfolio-top-scroll-inner{
+    height:1px;
+    min-height:1px;
+  }
+  body.admin-full-view .full-view-table-lock-controls{
+    display:inline-flex!important;
+    align-items:center;
+    gap:4px;
+    flex:0 0 auto;
+    position:relative;
+    z-index:100000;
+  }
+  body.admin-full-view .full-view-table-lock-controls button{
+    min-height:25px!important;
+    height:25px!important;
+    padding:4px 9px!important;
+    font-size:9px!important;
+    font-weight:900!important;
+    line-height:1!important;
+    cursor:pointer!important;
+    pointer-events:auto!important;
+    user-select:none!important;
+  }
+  body.admin-full-view #fullViewLockTablesBtn{
+    background:#9a6700!important;color:#fff!important;border:1px solid #805600!important;
+  }
+  body.admin-full-view #fullViewUnlockTablesBtn{
+    background:#16834a!important;color:#fff!important;border:1px solid #116b3c!important;
+  }
+  body.admin-full-view.admin-full-view-tables-locked #fullViewLockTablesBtn{
+    outline:2px solid #9a6700!important;outline-offset:1px!important;
+  }
+  body.admin-full-view:not(.admin-full-view-tables-locked) #fullViewUnlockTablesBtn{
+    outline:2px solid #16834a!important;outline-offset:1px!important;
+  }
+}
+@media(max-width:700px){
+  .full-view-table-lock-controls,.full-view-portfolio-top-scroll{display:none!important}
+}
+</style>
+<script id="admin-full-view-lock-scroll-v4">
+(function(){
+  if(window.__fullViewLockScrollV4Installed)return;
+  window.__fullViewLockScrollV4Installed=true;
+
+  function fullViewActive(){
+    return document.body.classList.contains('admin-full-view') &&
+           window.matchMedia('(min-width:701px)').matches;
+  }
+  function upperTableAreas(){
     return Array.from(document.querySelectorAll(
       'body.admin-full-view .admin-full-view-left > .table-wrap,'+
       'body.admin-full-view #clientFinancialDetailsCard .table-wrap'
     ));
   }
-  window.setFullViewTablesLocked=function(locked){
-    const active=isFullView();
-    const apply=!!locked && active;
+  function setLocked(locked){
+    var active=fullViewActive();
+    var apply=!!locked && active;
     document.body.classList.toggle('admin-full-view-tables-locked',apply);
-    getTableScrollAreas().forEach(function(area){
+    upperTableAreas().forEach(function(area){
       if(apply){
-        if(!area.hasAttribute('data-fv-lock-old-overflow-y')){
-          area.setAttribute('data-fv-lock-old-overflow-y',area.style.getPropertyValue('overflow-y'));
-          area.setAttribute('data-fv-lock-old-overflow-y-priority',area.style.getPropertyPriority('overflow-y'));
-        }
         area.style.setProperty('overflow-y','hidden','important');
         area.style.setProperty('overscroll-behavior-y','none','important');
-        area.scrollTop=0;
       }else{
-        if(area.hasAttribute('data-fv-lock-old-overflow-y')){
-          const old=area.getAttribute('data-fv-lock-old-overflow-y');
-          const priority=area.getAttribute('data-fv-lock-old-overflow-y-priority')||'';
-          if(old)area.style.setProperty('overflow-y',old,priority);else area.style.removeProperty('overflow-y');
-          area.removeAttribute('data-fv-lock-old-overflow-y');
-          area.removeAttribute('data-fv-lock-old-overflow-y-priority');
-        }else{
-          area.style.removeProperty('overflow-y');
-        }
+        area.style.removeProperty('overflow-y');
         area.style.removeProperty('overscroll-behavior-y');
       }
     });
-    const lock=document.getElementById('fullViewLockTablesBtn');
-    const unlock=document.getElementById('fullViewUnlockTablesBtn');
-    if(lock){lock.disabled=!active;lock.setAttribute('aria-pressed',apply?'true':'false');}
-    if(unlock){unlock.disabled=!active;unlock.setAttribute('aria-pressed',apply?'false':'true');}
+    var lock=document.getElementById('fullViewLockTablesBtn');
+    var unlock=document.getElementById('fullViewUnlockTablesBtn');
+    if(lock){lock.setAttribute('aria-pressed',apply?'true':'false');}
+    if(unlock){unlock.setAttribute('aria-pressed',apply?'false':'true');}
     return apply;
-  };
-
-  // Capture clicks at document level as well as the button's own handler. This
-  // keeps the controls working even if other dashboard handlers stop bubbling.
-  document.addEventListener('click',function(event){
-    const button=event.target && event.target.closest ? event.target.closest('#fullViewLockTablesBtn,#fullViewUnlockTablesBtn') : null;
-    if(!button)return;
-    event.preventDefault();
-    event.stopImmediatePropagation();
-    window.setFullViewTablesLocked(button.id==='fullViewLockTablesBtn');
-  },true);
-
-  // Do not let wheel/touch gestures scroll either upper table while locked.
-  function isInsideLockedTable(target){
-    return !!(target && target.closest && target.closest('.admin-full-view-left > .table-wrap, #clientFinancialDetailsCard .table-wrap'));
   }
-  document.addEventListener('wheel',function(event){
-    if(document.body.classList.contains('admin-full-view-tables-locked') && isInsideLockedTable(event.target)){
-      event.preventDefault();event.stopPropagation();
-    }
-  },{capture:true,passive:false});
-  document.addEventListener('touchmove',function(event){
-    if(document.body.classList.contains('admin-full-view-tables-locked') && isInsideLockedTable(event.target)){
-      event.preventDefault();event.stopPropagation();
-    }
-  },{capture:true,passive:false});
+  window.setFullViewTablesLocked=setLocked;
 
-  function ensureControls(){
-    if(!isFullView())return;
-    const liveControl=document.querySelector('.admin-full-view-common .portfolio-heading-left .live-control');
+  function syncTopPortfolioScroll(){
+    if(!fullViewActive())return;
+    var wrap=document.querySelector('body.admin-full-view .admin-full-view-left > .table-wrap');
+    if(!wrap)return;
+    var bar=wrap.previousElementSibling;
+    if(!bar || !bar.classList.contains('full-view-portfolio-top-scroll')){
+      bar=document.createElement('div');
+      bar.className='full-view-portfolio-top-scroll';
+      bar.setAttribute('aria-label','Portfolio table horizontal scroll');
+      var inner=document.createElement('div');
+      inner.className='full-view-portfolio-top-scroll-inner';
+      bar.appendChild(inner);
+      wrap.parentNode.insertBefore(bar,wrap);
+    }
+    var inner=bar.firstElementChild;
+    inner.style.width=Math.max(wrap.scrollWidth,wrap.clientWidth)+'px';
+    if(!bar.__portfolioScrollBound){
+      bar.__portfolioScrollBound=true;
+      var syncing=false;
+      bar.addEventListener('scroll',function(){
+        if(syncing)return;syncing=true;wrap.scrollLeft=bar.scrollLeft;syncing=false;
+      },{passive:true});
+      wrap.addEventListener('scroll',function(){
+        if(syncing)return;syncing=true;bar.scrollLeft=wrap.scrollLeft;syncing=false;
+      },{passive:true});
+    }
+    bar.scrollLeft=wrap.scrollLeft;
+  }
+
+  function attachControls(){
+    if(!fullViewActive())return;
+    var liveControl=document.querySelector('.admin-full-view-common .portfolio-heading-left .live-control');
     if(!liveControl)return;
-    let group=document.getElementById('fullViewTableLockControls');
+    var group=document.getElementById('fullViewTableLockControls');
     if(!group){
-      const showAll=Array.from(liveControl.querySelectorAll('button')).find(function(button){
-        return (button.textContent||'').replace(/\s+/g,' ').trim().toUpperCase()==='SHOW ALL';
+      var showAll=Array.from(liveControl.querySelectorAll('button')).find(function(b){
+        return (b.textContent||'').replace(/\s+/g,' ').trim().toUpperCase()==='SHOW ALL';
       });
       if(!showAll)return;
-      group=document.createElement('span');group.id='fullViewTableLockControls';
+      group=document.createElement('span');
+      group.id='fullViewTableLockControls';
       group.className='full-view-table-lock-controls';
-      group.setAttribute('aria-label','Full View table scrolling controls');
-      const lock=document.createElement('button');lock.type='button';lock.id='fullViewLockTablesBtn';lock.className='btn';lock.textContent='LOCK';
-      lock.title='Lock vertical scrolling in Portfolio and Client Financial tables';
-      const unlock=document.createElement('button');unlock.type='button';unlock.id='fullViewUnlockTablesBtn';unlock.className='btn';unlock.textContent='UNLOCK';
-      unlock.title='Restore vertical scrolling in Portfolio and Client Financial tables';
-      group.append(lock,unlock);showAll.insertAdjacentElement('afterend',group);
+      var lock=document.createElement('button');
+      lock.type='button';lock.id='fullViewLockTablesBtn';lock.className='btn';
+      lock.textContent='LOCK';lock.title='Lock vertical scrolling in Portfolio and Client Financial tables';
+      var unlock=document.createElement('button');
+      unlock.type='button';unlock.id='fullViewUnlockTablesBtn';unlock.className='btn';
+      unlock.textContent='UNLOCK';unlock.title='Restore scrolling in Portfolio and Client Financial tables';
+      group.append(lock,unlock);
+      showAll.insertAdjacentElement('afterend',group);
     }
-    window.setFullViewTablesLocked(document.body.classList.contains('admin-full-view-tables-locked'));
+    var lockButton=document.getElementById('fullViewLockTablesBtn');
+    var unlockButton=document.getElementById('fullViewUnlockTablesBtn');
+    // Bind directly to each button. This avoids reliance on delegated/capture
+    // handlers that may be stopped by other dashboard scripts.
+    if(lockButton && !lockButton.__lockBound){
+      lockButton.__lockBound=true;
+      lockButton.addEventListener('click',function(ev){
+        ev.preventDefault();ev.stopPropagation();setLocked(true);
+      });
+    }
+    if(unlockButton && !unlockButton.__unlockBound){
+      unlockButton.__unlockBound=true;
+      unlockButton.addEventListener('click',function(ev){
+        ev.preventDefault();ev.stopPropagation();setLocked(false);
+      });
+    }
+    setLocked(document.body.classList.contains('admin-full-view-tables-locked'));
+    syncTopPortfolioScroll();
   }
 
-  const previous=window.setAdminViewMode;
-  if(typeof previous==='function'&&!previous.__tableLockControlsV3){
-    const wrapped=function(mode){
-      const result=previous.apply(this,arguments);
+  var previous=window.setAdminViewMode;
+  if(typeof previous==='function' && !previous.__lockScrollV4Wrapped){
+    var wrapped=function(mode){
+      var result=previous.apply(this,arguments);
       window.requestAnimationFrame(function(){
-        if(isFullView())ensureControls();
-        else window.setFullViewTablesLocked(false);
+        if(fullViewActive()){attachControls();}
+        else{setLocked(false);}
       });
       return result;
     };
-    wrapped.__tableLockControlsV3=true;window.setAdminViewMode=wrapped;
+    wrapped.__lockScrollV4Wrapped=true;
+    window.setAdminViewMode=wrapped;
   }
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',ensureControls,{once:true});
-  else window.requestAnimationFrame(ensureControls);
+  function init(){
+    attachControls();
+    if(window.MutationObserver){
+      var observer=new MutationObserver(function(){
+        if(fullViewActive()){
+          attachControls();
+          syncTopPortfolioScroll();
+        }
+      });
+      observer.observe(document.body,{childList:true,subtree:true});
+    }
+    window.addEventListener('resize',function(){
+      if(fullViewActive()){syncTopPortfolioScroll();}
+    });
+  }
+  if(document.readyState==='loading'){
+    document.addEventListener('DOMContentLoaded',init,{once:true});
+  }else{
+    window.requestAnimationFrame(init);
+  }
 })();
 </script>
 
