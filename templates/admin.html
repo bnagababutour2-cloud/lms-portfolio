@@ -4487,4 +4487,112 @@ body.admin-full-view .admin-full-view-left #portfolioTable{
 })();
 </script>
 
+
+<style id="admin-full-view-lock-freeze-v5">
+@media (min-width:1101px){
+  /* LOCK: pin the complete portfolio panel in the viewport. */
+  body.admin-full-view.admin-full-view-tables-locked .admin-full-view-panels{
+    align-items:start!important;
+  }
+  body.admin-full-view.admin-full-view-tables-locked .admin-full-view-left{
+    position:sticky!important;
+    top:10px!important;
+    align-self:start!important;
+    height:calc(100vh - 20px)!important;
+    max-height:calc(100vh - 20px)!important;
+    min-height:0!important;
+    z-index:40!important;
+    background:#fff!important;
+  }
+  body.admin-full-view.admin-full-view-tables-locked .admin-full-view-left>.table-wrap{
+    overflow-x:auto!important;
+    overflow-y:hidden!important;
+    overscroll-behavior-y:none!important;
+  }
+
+  /* LOCK: keep Client Financial Details in its original screen position;
+     the Trade Logbook & Client Analytics card remains in normal page flow. */
+  body.admin-full-view.admin-full-view-tables-locked #clientFinancialDetailsCard{
+    position:sticky!important;
+    top:10px!important;
+    align-self:stretch!important;
+    z-index:60!important;
+    background:#fff!important;
+    box-shadow:0 5px 18px rgba(21,59,102,.12)!important;
+  }
+  body.admin-full-view.admin-full-view-tables-locked #clientFinancialDetailsCard .table-wrap{
+    overflow-x:auto!important;
+    overflow-y:hidden!important;
+    overscroll-behavior-y:none!important;
+  }
+  body.admin-full-view.admin-full-view-tables-locked #clientFinancialDetailsCard.fin-client-selected .table-wrap{
+    overflow-y:hidden!important;
+  }
+}
+@media (min-width:701px) and (max-width:1100px){
+  body.admin-full-view.admin-full-view-tables-locked .admin-full-view-left,
+  body.admin-full-view.admin-full-view-tables-locked #clientFinancialDetailsCard{
+    position:sticky!important;
+    top:10px!important;
+    z-index:60!important;
+    background:#fff!important;
+  }
+  body.admin-full-view.admin-full-view-tables-locked .admin-full-view-left{
+    max-height:calc(100vh - 20px)!important;
+  }
+  body.admin-full-view.admin-full-view-tables-locked .admin-full-view-left>.table-wrap,
+  body.admin-full-view.admin-full-view-tables-locked #clientFinancialDetailsCard .table-wrap{
+    overflow-y:hidden!important;
+  }
+}
+</style>
+<script id="admin-full-view-lock-freeze-v5">
+(function(){
+  function applyFreezeState(){
+    var locked=document.body.classList.contains('admin-full-view-tables-locked') &&
+      document.body.classList.contains('admin-full-view') &&
+      window.matchMedia('(min-width:701px)').matches;
+    var left=document.querySelector('body.admin-full-view .admin-full-view-left');
+    var portfolio=left && left.querySelector(':scope > .table-wrap');
+    var financial=document.getElementById('clientFinancialDetailsCard');
+    var finWrap=financial && financial.querySelector('.table-wrap');
+    if(portfolio){
+      if(locked){
+        portfolio.style.setProperty('overflow-y','hidden','important');
+        portfolio.style.setProperty('overscroll-behavior-y','none','important');
+      }else{
+        portfolio.style.removeProperty('overflow-y');
+        portfolio.style.removeProperty('overscroll-behavior-y');
+      }
+    }
+    if(finWrap){
+      if(locked){
+        finWrap.style.setProperty('overflow-y','hidden','important');
+        finWrap.style.setProperty('overscroll-behavior-y','none','important');
+      }else{
+        finWrap.style.removeProperty('overflow-y');
+        finWrap.style.removeProperty('overscroll-behavior-y');
+      }
+    }
+  }
+  var prior=window.setFullViewTablesLocked;
+  if(typeof prior==='function' && !prior.__freezeV5Wrapped){
+    var wrapped=function(value){
+      var result=prior.call(this,value);
+      window.requestAnimationFrame(applyFreezeState);
+      return result;
+    };
+    wrapped.__freezeV5Wrapped=true;
+    window.setFullViewTablesLocked=wrapped;
+  }
+  document.addEventListener('click',function(ev){
+    var t=ev.target && ev.target.closest ? ev.target.closest('#fullViewLockTablesBtn,#fullViewUnlockTablesBtn') : null;
+    if(!t)return;
+    window.requestAnimationFrame(applyFreezeState);
+  },true);
+  document.addEventListener('DOMContentLoaded',applyFreezeState,{once:true});
+  window.addEventListener('resize',applyFreezeState);
+})();
+</script>
+
 </body></html>
