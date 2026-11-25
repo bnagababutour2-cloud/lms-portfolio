@@ -4164,4 +4164,107 @@ body.admin-full-view .admin-full-view-left #portfolioTable{
   window.setAdminViewMode = wrapped;
 })();
 </script>
+
+
+<style id="admin-full-view-requested-layout-v12">
+/* FULL VIEW ONLY: requested control placement and KPI colour treatment.
+   All original controls, IDs, handlers and calculations remain intact. */
+@media (min-width:701px){
+  body.admin-full-view .admin-full-view-common > .title{display:none!important}
+  body.admin-full-view .market-index-grid{
+    display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;
+    gap:4px!important;margin:0!important;min-width:0!important;
+  }
+  body.admin-full-view .full-view-market-indices{flex:0 0 174px!important;width:174px!important;min-width:150px!important;}
+  body.admin-full-view .portfolio-heading-left{gap:5px!important}
+  body.admin-full-view .portfolio-heading-left .live-control{
+    display:flex!important;flex:0 0 auto!important;gap:4px!important;
+    padding:3px 5px!important;margin-left:2px!important;
+  }
+  body.admin-full-view .portfolio-heading-left .live-control .live-label{font-size:9px!important}
+  body.admin-full-view .portfolio-heading-left .live-control .btn{
+    min-height:25px!important;padding:4px 6px!important;font-size:9px!important;
+  }
+  body.admin-full-view .container .toolbar .full-view-selected-actions{
+    display:inline-flex!important;align-items:center!important;gap:4px!important;
+    flex:0 0 auto!important;margin-left:2px!important;
+  }
+  body.admin-full-view .container .toolbar .full-view-selected-actions .btn{
+    min-height:36px!important;height:36px!important;padding:6px 7px!important;
+  }
+  body.admin-full-view .portfolio-bar #rowCount,
+  body.admin-full-view .portfolio-bar #liveViewStatus{margin-left:3px!important}
+  /* Distinct, calm colours for all six client financial summary cards. */
+  body.admin-full-view #logbookTradingDays > .logbook-kpi:nth-child(1){background:linear-gradient(135deg,#eaf3ff,#dbeafe)!important;border-color:#93c5fd!important}
+  body.admin-full-view #logbookTradingDays > .logbook-kpi:nth-child(2){background:linear-gradient(135deg,#e8fff1,#d1fae5)!important;border-color:#86efac!important}
+  body.admin-full-view #logbookTradingDays > .logbook-kpi:nth-child(3){background:linear-gradient(135deg,#fff0f0,#fee2e2)!important;border-color:#fca5a5!important}
+  body.admin-full-view #logbookTradingDays > .logbook-kpi:nth-child(4){background:linear-gradient(135deg,#f3edff,#e9d5ff)!important;border-color:#c4b5fd!important}
+  body.admin-full-view #logbookTradingDays > .logbook-kpi:nth-child(5){background:linear-gradient(135deg,#e8f7ff,#dbeafe)!important;border-color:#7dd3fc!important}
+  body.admin-full-view #logbookTradingDays > .logbook-kpi:nth-child(6){background:linear-gradient(135deg,#fff8e6,#fef3c7)!important;border-color:#fcd34d!important}
+  body.admin-full-view #logbookTradingDays > .logbook-kpi:nth-child(1) strong{color:#1d4ed8!important}
+  body.admin-full-view #logbookTradingDays > .logbook-kpi:nth-child(2) strong{color:#15803d!important}
+  body.admin-full-view #logbookTradingDays > .logbook-kpi:nth-child(3) strong{color:#b91c1c!important}
+  body.admin-full-view #logbookTradingDays > .logbook-kpi:nth-child(4) strong{color:#6d28d9!important}
+  body.admin-full-view #logbookTradingDays > .logbook-kpi:nth-child(5) strong{color:#0369a1!important}
+  body.admin-full-view #logbookTradingDays > .logbook-kpi:nth-child(6) strong{color:#92400e!important}
+}
+</style>
+
+<script id="admin-full-view-requested-control-placement-v12">
+(function(){
+  const original=window.setAdminViewMode;
+  if(typeof original!=='function'||original.__requestedPlacementV12)return;
+  const moved=[];
+  let ready=false, actionGroup=null;
+  function move(el,dest,before=null){
+    if(!el||!dest||!el.parentNode)return;
+    const marker=document.createComment('full-view-v12-restore');
+    el.parentNode.insertBefore(marker,el);
+    moved.push({el,marker});
+    dest.insertBefore(el,before);
+  }
+  function prepare(){
+    if(ready)return;
+    const toolbar=document.querySelector('.container .toolbar');
+    const normalBtn=document.getElementById('normalViewModeBtn');
+    const headingLeft=document.querySelector('.admin-full-view-common .portfolio-heading-left');
+    const primeFilters=headingLeft?.querySelector('.prime-quick-filters');
+    const liveControl=document.querySelector('.admin-full-view-common .portfolio-bar .live-control');
+    const portfolioBar=document.querySelector('.admin-full-view-common .portfolio-bar');
+    const showHidden=portfolioBar&&Array.from(portfolioBar.querySelectorAll('button')).find(b=>(b.getAttribute('onclick')||'').trim()==='setLiveViewAll()');
+    const rowCount=document.getElementById('rowCount');
+    const liveStatus=document.getElementById('liveViewStatus');
+    const download=portfolioBar?.querySelector('button[onclick="downloadSelectedRows()"]');
+    const del=portfolioBar?.querySelector('button[onclick="deleteSelectedRows()"]');
+    if(toolbar&&normalBtn&&headingLeft&&primeFilters&&liveControl&&portfolioBar&&showHidden){
+      move(liveControl,headingLeft);
+      if(showHidden&&rowCount)move(rowCount,portfolioBar,showHidden.nextSibling);
+      if(showHidden&&liveStatus)move(liveStatus,portfolioBar,rowCount&&rowCount.parentNode===portfolioBar?rowCount.nextSibling:showHidden.nextSibling);
+      actionGroup=document.createElement('span');
+      actionGroup.className='full-view-selected-actions';
+      toolbar.insertBefore(actionGroup,normalBtn);
+      if(download)move(download,actionGroup);
+      if(del)move(del,actionGroup);
+    }
+    ready=true;
+  }
+  function restore(){
+    for(let i=moved.length-1;i>=0;i--){
+      const {el,marker}=moved[i];
+      if(marker.parentNode){marker.parentNode.insertBefore(el,marker);marker.remove();}
+    }
+    moved.length=0;
+    if(actionGroup){actionGroup.remove();actionGroup=null;}
+    ready=false;
+  }
+  const wrapped=function(mode){
+    const result=original.apply(this,arguments);
+    if(mode==='full')prepare();else restore();
+    return result;
+  };
+  wrapped.__requestedPlacementV12=true;
+  window.setAdminViewMode=wrapped;
+})();
+</script>
+
 </body></html>
