@@ -4268,127 +4268,127 @@ body.admin-full-view .admin-full-view-left #portfolioTable{
 </script>
 
 
-<style id="admin-full-view-table-lock-styles-v2">
-/* FULL VIEW ONLY: prevent vertical scrolling inside the two upper tables.
-   The Trade Logbook & Client Analytics panel remains independently scrollable. */
+<style id="admin-full-view-table-lock-styles-v3">
+/* FULL VIEW ONLY: lock vertical scrolling in Portfolio and Client Financial tables. */
 .full-view-table-lock-controls{display:none!important}
 @media (min-width:701px){
-  body.admin-full-view .full-view-table-lock-controls{
-    display:inline-flex!important;align-items:center;gap:4px;flex:0 0 auto;
-  }
-  body.admin-full-view .full-view-table-lock-controls .btn{
-    min-height:25px!important;height:25px!important;padding:4px 8px!important;
-    font-size:9px!important;font-weight:900!important;line-height:1!important;
-    cursor:pointer!important;pointer-events:auto!important;position:relative!important;z-index:5!important;
-  }
-  body.admin-full-view .full-view-table-lock-controls #fullViewLockTablesBtn{
-    background:#9a6700!important;color:#fff!important;border:1px solid #805600!important;
-  }
-  body.admin-full-view .full-view-table-lock-controls #fullViewUnlockTablesBtn{
-    background:#16834a!important;color:#fff!important;border:1px solid #116b3c!important;
-  }
-  body.admin-full-view.admin-full-view-tables-locked .full-view-table-lock-controls #fullViewLockTablesBtn{
-    outline:2px solid #9a6700!important;outline-offset:1px!important;
-  }
-  body.admin-full-view:not(.admin-full-view-tables-locked) .full-view-table-lock-controls #fullViewUnlockTablesBtn{
-    outline:2px solid #16834a!important;outline-offset:1px!important;
-  }
-  body.admin-full-view.admin-full-view-tables-locked .admin-full-view-left > .table-wrap,
-  body.admin-full-view.admin-full-view-tables-locked #clientFinancialDetailsCard .table-wrap{
-    overflow-y:hidden!important;
-    overscroll-behavior-y:none!important;
-  }
+  body.admin-full-view .full-view-table-lock-controls{display:inline-flex!important;align-items:center;gap:4px;flex:0 0 auto}
+  body.admin-full-view .full-view-table-lock-controls .btn{min-height:25px!important;height:25px!important;padding:4px 8px!important;font-size:9px!important;font-weight:900!important;line-height:1!important;cursor:pointer!important;pointer-events:auto!important;position:relative!important;z-index:9999!important}
+  body.admin-full-view .full-view-table-lock-controls #fullViewLockTablesBtn{background:#9a6700!important;color:#fff!important;border:1px solid #805600!important}
+  body.admin-full-view .full-view-table-lock-controls #fullViewUnlockTablesBtn{background:#16834a!important;color:#fff!important;border:1px solid #116b3c!important}
+  body.admin-full-view.admin-full-view-tables-locked #fullViewLockTablesBtn{outline:2px solid #9a6700!important;outline-offset:1px!important}
+  body.admin-full-view:not(.admin-full-view-tables-locked) #fullViewUnlockTablesBtn{outline:2px solid #16834a!important;outline-offset:1px!important}
 }
-@media (max-width:700px){.full-view-table-lock-controls{display:none!important}}
+@media(max-width:700px){.full-view-table-lock-controls{display:none!important}}
 </style>
-
-<script id="admin-full-view-table-lock-controls-v2">
+<script id="admin-full-view-table-lock-controls-v3">
 (function(){
-  if(window.__fullViewTableLockV2Installed)return;
-  window.__fullViewTableLockV2Installed=true;
+  if(window.__fullViewTableLockV3Installed)return;
+  window.__fullViewTableLockV3Installed=true;
 
-  const lockedTableSelector =
-    'body.admin-full-view.admin-full-view-tables-locked .admin-full-view-left > .table-wrap,'+
-    'body.admin-full-view.admin-full-view-tables-locked #clientFinancialDetailsCard .table-wrap';
-
+  function isFullView(){
+    return document.body.classList.contains('admin-full-view') && window.matchMedia('(min-width:701px)').matches;
+  }
+  function getTableScrollAreas(){
+    return Array.from(document.querySelectorAll(
+      'body.admin-full-view .admin-full-view-left > .table-wrap,'+
+      'body.admin-full-view #clientFinancialDetailsCard .table-wrap'
+    ));
+  }
   window.setFullViewTablesLocked=function(locked){
-    const isFullView=document.body.classList.contains('admin-full-view') && window.matchMedia('(min-width: 701px)').matches;
-    const apply=!!locked && isFullView;
+    const active=isFullView();
+    const apply=!!locked && active;
     document.body.classList.toggle('admin-full-view-tables-locked',apply);
+    getTableScrollAreas().forEach(function(area){
+      if(apply){
+        if(!area.hasAttribute('data-fv-lock-old-overflow-y')){
+          area.setAttribute('data-fv-lock-old-overflow-y',area.style.getPropertyValue('overflow-y'));
+          area.setAttribute('data-fv-lock-old-overflow-y-priority',area.style.getPropertyPriority('overflow-y'));
+        }
+        area.style.setProperty('overflow-y','hidden','important');
+        area.style.setProperty('overscroll-behavior-y','none','important');
+        area.scrollTop=0;
+      }else{
+        if(area.hasAttribute('data-fv-lock-old-overflow-y')){
+          const old=area.getAttribute('data-fv-lock-old-overflow-y');
+          const priority=area.getAttribute('data-fv-lock-old-overflow-y-priority')||'';
+          if(old)area.style.setProperty('overflow-y',old,priority);else area.style.removeProperty('overflow-y');
+          area.removeAttribute('data-fv-lock-old-overflow-y');
+          area.removeAttribute('data-fv-lock-old-overflow-y-priority');
+        }else{
+          area.style.removeProperty('overflow-y');
+        }
+        area.style.removeProperty('overscroll-behavior-y');
+      }
+    });
     const lock=document.getElementById('fullViewLockTablesBtn');
     const unlock=document.getElementById('fullViewUnlockTablesBtn');
-    if(lock){lock.setAttribute('aria-pressed',apply?'true':'false');lock.disabled=!isFullView;}
-    if(unlock){unlock.setAttribute('aria-pressed',apply?'false':'true');unlock.disabled=!isFullView;}
+    if(lock){lock.disabled=!active;lock.setAttribute('aria-pressed',apply?'true':'false');}
+    if(unlock){unlock.disabled=!active;unlock.setAttribute('aria-pressed',apply?'false':'true');}
+    return apply;
   };
 
-  // Capture wheel/touch input over the two locked tables so it cannot scroll
-  // their contents or steal the gesture. The Logbook area is not intercepted.
+  // Capture clicks at document level as well as the button's own handler. This
+  // keeps the controls working even if other dashboard handlers stop bubbling.
+  document.addEventListener('click',function(event){
+    const button=event.target && event.target.closest ? event.target.closest('#fullViewLockTablesBtn,#fullViewUnlockTablesBtn') : null;
+    if(!button)return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    window.setFullViewTablesLocked(button.id==='fullViewLockTablesBtn');
+  },true);
+
+  // Do not let wheel/touch gestures scroll either upper table while locked.
+  function isInsideLockedTable(target){
+    return !!(target && target.closest && target.closest('.admin-full-view-left > .table-wrap, #clientFinancialDetailsCard .table-wrap'));
+  }
   document.addEventListener('wheel',function(event){
-    if(document.body.matches('.admin-full-view.admin-full-view-tables-locked') &&
-       event.target && event.target.closest(lockedTableSelector)){
-      event.preventDefault();
-      event.stopPropagation();
+    if(document.body.classList.contains('admin-full-view-tables-locked') && isInsideLockedTable(event.target)){
+      event.preventDefault();event.stopPropagation();
     }
   },{capture:true,passive:false});
   document.addEventListener('touchmove',function(event){
-    if(document.body.matches('.admin-full-view.admin-full-view-tables-locked') &&
-       event.target && event.target.closest(lockedTableSelector)){
-      event.preventDefault();
-      event.stopPropagation();
+    if(document.body.classList.contains('admin-full-view-tables-locked') && isInsideLockedTable(event.target)){
+      event.preventDefault();event.stopPropagation();
     }
   },{capture:true,passive:false});
 
   function ensureControls(){
+    if(!isFullView())return;
     const liveControl=document.querySelector('.admin-full-view-common .portfolio-heading-left .live-control');
     if(!liveControl)return;
     let group=document.getElementById('fullViewTableLockControls');
-    if(group){
-      if(!document.getElementById('fullViewLockTablesBtn') || !document.getElementById('fullViewUnlockTablesBtn'))return;
-      return;
+    if(!group){
+      const showAll=Array.from(liveControl.querySelectorAll('button')).find(function(button){
+        return (button.textContent||'').replace(/\s+/g,' ').trim().toUpperCase()==='SHOW ALL';
+      });
+      if(!showAll)return;
+      group=document.createElement('span');group.id='fullViewTableLockControls';
+      group.className='full-view-table-lock-controls';
+      group.setAttribute('aria-label','Full View table scrolling controls');
+      const lock=document.createElement('button');lock.type='button';lock.id='fullViewLockTablesBtn';lock.className='btn';lock.textContent='LOCK';
+      lock.title='Lock vertical scrolling in Portfolio and Client Financial tables';
+      const unlock=document.createElement('button');unlock.type='button';unlock.id='fullViewUnlockTablesBtn';unlock.className='btn';unlock.textContent='UNLOCK';
+      unlock.title='Restore vertical scrolling in Portfolio and Client Financial tables';
+      group.append(lock,unlock);showAll.insertAdjacentElement('afterend',group);
     }
-    const showAll=Array.from(liveControl.querySelectorAll('button')).find(button=>
-      (button.textContent||'').replace(/\s+/g,' ').trim().toUpperCase()==='SHOW ALL'
-    );
-    if(!showAll)return;
-
-    group=document.createElement('span');
-    group.id='fullViewTableLockControls';
-    group.className='full-view-table-lock-controls';
-    group.setAttribute('aria-label','Full View table scrolling controls');
-
-    const lock=document.createElement('button');
-    lock.type='button';lock.id='fullViewLockTablesBtn';lock.className='btn';
-    lock.textContent='LOCK';lock.title='Lock vertical scrolling in Portfolio and Client Financial tables';
-    lock.setAttribute('aria-pressed',document.body.classList.contains('admin-full-view-tables-locked')?'true':'false');
-    lock.addEventListener('click',function(event){event.preventDefault();event.stopPropagation();window.setFullViewTablesLocked(true);});
-
-    const unlock=document.createElement('button');
-    unlock.type='button';unlock.id='fullViewUnlockTablesBtn';unlock.className='btn';
-    unlock.textContent='UNLOCK';unlock.title='Restore vertical scrolling in Portfolio and Client Financial tables';
-    unlock.setAttribute('aria-pressed',document.body.classList.contains('admin-full-view-tables-locked')?'false':'true');
-    unlock.addEventListener('click',function(event){event.preventDefault();event.stopPropagation();window.setFullViewTablesLocked(false);});
-
-    group.append(lock,unlock);
-    showAll.insertAdjacentElement('afterend',group);
+    window.setFullViewTablesLocked(document.body.classList.contains('admin-full-view-tables-locked'));
   }
 
   const previous=window.setAdminViewMode;
-  if(typeof previous==='function'&&!previous.__tableLockControlsV2){
+  if(typeof previous==='function'&&!previous.__tableLockControlsV3){
     const wrapped=function(mode){
       const result=previous.apply(this,arguments);
-      if(mode==='full'){
-        window.requestAnimationFrame(ensureControls);
-      }else{
-        window.setFullViewTablesLocked(false);
-      }
+      window.requestAnimationFrame(function(){
+        if(isFullView())ensureControls();
+        else window.setFullViewTablesLocked(false);
+      });
       return result;
     };
-    wrapped.__tableLockControlsV2=true;
-    window.setAdminViewMode=wrapped;
+    wrapped.__tableLockControlsV3=true;window.setAdminViewMode=wrapped;
   }
-
-  // Handle the case where this script is evaluated while Full View is already active.
-  if(document.body.classList.contains('admin-full-view'))window.requestAnimationFrame(ensureControls);
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',ensureControls,{once:true});
+  else window.requestAnimationFrame(ensureControls);
 })();
 </script>
 
