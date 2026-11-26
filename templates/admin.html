@@ -860,6 +860,16 @@ body.tradelogs-split-open #tradeLogsSplitDrawer{display:flex;}
   }
 }
 </style>
+
+<style id="aging-table-layout">
+#agingDetailsCard{min-width:0}
+#agingDetailsCard .table-wrap{overflow:auto}
+#agingTable{width:100%;border-collapse:collapse}
+#agingTable th,#agingTable td{white-space:nowrap}
+body.admin-full-view .admin-full-view-right #agingDetailsCard .table-wrap{max-height:340px;overflow:auto}
+@media(max-width:700px){#agingDetailsCard .logbook-title-row{align-items:flex-start;flex-direction:column}#agingTable{min-width:1000px}}
+</style>
+
 </head>
 <body>
 <header class="top"><div class="header-overlay"><div class="header-subtitle">ADMIN / SUPERVISOR PORTFOLIO &amp; DAILY CONTROL PANEL</div><div class="header-login">Logged in: {{ supervisor_name }} ({{ supervisor_id }}){% if not can_manage %} · VIEW ONLY{% endif %}</div></div></header>
@@ -1031,6 +1041,29 @@ body.tradelogs-split-open #tradeLogsSplitDrawer{display:flex;}
           <tr id="finEmptyRow"><td colspan="8" style="text-align:center;padding:18px;color:#60748a">Loading client financial details...</td></tr>
         {% endif %}
       </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card" id="agingDetailsCard">
+  <div class="logbook-title-row" style="margin-bottom:10px">
+    <div>
+      <div class="title" style="margin:0">Client Aging Details</div>
+      <div class="sub">Client-wise outstanding aging snapshot (Current Dr-Cr, T-3, T-4, T-5 BR SQR OFF, T-6 HO SQR OFF, T-7 HO SQR OFF, T-8 HO SQR OFF)</div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <input id="agingTableSearch" placeholder="Search Client ID..." oninput="filterAgingTable()" style="padding:7px 10px;border:1px solid #cbd9e8;border-radius:7px;font-size:12px;width:190px">
+      <button type="button" class="btn light" style="padding:7px 10px;font-size:11px" onclick="document.getElementById('agingTableSearch').value='';filterAgingTable()">CLEAR</button>
+      <span class="pill" id="agingTableCount">0 records</span>
+    </div>
+  </div>
+  <div class="table-wrap" style="max-height:360px">
+    <table id="agingTable" style="min-width:1050px">
+      <thead><tr>
+        <th>Client ID</th><th style="text-align:right">Current Dr-Cr</th><th style="text-align:right">T-3</th><th style="text-align:right">T-4</th>
+        <th style="text-align:right">T-5 BR SQR OFF</th><th style="text-align:right">T-6 HO SQR OFF</th><th style="text-align:right">T-7 HO SQR OFF</th><th style="text-align:right">T-8 HO SQR OFF</th><th>As of Date</th>
+      </tr></thead>
+      <tbody id="agingTableBody"><tr><td colspan="9" style="text-align:center;padding:16px;color:#60748a">Loading aging details...</td></tr></tbody>
     </table>
   </div>
 </div>
@@ -2262,6 +2295,9 @@ window.setLogbookFilter=async function(filter,button){
        window.filterFinancialTable(finClientId, true);
      }
    }
+   const agingSearchInput=document.getElementById('agingTableSearch');
+   if(agingSearchInput){agingSearchInput.value=finClientId;}
+   if(typeof window.filterAgingTable==='function'){window.filterAgingTable(finClientId, true);}
    document.querySelectorAll('[data-logbook-client]').forEach(b=>b.classList.toggle('active',b.dataset.logbookClient===clientId));
    const rows=allPortfolioRows().filter(r=>(r.dataset.client||r.cells[1]?.textContent.trim()).toUpperCase()===clientId.toUpperCase());
    if(!rows.length){clearLogbookCharts();return;}
@@ -2383,6 +2419,9 @@ window.setLogbookFilter=async function(filter,button){
        window.filterFinancialTable(clientId,!!clientId);
      }
    }
+   const agingSearchInput=document.getElementById('agingTableSearch');
+   if(agingSearchInput){agingSearchInput.value=clientId;}
+   if(typeof window.filterAgingTable==='function'){window.filterAgingTable(clientId,!!clientId);}
 
    if(!clientId){
      mainSearchExactClient=null;
@@ -3720,8 +3759,9 @@ body.admin-full-view #clientFinancialDetailsCard.fin-client-selected td{
     const searchPanel=document.querySelector('.search-panel');
     const tableWrap=byId('portfolioTable')?.closest('.table-wrap');
     const financial=byId('clientFinancialDetailsCard');
+    const aging=byId('agingDetailsCard');
     const logbook=byId('tradeLogbookCard');
-    if(!searchPanel||!tableWrap||!financial||!logbook)return false;
+    if(!searchPanel||!tableWrap||!financial||!aging||!logbook)return false;
     shell=searchPanel.closest('.card');
     if(!shell)return false;
 
@@ -3747,6 +3787,7 @@ body.admin-full-view #clientFinancialDetailsCard.fin-client-selected td{
     moveWithMarker(recencyBar,commonTop);
     moveWithMarker(tableWrap,leftCard);
     moveWithMarker(financial,rightWrap);
+    moveWithMarker(aging,rightWrap);
     moveWithMarker(logbook,rightWrap);
 
     panelWrap.append(leftCard,rightWrap);
@@ -3783,6 +3824,106 @@ body.admin-full-view #clientFinancialDetailsCard.fin-client-selected td{
 </script>
 
 
+
+
+<script id="client-aging-table-script">
+(function(){
+  const $id=id=>document.getElementById(id);
+  const esc=value=>String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+  const fmt=value=>{if(value===null||value===undefined||value==='')return '0.00';const n=Number(value);return Number.isFinite(n)?n.toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2}):'0.00';};
+  let agingRows=[];
+
+  window.filterAgingTable=function(clientId=null, exactClientMatch=false, clientIds=null){
+    const input=$id('agingTableSearch');
+    const q=String(clientId!==null?clientId:(input?.value||'')).trim().toLowerCase();
+    const allowed=Array.isArray(clientIds)?new Set(clientIds.map(x=>String(x).trim().toLowerCase())):null;
+    const body=$id('agingTableBody'); if(!body)return;
+    let shown=0;
+    [...body.querySelectorAll('tr[data-aging-client]')].forEach(row=>{
+      const cid=String(row.dataset.agingClient||'').toLowerCase();
+      const match=exactClientMatch?(!!q&&cid===q):(!q||cid.includes(q));
+      const allowedMatch=!allowed||allowed.has(cid);
+      row.style.display=match&&allowedMatch?'':'none';
+      if(match&&allowedMatch)shown++;
+    });
+    let empty=$id('agingNoMatchRow');
+    if(shown===0){
+      if(!empty){empty=document.createElement('tr');empty.id='agingNoMatchRow';empty.innerHTML='<td colspan="9" style="text-align:center;padding:16px;color:#60748a"></td>';body.appendChild(empty);}
+      empty.querySelector('td').textContent=q?'No aging details found for Client ID: '+q.toUpperCase():'No aging records available for the selected portfolio filter.';
+      empty.style.display='';
+    }else if(empty){empty.remove();}
+    const badge=$id('agingTableCount');if(badge)badge.textContent=shown+' records';
+  };
+
+  function render(rows){
+    const body=$id('agingTableBody');if(!body)return;
+    agingRows=Array.isArray(rows)?rows:[];
+    if(!agingRows.length){body.innerHTML='<tr><td colspan="9" style="text-align:center;padding:16px;color:#60748a">No aging records found.</td></tr>';const b=$id('agingTableCount');if(b)b.textContent='0 records';return;}
+    body.innerHTML=agingRows.map(a=>{
+      const cid=String(a.client_id??'').trim();
+      return `<tr data-aging-client="${esc(cid.toLowerCase())}">
+        <td style="font-weight:800;color:#052d70">${esc(cid||'-')}</td>
+        <td style="text-align:right">${fmt(a.current_dr_cr)}</td><td style="text-align:right">${fmt(a.t_3)}</td><td style="text-align:right">${fmt(a.t_4)}</td>
+        <td style="text-align:right">${fmt(a.t_5_br_sqr_off)}</td><td style="text-align:right">${fmt(a.t_6_ho_sqr_off)}</td><td style="text-align:right">${fmt(a.t_7_ho_sqr_off)}</td><td style="text-align:right">${fmt(a.t_8_ho_sqr_off)}</td><td>${esc(a.as_of_date||'—')}</td>
+      </tr>`;
+    }).join('');
+    const badge=$id('agingTableCount');if(badge)badge.textContent=agingRows.length+' records';
+    window.filterAgingTable();
+  }
+
+  async function load(){
+    const body=$id('agingTableBody');if(!body)return;
+    try{
+      // This admin endpoint must read public.aging using the server-side Supabase client.
+      const response=await fetch('/api/admin/aging-all?_='+Date.now(),{credentials:'same-origin',cache:'no-store'});
+      if(!response.ok)throw new Error('Aging endpoint unavailable ('+response.status+')');
+      const data=await response.json();
+      const rows=data.records||data.data||data.aging||[];
+      if(!Array.isArray(rows))throw new Error('Invalid aging response');
+      render(rows);
+    }catch(err){
+      body.innerHTML='<tr><td colspan="9" style="text-align:center;padding:16px;color:#b45309">Aging data endpoint is not available. Add /api/admin/aging-all in the Flask backend to read Supabase public.aging.</td></tr>';
+      const badge=$id('agingTableCount');if(badge)badge.textContent='0 records';
+      console.warn('Could not load aging table:',err);
+    }
+  }
+
+  function syncAgingToVisiblePortfolio(){
+    const body=$id('portfolioTable')?.querySelector('tbody');if(!body)return;
+    const visible=[...body.querySelectorAll('tr')].filter(r=>r.style.display!=='none');
+    const ids=[...new Set(visible.map(r=>String(r.dataset.client||r.cells[1]?.textContent||'').trim()).filter(Boolean))];
+    const input=$id('agingTableSearch');
+    const mainClient=String($id('clientSearch')?.value||'').trim();
+    if(input)input.value=mainClient;
+    if(mainClient){
+      const exact=ids.find(x=>x.toLowerCase()===mainClient.toLowerCase());
+      if(exact){window.filterAgingTable(exact,true);return;}
+    }
+    window.filterAgingTable('',false,ids.length?ids:null);
+  }
+
+  const agingBody=$id('agingTableBody');
+  if(agingBody){agingBody.addEventListener('click',event=>{
+    const row=event.target.closest('tr[data-aging-client]');if(!row)return;
+    const cid=row.dataset.agingClient||'';
+    const fin=$id('finTableSearch');if(fin){fin.value=cid;if(typeof window.filterFinancialTable==='function')window.filterFinancialTable(cid,true);}
+    const search=$id('agingTableSearch');if(search)search.value=cid;
+    if(typeof window.filterAgingTable==='function')window.filterAgingTable(cid,true);
+    const clientBtn=[...document.querySelectorAll('[data-logbook-client]')].find(b=>(b.dataset.logbookClient||'').toLowerCase()===cid.toLowerCase());
+    if(clientBtn)clientBtn.click();
+    else if(typeof window.syncLogbookClientFromMainSearch==='function'){const main=$id('clientSearch');if(main)main.value=cid;window.syncLogbookClientFromMainSearch(cid);}
+  });}
+
+  ['clientSearch','symbolSearch','productSearch','exchangeSearch'].forEach(id=>{
+    const el=$id(id);if(!el)return;
+    el.addEventListener('input',()=>setTimeout(syncAgingToVisiblePortfolio,0));
+    el.addEventListener('change',()=>setTimeout(syncAgingToVisiblePortfolio,0));
+  });
+  const clearSearchButton=document.querySelector('.filters .search-actions button');
+  document.addEventListener('click',event=>{if(event.target.closest('button')?.textContent?.trim()==='CLEAR SEARCH')setTimeout(syncAgingToVisiblePortfolio,0);});
+  load();
+})();
+</script>
 
 <style id="admin-full-view-original-normal-preserved">
 /* Full View only: remove the duplicate Logbook filter strip that exists in the
