@@ -853,7 +853,7 @@ class _PostgresQuery:
         except ImportError as exc:
             raise RuntimeError("psycopg2-binary is required for DATABASE_URL mode") from exc
 
-        allowed_tables = {"clients", "holdings", "client_financial_details"}
+        allowed_tables = {"clients", "holdings", "client_financial_details", "aging"}
         if self.table not in allowed_tables:
             raise RuntimeError(f"Unsupported table: {self.table}")
 
@@ -2077,6 +2077,84 @@ def admin_client_financials_all():
         return jsonify({
             "success": False,
             "message": "Could not load client financial details.",
+            "error": str(exc),
+        }), 500
+
+
+@app.route("/api/admin/aging-all", methods=["GET"])
+def admin_aging_all():
+    """Return the latest available aging snapshot, restricted to this supervisor's clients.
+
+    Aging is maintained manually in public.aging. Older report dates remain in
+    the table; this endpoint displays only the newest as_of_date. Therefore the
+    previous snapshot remains visible until a newer dated upload is present.
+    """
+    account, auth_error = _require_supervisor()
+    if auth_error:
+        return auth_error
+    db_error = _require_db()
+    if db_error:
+        return db_error
+
+    try:
+        supervisor_id = session.get("supervisor_id")
+        page_size = 1000
+        start = 0
+        latest_date = None
+        latest_rows = []
+        columns = (
+            "client_id,current_dr_cr,t_3,t_4,t_5_br_sqr_off,"
+            "t_6_ho_sqr_off,t_7_ho_sqr_off,t_8_ho_sqr_off,as_of_date"
+        )
+
+        # Read newest dates first. Stop as soon as records from an older date
+        # are reached, so only the latest complete snapshot is sent to Admin.
+        while True:
+            result = (
+                supabase.table("aging")
+                .select(columns)
+                .order("as_of_date", desc=True)
+                .order("client_id")
+                .range(start, start + page_size - 1)
+                .execute()
+            )
+            page = result.data or []
+            if not page:
+                break
+
+            for row in page:
+                row_date = str(row.get("as_of_date") or "").strip()
+                if latest_date is None:
+                    latest_date = row_date
+                if row_date != latest_date:
+                    # The query is ordered newest-first; older snapshots are
+                    # retained in Supabase but are not part of this response.
+                    break
+                if _supervisor_can_view(supervisor_id, row.get("client_id")):
+                    latest_rows.append(row)
+            else:
+                if len(page) < page_size:
+                    break
+                start += page_size
+                continue
+            break
+
+        response = jsonify({
+            "success": True,
+            "records": latest_rows,
+            "aging": latest_rows,
+            "as_of_date": latest_date,
+            "count": len(latest_rows),
+        })
+        response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
+        return response
+    except Exception as exc:
+        traceback.print_exc()
+        return jsonify({
+            "success": False,
+            "message": "Could not load aging details.",
             "error": str(exc),
         }), 500
 
