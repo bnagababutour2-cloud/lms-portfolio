@@ -853,7 +853,7 @@ class _PostgresQuery:
         except ImportError as exc:
             raise RuntimeError("psycopg2-binary is required for DATABASE_URL mode") from exc
 
-        allowed_tables = {"clients", "holdings", "client_financial_details", "aging"}
+        allowed_tables = {"clients", "holdings", "client_financial_details", "aging", "aging_90days"}
         if self.table not in allowed_tables:
             raise RuntimeError(f"Unsupported table: {self.table}")
 
@@ -2155,6 +2155,80 @@ def admin_aging_all():
         return jsonify({
             "success": False,
             "message": "Could not load aging details.",
+            "error": str(exc),
+        }), 500
+
+
+@app.route("/api/admin/aging-90days-all", methods=["GET"])
+def admin_aging_90days_all():
+    """Return the newest available 90-day aging snapshot for this supervisor.
+
+    Data is manually imported into public.aging_90days. Older snapshots remain
+    stored; Admin displays only rows from the newest as_of_date. Thus the last
+    uploaded snapshot remains visible until a newer daily import is completed.
+    """
+    account, auth_error = _require_supervisor()
+    if auth_error:
+        return auth_error
+    db_error = _require_db()
+    if db_error:
+        return db_error
+
+    try:
+        supervisor_id = session.get("supervisor_id")
+        page_size = 1000
+        start = 0
+        latest_date = None
+        latest_rows = []
+        columns = (
+            "client_code,currbalance,t_70,t_75,t_80,t_85,t_86,t_87,"
+            "t_88,t_89,t_90,total_stock_value,collateral_value,as_of_date"
+        )
+
+        while True:
+            result = (
+                supabase.table("aging_90days")
+                .select(columns)
+                .order("as_of_date", desc=True)
+                .order("client_code")
+                .range(start, start + page_size - 1)
+                .execute()
+            )
+            page = result.data or []
+            if not page:
+                break
+
+            for row in page:
+                row_date = str(row.get("as_of_date") or "").strip()
+                if latest_date is None:
+                    latest_date = row_date
+                if row_date != latest_date:
+                    break
+                if _supervisor_can_view(supervisor_id, row.get("client_code")):
+                    latest_rows.append(row)
+            else:
+                if len(page) < page_size:
+                    break
+                start += page_size
+                continue
+            break
+
+        response = jsonify({
+            "success": True,
+            "records": latest_rows,
+            "aging_90days": latest_rows,
+            "as_of_date": latest_date,
+            "count": len(latest_rows),
+        })
+        response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
+        return response
+    except Exception as exc:
+        traceback.print_exc()
+        return jsonify({
+            "success": False,
+            "message": "Could not load 90 days aging details.",
             "error": str(exc),
         }), 500
 
