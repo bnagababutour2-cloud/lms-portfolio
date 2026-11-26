@@ -868,6 +868,13 @@ body.tradelogs-split-open #tradeLogsSplitDrawer{display:flex;}
 #agingTable th,#agingTable td{white-space:nowrap}
 body.admin-full-view .admin-full-view-right #agingDetailsCard .table-wrap{max-height:340px;overflow:auto}
 @media(max-width:700px){ #agingDetailsCard .logbook-title-row{align-items:flex-start;flex-direction:column}#agingTable{min-width:1000px}}
+
+#aging90DaysDetailsCard{min-width:0}
+#aging90DaysDetailsCard .table-wrap{overflow:auto}
+#aging90DaysTable{width:100%;border-collapse:collapse}
+#aging90DaysTable th,#aging90DaysTable td{white-space:nowrap}
+body.admin-full-view .admin-full-view-right #aging90DaysDetailsCard .table-wrap{max-height:340px;overflow:auto}
+@media(max-width:700px){ #aging90DaysDetailsCard .logbook-title-row{align-items:flex-start;flex-direction:column}#aging90DaysTable{min-width:1500px}}
 </style>
 
 </head>
@@ -1064,6 +1071,38 @@ body.admin-full-view .admin-full-view-right #agingDetailsCard .table-wrap{max-he
         <th style="text-align:right">T-5 BR SQR OFF</th><th style="text-align:right">T-6 HO SQR OFF</th><th style="text-align:right">T-7 HO SQR OFF</th><th style="text-align:right">T-8 HO SQR OFF</th><th>As of Date</th>
       </tr></thead>
       <tbody id="agingTableBody"><tr><td colspan="9" style="text-align:center;padding:16px;color:#60748a">Loading aging details...</td></tr></tbody>
+    </table>
+  </div>
+</div>
+
+
+<div class="card" id="aging90DaysDetailsCard">
+  <div class="logbook-title-row" style="margin-bottom:10px">
+    <div>
+      <div class="title" style="margin:0">90 Days Aging Details</div>
+      <div class="sub">Client-wise 70–90 day aging, current balance, total stock value and collateral value</div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <input id="aging90DaysTableSearch" placeholder="Search Client ID..." oninput="filterAging90DaysTable()" style="padding:7px 10px;border:1px solid #cbd9e8;border-radius:7px;font-size:12px;width:190px">
+      <button type="button" class="btn light" style="padding:7px 10px;font-size:11px" onclick="document.getElementById('aging90DaysTableSearch').value='';filterAging90DaysTable()">CLEAR</button>
+      <span class="pill" id="aging90DaysTableCount">0 records</span>
+    </div>
+  </div>
+  <div class="table-wrap" style="max-height:360px">
+    <table id="aging90DaysTable" style="min-width:1500px">
+      <thead><tr>
+        <th>Client Code</th>
+        <th style="text-align:right">Current Balance</th>
+        <th style="text-align:right">T-70</th><th style="text-align:right">T-75</th>
+        <th style="text-align:right">T-80</th><th style="text-align:right">T-85</th>
+        <th style="text-align:right">T-86</th><th style="text-align:right">T-87</th>
+        <th style="text-align:right">T-88</th><th style="text-align:right">T-89</th>
+        <th style="text-align:right">T-90</th>
+        <th style="text-align:right">Total Stock Value</th>
+        <th style="text-align:right">Collateral Value</th>
+        <th>As of Date</th>
+      </tr></thead>
+      <tbody id="aging90DaysTableBody"><tr><td colspan="14" style="text-align:center;padding:16px;color:#60748a">Loading 90 days aging details...</td></tr></tbody>
     </table>
   </div>
 </div>
@@ -2298,6 +2337,9 @@ window.setLogbookFilter=async function(filter,button){
    const agingSearchInput=document.getElementById('agingTableSearch');
    if(agingSearchInput){agingSearchInput.value=finClientId;}
    if(typeof window.filterAgingTable==='function'){window.filterAgingTable(finClientId, true);}
+   const aging90SearchInput=document.getElementById('aging90DaysTableSearch');
+   if(aging90SearchInput){aging90SearchInput.value=finClientId;}
+   if(typeof window.filterAging90DaysTable==='function'){window.filterAging90DaysTable(finClientId, true);}
    document.querySelectorAll('[data-logbook-client]').forEach(b=>b.classList.toggle('active',b.dataset.logbookClient===clientId));
    const rows=allPortfolioRows().filter(r=>(r.dataset.client||r.cells[1]?.textContent.trim()).toUpperCase()===clientId.toUpperCase());
    if(!rows.length){clearLogbookCharts();return;}
@@ -2422,6 +2464,9 @@ window.setLogbookFilter=async function(filter,button){
    const agingSearchInput=document.getElementById('agingTableSearch');
    if(agingSearchInput){agingSearchInput.value=clientId;}
    if(typeof window.filterAgingTable==='function'){window.filterAgingTable(clientId,!!clientId);}
+   const aging90SearchInput=document.getElementById('aging90DaysTableSearch');
+   if(aging90SearchInput){aging90SearchInput.value=clientId;}
+   if(typeof window.filterAging90DaysTable==='function'){window.filterAging90DaysTable(clientId,!!clientId);}
 
    if(!clientId){
      mainSearchExactClient=null;
@@ -3760,8 +3805,9 @@ body.admin-full-view #clientFinancialDetailsCard.fin-client-selected td{
     const tableWrap=byId('portfolioTable')?.closest('.table-wrap');
     const financial=byId('clientFinancialDetailsCard');
     const aging=byId('agingDetailsCard');
+    const aging90=byId('aging90DaysDetailsCard');
     const logbook=byId('tradeLogbookCard');
-    if(!searchPanel||!tableWrap||!financial||!aging||!logbook)return false;
+    if(!searchPanel||!tableWrap||!financial||!aging||!aging90||!logbook)return false;
     shell=searchPanel.closest('.card');
     if(!shell)return false;
 
@@ -3788,6 +3834,7 @@ body.admin-full-view #clientFinancialDetailsCard.fin-client-selected td{
     moveWithMarker(tableWrap,leftCard);
     moveWithMarker(financial,rightWrap);
     moveWithMarker(aging,rightWrap);
+    moveWithMarker(aging90,rightWrap);
     moveWithMarker(logbook,rightWrap);
 
     panelWrap.append(leftCard,rightWrap);
@@ -3909,6 +3956,8 @@ body.admin-full-view #clientFinancialDetailsCard.fin-client-selected td{
     const fin=$id('finTableSearch');if(fin){fin.value=cid;if(typeof window.filterFinancialTable==='function')window.filterFinancialTable(cid,true);}
     const search=$id('agingTableSearch');if(search)search.value=cid;
     if(typeof window.filterAgingTable==='function')window.filterAgingTable(cid,true);
+    const aging90Search=$id('aging90DaysTableSearch');if(aging90Search)aging90Search.value=cid;
+    if(typeof window.filterAging90DaysTable==='function')window.filterAging90DaysTable(cid,true);
     const clientBtn=[...document.querySelectorAll('[data-logbook-client]')].find(b=>(b.dataset.logbookClient||'').toLowerCase()===cid.toLowerCase());
     if(clientBtn)clientBtn.click();
     else if(typeof window.syncLogbookClientFromMainSearch==='function'){const main=$id('clientSearch');if(main)main.value=cid;window.syncLogbookClientFromMainSearch(cid);}
@@ -3922,6 +3971,104 @@ body.admin-full-view #clientFinancialDetailsCard.fin-client-selected td{
   const clearSearchButton=document.querySelector('.filters .search-actions button');
   document.addEventListener('click',event=>{if(event.target.closest('button')?.textContent?.trim()==='CLEAR SEARCH')setTimeout(syncAgingToVisiblePortfolio,0);});
   load();
+})();
+</script>
+
+<script id="client-aging-90days-table-script">
+(function(){
+  const $id=id=>document.getElementById(id);
+  const esc=value=>String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+  const fmt=value=>{if(value===null||value===undefined||value==='')return '0.00';const n=Number(value);return Number.isFinite(n)?n.toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2}):'0.00';};
+  let rows90=[];
+
+  window.filterAging90DaysTable=function(clientId=null, exactClientMatch=false, clientIds=null){
+    const input=$id('aging90DaysTableSearch');
+    const q=String(clientId!==null?clientId:(input?.value||'')).trim().toLowerCase();
+    const allowed=Array.isArray(clientIds)?new Set(clientIds.map(x=>String(x).trim().toLowerCase())):null;
+    const body=$id('aging90DaysTableBody');if(!body)return;
+    let shown=0;
+    [...body.querySelectorAll('tr[data-aging90-client]')].forEach(row=>{
+      const cid=String(row.dataset.aging90Client||'').toLowerCase();
+      const match=exactClientMatch?(!!q&&cid===q):(!q||cid.includes(q));
+      const allowedMatch=!allowed||allowed.has(cid);
+      row.style.display=match&&allowedMatch?'':'none';if(match&&allowedMatch)shown++;
+    });
+    let empty=$id('aging90DaysNoMatchRow');
+    if(shown===0){
+      if(!empty){empty=document.createElement('tr');empty.id='aging90DaysNoMatchRow';empty.innerHTML='<td colspan="14" style="text-align:center;padding:16px;color:#60748a"></td>';body.appendChild(empty);}
+      empty.querySelector('td').textContent=q?'No 90 days aging details found for Client ID: '+q.toUpperCase():'No 90 days aging records available for the selected portfolio filter.';empty.style.display='';
+    }else if(empty){empty.remove();}
+    const badge=$id('aging90DaysTableCount');if(badge)badge.textContent=shown+' records';
+  };
+
+  function render90(rows){
+    const body=$id('aging90DaysTableBody');if(!body)return;
+    rows90=Array.isArray(rows)?rows:[];
+    if(!rows90.length){body.innerHTML='<tr><td colspan="14" style="text-align:center;padding:16px;color:#60748a">No 90 days aging records found.</td></tr>';const b=$id('aging90DaysTableCount');if(b)b.textContent='0 records';return;}
+    body.innerHTML=rows90.map(a=>{
+      const cid=String(a.client_code??'').trim();
+      return `<tr data-aging90-client="${esc(cid.toLowerCase())}">
+        <td style="font-weight:800;color:#052d70">${esc(cid||'-')}</td>
+        <td style="text-align:right">${fmt(a.currbalance)}</td>
+        <td style="text-align:right">${fmt(a.t_70)}</td><td style="text-align:right">${fmt(a.t_75)}</td>
+        <td style="text-align:right">${fmt(a.t_80)}</td><td style="text-align:right">${fmt(a.t_85)}</td>
+        <td style="text-align:right">${fmt(a.t_86)}</td><td style="text-align:right">${fmt(a.t_87)}</td>
+        <td style="text-align:right">${fmt(a.t_88)}</td><td style="text-align:right">${fmt(a.t_89)}</td>
+        <td style="text-align:right">${fmt(a.t_90)}</td><td style="text-align:right">${fmt(a.total_stock_value)}</td>
+        <td style="text-align:right">${fmt(a.collateral_value)}</td><td>${esc(a.as_of_date||'—')}</td>
+      </tr>`;
+    }).join('');
+    const badge=$id('aging90DaysTableCount');if(badge)badge.textContent=rows90.length+' records';
+    window.filterAging90DaysTable();
+  }
+
+  async function load90(){
+    const body=$id('aging90DaysTableBody');if(!body)return;
+    try{
+      const response=await fetch('/api/admin/aging-90days-all?_='+Date.now(),{credentials:'same-origin',cache:'no-store'});
+      if(!response.ok)throw new Error('90 days aging endpoint unavailable ('+response.status+')');
+      const data=await response.json();
+      const records=data.records||data.data||data.aging_90days||[];
+      if(!Array.isArray(records))throw new Error('Invalid 90 days aging response');
+      render90(records);
+    }catch(err){
+      body.innerHTML='<tr><td colspan="14" style="text-align:center;padding:16px;color:#b45309">90 days aging data endpoint is not available. Check /api/admin/aging-90days-all.</td></tr>';
+      const badge=$id('aging90DaysTableCount');if(badge)badge.textContent='0 records';
+      console.warn('Could not load 90 days aging table:',err);
+    }
+  }
+
+  function sync90ToVisiblePortfolio(){
+    const body=$id('portfolioTable')?.querySelector('tbody');if(!body)return;
+    const visible=[...body.querySelectorAll('tr')].filter(r=>r.style.display!=='none');
+    const ids=[...new Set(visible.map(r=>String(r.dataset.client||r.cells[1]?.textContent||'').trim()).filter(Boolean))];
+    const input=$id('aging90DaysTableSearch');
+    const mainClient=String($id('clientSearch')?.value||'').trim();
+    if(input)input.value=mainClient;
+    if(mainClient){const exact=ids.find(x=>x.toLowerCase()===mainClient.toLowerCase());if(exact){window.filterAging90DaysTable(exact,true);return;}}
+    window.filterAging90DaysTable('',false,ids.length?ids:null);
+  }
+
+  const body=$id('aging90DaysTableBody');
+  if(body){body.addEventListener('click',event=>{
+    const row=event.target.closest('tr[data-aging90-client]');if(!row)return;
+    const cid=row.dataset.aging90Client||'';
+    const fin=$id('finTableSearch');if(fin){fin.value=cid;if(typeof window.filterFinancialTable==='function')window.filterFinancialTable(cid,true);}
+    const ag=$id('agingTableSearch');if(ag){ag.value=cid;if(typeof window.filterAgingTable==='function')window.filterAgingTable(cid,true);}
+    const own=$id('aging90DaysTableSearch');if(own)own.value=cid;
+    window.filterAging90DaysTable(cid,true);
+    const clientBtn=[...document.querySelectorAll('[data-logbook-client]')].find(b=>(b.dataset.logbookClient||'').toLowerCase()===cid.toLowerCase());
+    if(clientBtn)clientBtn.click();
+    else if(typeof window.syncLogbookClientFromMainSearch==='function'){const main=$id('clientSearch');if(main)main.value=cid;window.syncLogbookClientFromMainSearch(cid);}
+  });}
+
+  ['clientSearch','symbolSearch','productSearch','exchangeSearch'].forEach(id=>{
+    const el=$id(id);if(!el)return;
+    el.addEventListener('input',()=>setTimeout(sync90ToVisiblePortfolio,0));
+    el.addEventListener('change',()=>setTimeout(sync90ToVisiblePortfolio,0));
+  });
+  document.addEventListener('click',event=>{if(event.target.closest('button')?.textContent?.trim()==='CLEAR SEARCH')setTimeout(sync90ToVisiblePortfolio,0);});
+  load90();
 })();
 </script>
 
